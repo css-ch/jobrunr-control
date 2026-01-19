@@ -7,9 +7,9 @@
 * [x] Change all documentation in the code to English
 * [x] Clean up examples
 * [x] Create rest api for external trigger (start with job id, check for status)
-* [ ] Clean up code
-* [ ] Clean up rest api
+* [x] Clean up rest api
 * [ ] Create library (split dashboard from sample jobs)
+* [ ] Clean up code
 * [ ] Create unit and integration tests
 * [ ] Write user documentation
 * [ ] Add ArchUnit to check architecture

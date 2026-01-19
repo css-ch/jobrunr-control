@@ -49,6 +49,7 @@
 ### Development Mode
 
 ```bash
+./start-postgres.sh
 ./mvnw quarkus:dev
 # Startet auf http://localhost:8080
 # JobRunr Dashboard: http://localhost:8000

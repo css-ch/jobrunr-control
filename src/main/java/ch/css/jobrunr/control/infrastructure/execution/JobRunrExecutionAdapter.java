@@ -50,6 +50,8 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         try {
             // Define states to query
             StateName[] statesToQuery = {
+                    StateName.ENQUEUED,
+                    StateName.AWAITING,
                     StateName.PROCESSING,
                     StateName.PROCESSED,
                     StateName.SUCCEEDED,
