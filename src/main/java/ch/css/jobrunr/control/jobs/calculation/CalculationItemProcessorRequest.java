@@ -8,4 +8,12 @@ public record CalculationItemProcessorRequest(int itemToCompute, Boolean simulat
     public Class<CalculationItemProcessor> getJobRequestHandler() {
         return CalculationItemProcessor.class;
     }
+
+    /**
+     * Overrides {@code toString()} to provide a suitable job name in the JobRunr Dashboard, as used in the {@code @Job} annotation.
+     */
+    @Override
+    public String toString() {
+        return Integer.toString(itemToCompute);
+    }
 }
