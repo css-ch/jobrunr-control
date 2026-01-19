@@ -25,12 +25,5 @@ public interface JobExecutionPort {
      */
     Optional<JobExecutionInfo> getJobExecutionById(UUID jobId);
 
-    /**
-     * Creates a deep link to the JobRunr Dashboard for a specific job.
-     *
-     * @param jobId Job ID
-     * @return URL to the JobRunr Dashboard
-     */
-    String getDashboardDeepLink(UUID jobId);
 }
 

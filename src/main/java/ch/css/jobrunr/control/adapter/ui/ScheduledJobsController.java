@@ -173,7 +173,8 @@ public class ScheduledJobsController {
     @RolesAllowed({"configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getNewJobModal() {
-        List<JobDefinition> jobDefinitions = discoverJobsUseCase.execute();
+        List<JobDefinition> jobDefinitions = discoverJobsUseCase.execute().stream().sorted(Comparator.comparing(JobDefinition::type)).toList();
+        ;
 
         return jobForm
                 .data("jobDefinitions", jobDefinitions)
@@ -185,7 +186,7 @@ public class ScheduledJobsController {
     @RolesAllowed({"configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getEditJobModal(@PathParam("id") UUID jobId) {
-        List<JobDefinition> jobDefinitions = discoverJobsUseCase.execute();
+        List<JobDefinition> jobDefinitions = discoverJobsUseCase.execute().stream().sorted(Comparator.comparing(JobDefinition::type)).toList();
 
         ScheduledJobInfo jobInfo = getScheduledJobByIdUseCase.execute(jobId)
                 .orElseThrow(() -> new NotFoundException("Job nicht gefunden: " + jobId));

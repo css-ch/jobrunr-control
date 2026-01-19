@@ -727,7 +727,6 @@ Controller --> User: HTTP 200 + htmx fragment
 @startuml
 participant "JobRunr Scheduler" as Scheduler
 participant "CalculationBatchJob" as BatchJob
-participant "CalculationBatchJobPreparer" as Preparer
 participant "CalculationItemProcessor" as Processor
 database "JorRunr Database" as DB
 participant "User Browser" as Browser
@@ -738,16 +737,14 @@ note over Scheduler, DB
 end note
 
 Scheduler -> BatchJob: run(request)
-BatchJob -> Scheduler: BackgroundJobRequest.startBatch(preparerRequest)
 note right
-    Creates batch parent if not exists
+    BatchJob has @BatchJob annotation
+    Directly prepares items
 end note
-Scheduler -> DB: INSERT/UPDATE batch parent
-Scheduler -> Preparer: run(preparerRequest)
 
-Preparer -> Preparer: Load items to process\n(e.g., 1000 items)
-Preparer -> Preparer: Sleep 5s (simulate preparation)
-Preparer -> Scheduler: BackgroundJobRequest.enqueue(items.stream())
+BatchJob -> BatchJob: Load items to process\n(e.g., 1000 items)
+BatchJob -> BatchJob: Sleep 5s (simulate preparation)
+BatchJob -> Scheduler: BackgroundJobRequest.enqueue(items.stream())
 note right
     Enqueues child jobs (1000 items)
     All linked to batch parent
@@ -757,8 +754,8 @@ loop For each item (1-1000)
     Scheduler -> DB: INSERT child job
 end
 
-Preparer --> Scheduler: Completed
-Scheduler -> DB: UPDATE preparer job (SUCCEEDED)
+BatchJob --> Scheduler: Completed
+Scheduler -> DB: UPDATE batch job (SUCCEEDED)
 
 == Parallel Execution ==
 
@@ -1060,29 +1057,35 @@ public JobId scheduleJob(UUID jobId, String jobType, Map<String, Object> paramet
 For scheduled batch jobs, the execution follows this pattern:
 
 1. **Scheduled Time Reached**: JobRunr scheduler picks up the scheduled job
-2. **Batch Job Executes**: `CalculationBatchJob.run(request)` is called
-3. **Batch Parent Created**: Inside the job, `BackgroundJobRequest.startBatch(preparerRequest)` is called
-4. **Preparer Job Enqueued**: The preparer job is enqueued with the batch parent context
-5. **Child Jobs Created**: Preparer creates all child jobs linked to the batch parent
+2. **Batch Job Executes**: `CalculationBatchJob.run(request)` is called (must be annotated with `@BatchJob`)
+3. **Items Prepared**: The batch job loads and prepares all items to process
+4. **Child Jobs Created**: Batch job creates all child jobs by calling `BackgroundJobRequest.enqueue(items.stream())`
 
 [source,java]
 ----
 @ApplicationScoped
 public class CalculationBatchJob implements ConfigurableJob<CalculationBatchJobRequest> {
 
+    @BatchJob
     @Override
-    @Job(name = "CalculationBatchJob", retries = 2)
     public void run(CalculationBatchJobRequest request) throws Exception {
-        // Create preparer request
-        CalculationBatchJobPreparerRequest preparerRequest =
-            new CalculationBatchJobPreparerRequest(
-                request.totalItems(),
-                request.batchSize(),
-                request.simulateErrors()
-            );
+        jobContext().logger().info(String.format("Preparing batch job with totalItems: %d, batchSize: %d, simulateErrors: %b",
+                request.totalItems(), request.batchSize(), request.simulateErrors()));
 
-        // This creates the batch parent and enqueues the preparer
-        BackgroundJobRequest.startBatch(preparerRequest);
+        // Load all items to be processed based on request parameters
+        List<CalculationItemProcessorRequest> items = IntStream.rangeClosed(1, request.totalItems())
+                .mapToObj(x -> new CalculationItemProcessorRequest(x, request.simulateErrors()))
+                .toList();
+
+        // Simulate preparation delay
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // Enqueue background jobs for each item
+        BackgroundJobRequest.enqueue(items.stream());
     }
 }
 ----
@@ -1094,10 +1097,12 @@ public class CalculationBatchJob implements ConfigurableJob<CalculationBatchJobR
 * ✅ Preserves batch parent-child relationship
 * ✅ No modifications to JobRunr required
 * ✅ Works with JobRunr's batch progress tracking
+* ✅ Simplified architecture - no separate preparer job needed
+* ✅ Clear identification via `@BatchJob` annotation
 
 .Disadvantages
-* ❌ Scheduled batch jobs have two-level indirection (wrapper → actual batch)
 * ❌ Batch parent is not created until execution time
+* ❌ All item preparation logic must be in the batch job itself
 * ❌ Cannot inspect batch structure before execution
 * ❌ 5-second threshold is somewhat arbitrary
 

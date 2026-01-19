@@ -106,14 +106,14 @@
                         </td>
                         <td>
                             {#if execution.startedAt}
-                                <small class="text-muted">{execution.startedAt}</small>
+                                <small class="text-muted">{execution.startedAt.format('dd.MM.yyyy HH:mm')}</small>
                             {#else}
                                 <small class="text-muted">-</small>
                             {/if}
                         </td>
                         <td>
                             {#if execution.finishedAt.isPresent()}
-                                <small class="text-muted">{execution.finishedAt.get()}</small>
+                                <small class="text-muted">{execution.finishedAt.get().format('dd.MM.yyyy HH:mm')}</small>
                             {#else}
                                 {#if execution.status.name() == 'PROCESSING'}
                                     <div class="spinner-border spinner-border-sm text-primary" role="status">

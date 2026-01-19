@@ -7,6 +7,7 @@ package ch.css.jobrunr.control.domain;
 public enum JobStatus {
     ENQUEUED,
     PROCESSING,
+    PROCESSED,
     SUCCEEDED,
     FAILED
 }

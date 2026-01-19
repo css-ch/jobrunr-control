@@ -4,7 +4,6 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterType;
-import ch.css.jobrunr.control.infrastructure.discovery.annotation.Batch;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -120,24 +119,7 @@ public class JobDefinitionDiscoveryAdapter implements JobDefinitionDiscoveryServ
     }
 
     private Boolean isBatchJob(ConfigurableJob<?> handler) {
-        try {
-            // Check annotation on the handler implementation class
-            Class<?> handlerClass = handler.getClass();
-            if (handlerClass.isAnnotationPresent(Batch.class)) {
-                return Boolean.TRUE;
-            }
-
-            // Also check the JobRequest type associated with this handler
-            Class<? extends JobRequest> requestClass = handler.getJobRequestType();
-            if (requestClass != null && requestClass.isAnnotationPresent(Batch.class)) {
-                return Boolean.TRUE;
-            }
-        } catch (Exception e) {
-            // Be tolerant: log at debug level and treat as non-batch on failure
-            log.debug("Failed to check @Batch on handler {}: {}", handler.getClass().getName(), e.getMessage());
-        }
-
-        return Boolean.FALSE;
+        return handler.isBatchJob();
     }
 
     /**

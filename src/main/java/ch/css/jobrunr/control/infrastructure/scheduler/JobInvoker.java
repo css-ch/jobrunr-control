@@ -13,6 +13,8 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.jobrunr.scheduling.JobBuilder.aBatchJob;
+
 /**
  * Helper class for creating and scheduling JobRequests.
  * Converts parameter maps to JobRequest objects and uses JobRequestScheduler.
@@ -48,25 +50,19 @@ public class JobInvoker {
             // Create a new instance of the request class
             JobRequest jobRequest = createRequestInstance(requestClass, parameters);
 
-            // Check if this is a batch job
-            boolean isImmediate = scheduledAt == null || scheduledAt.isBefore(Instant.now().plusSeconds(5));
-
             // Schedule the job with JobRequestScheduler
             JobId resultId;
-            if (jobId != null) {
-                // Update existing job - always use scheduleOrReplace
-                resultId = jobRequestScheduler.scheduleOrReplace(jobId, scheduledAt, jobRequest);
-            } else if (isBatchJob && isImmediate) {
-                // For immediate batch jobs, use startBatch() to create the batch parent
-                resultId = jobRequestScheduler.startBatch(jobRequest);
+            if (isBatchJob) {
+                resultId = jobRequestScheduler.createOrReplace(
+                        aBatchJob()
+                                .withId(jobId)
+                                .scheduleAt(scheduledAt)
+                                .withJobRequest(jobRequest));
             } else {
-                // For non-batch jobs or scheduled batch jobs, use schedule()
-                // Note: Scheduled batch jobs will create their batch parent when they execute
-                resultId = jobRequestScheduler.schedule(scheduledAt != null ? scheduledAt : Instant.now(), jobRequest);
+                resultId = jobRequestScheduler.scheduleOrReplace(jobId, scheduledAt, jobRequest);
             }
 
-            log.info("Job scheduled successfully: {} (batch={}, immediate={}) with JobId: {}",
-                    jobType, isBatchJob, isImmediate, resultId);
+            log.info("Job scheduled successfully: {} (batch={}) with JobId: {}", jobType, isBatchJob, resultId);
             return resultId;
 
         } catch (ClassNotFoundException e) {

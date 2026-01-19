@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.infrastructure.discovery;
 
+import ch.css.jobrunr.control.infrastructure.discovery.annotation.BatchJob;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
@@ -15,6 +16,18 @@ import java.lang.reflect.Type;
  * @param <T> The JobRequest type this handler processes
  */
 public interface ConfigurableJob<T extends JobRequest> extends JobRequestHandler<T> {
+
+    default boolean isBatchJob() {
+        try {
+            Class<?> implementingClass = this.getClass();
+            Class<T> jobRequestType = this.getJobRequestType();
+            Method runMethod = implementingClass.getMethod("run", jobRequestType);
+            return runMethod.getAnnotation(BatchJob.class) != null;
+        } catch (NoSuchMethodException e) {
+            LoggerFactory.getLogger(ConfigurableJob.class).error("Could not find run method in class: {}", this.getClass().getName(), e);
+        }
+        return false;
+    }
 
     default String getJobType() {
         try {
@@ -55,7 +68,7 @@ public interface ConfigurableJob<T extends JobRequest> extends JobRequestHandler
 
         throw new IllegalStateException(
                 "Could not determine JobRequest type for " + currentClass.getName() +
-                        ". Make sure the class directly implements Jorrr<YourRequestType>."
+                        ". Make sure the class directly implements ConfigurableJob<YourRequestType>."
         );
     }
 

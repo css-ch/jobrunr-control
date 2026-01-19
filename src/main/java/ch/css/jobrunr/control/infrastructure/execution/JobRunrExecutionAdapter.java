@@ -66,14 +66,9 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                         JobSearchRequest searchRequest = createSearchRequestForStateAndJobType(state, jobDefinition.type());
                         List<Job> jobList = storageProvider.getJobList(searchRequest, amountRequest);
                         for (Job job : jobList) {
-                            List<Job> childJobs = storageProvider.getJobList(createSearchRequestForParentId(job.getId()), amountRequest);
-                            if (childJobs.isEmpty()) {
-                                jobExecutionInfos.add(mapToJobExecutionInfo(jobDefinition.type(), job));
-                            } else {
-                                jobExecutionInfos.add(mapToJobExecutionInfo(jobDefinition.type(), job));
-                                for (Job childJob : childJobs) {
-                                    jobExecutionInfos.add(mapToJobExecutionInfo(jobDefinition, job, childJob));
-                                }
+                            JobExecutionInfo jobExecutionInfo = mapToJobExecutionInfo(jobDefinition.type(), job);
+                            if (!isChildJobOfBatch(job, jobDefinition)) { // Check is necessary because JobRunr copies labels to child jobs
+                                jobExecutionInfos.add(jobExecutionInfo);
                             }
                         }
                     } catch (Exception e) {
@@ -81,14 +76,19 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                     }
                 }
             }
-
-            // Apply pagination to the combined result
-            // Note: Jobs are already filtered by "dashboard:visible" label in JobSearchRequest
             return jobExecutionInfos;
         } catch (Exception e) {
             log.error("Fehler beim Abrufen der Job-Ausführungen", e);
             throw new JobExecutionException("Fehler beim Abrufen der Job-Ausführungen", e);
         }
+    }
+
+    private boolean isChildJobOfBatch(Job job, JobDefinition jobDefinition) {
+        return jobDefinition.isBatch() && getParentJob(job) != null;
+    }
+
+    private UUID getParentJob(Job job) {
+        return job.getJobStatesOfType(EnqueuedState.class).findFirst().map(AbstractInitialJobState::getParentJobId).orElse(null);
     }
 
     private static @NonNull JobSearchRequest createSearchRequestForStateAndJobType(StateName state, String jobType) {
@@ -160,42 +160,11 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                     .map(label -> label.substring(8))
                     .findFirst()
                     .orElse(null);
-
-            // Check for exactly one child job - this indicates a batch job execution
-            AmountRequest amountRequest = new AmountRequest("updatedAt:DESC", 1);
-            List<Job> childJobs = storageProvider.getJobList(createSearchRequestForParentId(job.getId()), amountRequest);
-            if (childJobs.size() == 1) {
-                Job childJob = childJobs.getFirst();
-                return Optional.of(mapToJobExecutionInfo(jobType, childJob));
-            }
             return Optional.of(mapToJobExecutionInfo(jobType, job));
         } catch (Exception e) {
             log.error("Fehler beim Abrufen von Job {}", jobId, e);
             return Optional.empty();
         }
-    }
-
-    @Override
-    public String getDashboardDeepLink(UUID jobId) {
-        return dashboardUrl + "/dashboard/jobs/" + jobId;
-    }
-
-
-    private JobExecutionInfo mapToJobExecutionInfo(JobDefinition parentJobDefinition, org.jobrunr.jobs.Job parent, org.jobrunr.jobs.Job child) {
-        JobExecutionInfo childInfo = mapToJobExecutionInfo(parentJobDefinition.type(), child);
-
-        childInfo = new JobExecutionInfo(
-                childInfo.getJobId(),
-                parent.getJobName() + " (Batch)",
-                parentJobDefinition.type(),
-                childInfo.getStatus(),
-                childInfo.getStartedAt(),
-                childInfo.getFinishedAt().orElse(null),
-                childInfo.getBatchProgress().orElse(null),
-                childInfo.getParameters()
-        );
-
-        return childInfo;
     }
 
     private JobExecutionInfo mapToJobExecutionInfo(String jobType, org.jobrunr.jobs.Job job) {
@@ -218,23 +187,18 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         );
     }
 
-    private String extractSimpleClassName(String fullyQualifiedClassName) {
-        int lastDotIndex = fullyQualifiedClassName.lastIndexOf('.');
-        return lastDotIndex >= 0 ? fullyQualifiedClassName.substring(lastDotIndex + 1) : fullyQualifiedClassName;
-    }
 
     private JobStatus mapJobState(JobState jobState) {
-        if (jobState instanceof EnqueuedState || jobState instanceof ScheduledState || jobState instanceof AwaitingState) {
-            return JobStatus.ENQUEUED;
-        } else if (jobState instanceof ProcessingState) {
-            return JobStatus.PROCESSING;
-        } else if (jobState instanceof SucceededState) {
-            return JobStatus.SUCCEEDED;
-        } else if (jobState instanceof FailedState) {
-            return JobStatus.FAILED;
-        } else {
-            return JobStatus.ENQUEUED;
-        }
+        return switch (jobState) {
+            case EnqueuedState s -> JobStatus.ENQUEUED;
+            case ScheduledState s -> JobStatus.ENQUEUED;
+            case AwaitingState s -> JobStatus.ENQUEUED;
+            case ProcessingState s -> JobStatus.PROCESSING;
+            case ProcessedState s -> JobStatus.PROCESSED;
+            case SucceededState s -> JobStatus.SUCCEEDED;
+            case FailedState s -> JobStatus.FAILED;
+            case null, default -> JobStatus.ENQUEUED;
+        };
     }
 
     private Instant extractStartedAt(org.jobrunr.jobs.Job job) {
