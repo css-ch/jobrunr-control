@@ -1,0 +1,1578 @@
+= Architecture Documentation: JobRunr Pro Scheduler Extension
+:toc: left
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: rouge
+
+== Introduction and Goals
+
+=== Requirements Overview
+
+The JobRunr Pro Scheduler Extension is a web-based control application that extends the standard JobRunr Pro Dashboard with advanced scheduling and monitoring capabilities.
+The application provides a dedicated user interface for planning, parameterizing, and monitoring jobs while using JobRunr API as the single source of truth without maintaining its own job data.
+
+.Key Features
+* Dynamic job scheduling with type-safe parameter configuration
+* Support for scheduled, periodic, and externally triggerable jobs
+* Batch job execution with real-time progress monitoring
+* External trigger API for integration with external systems
+* Deep-link integration with JobRunr Pro Dashboard for detailed job analysis
+
+=== Quality Goals
+
+[cols="1,3,1"]
+|===
+|Priority |Quality Goal |Motivation
+
+|1
+|Maintainability
+|Clean Architecture ensures that changes remain local and the system can evolve independently
+
+|2
+|Reliability
+|Jobs must be scheduled correctly and executed reliably; JobRunr Pro provides durability guarantees
+
+|3
+|Usability
+|Simple, functional UI for internal users without unnecessary complexity
+
+|4
+|Performance
+|Non-blocking architecture for intensive operations (batch progress analysis)
+
+|5
+|Testability
+|Hexagonal architecture enables isolated unit and integration testing
+|===
+
+=== Stakeholders
+
+[cols="1,2,2"]
+|===
+|Role |Contact |Expectations
+
+|Operations Team
+|Internal Users
+|Reliable job scheduling, clear monitoring interface, minimal training required
+
+|Developers
+|Development Team
+|Clean codebase, clear architecture, easy to extend with new job types
+
+|External Systems
+|Integration Partners
+|REST API for triggering jobs and checking status
+
+|System Administrators
+|Infrastructure Team
+|Easy deployment, containerization support, monitoring capabilities
+|===
+
+== Architecture Constraints
+
+=== Technical Constraints
+
+[cols="1,3"]
+|===
+|Constraint |Description
+
+|Java 21
+|Required for modern language features (Records, Pattern Matching, Virtual Threads)
+
+|Quarkus 3.30.6
+|Framework choice mandated by technical specification
+
+|JobRunr Pro 8.4.0
+|Licensed job scheduling engine, provides core functionality
+
+|JorRunr Database (PostgreSQL 16)
+|Database for JobRunr storage provider
+
+|Podman
+|Container runtime for development and testing
+
+|Server-Side Rendering
+|Qute templates with htmx for interactivity (no SPA framework)
+|===
+
+=== Organizational Constraints
+
+[cols="1,3"]
+|===
+|Constraint |Description
+
+|Clean Architecture
+|Mandatory architectural pattern per technical specification
+
+|No Field Injection
+|Constructor injection required for better testability
+
+|No Lombok
+|Java Records and standard patterns preferred
+
+|License Management
+|JobRunr Pro requires license file configuration
+|===
+
+=== Conventions
+
+[cols="1,3"]
+|===
+|Constraint |Description
+
+|Package Structure
+|Strict layer separation: domain / application / infrastructure / adapter
+
+|Testing Strategy
+|JUnit 5 + Mockito for unit tests, QuarkusTest for integration tests
+
+|Logging
+|JBoss Logging with structured logging principles
+
+|Documentation
+|English for all public APIs and documentation
+|===
+
+== System Scope and Context
+
+=== Business Context
+
+[plantuml,business-context,svg]
+----
+@startuml
+!include <C4/C4_Context>
+
+Person(ops_user, "Operations User", "Schedules and monitors jobs via UI")
+Person(admin, "Administrator", "Manages system configuration and access")
+System_Ext(external_system, "External System", "Triggers jobs via REST API")
+
+System_Boundary(jobrunr_control, "JobRunr Control") {
+    System(control_app, "Scheduler Extension", "Web UI and API for job control")
+}
+
+System_Ext(jobrunr_dashboard, "JobRunr Pro Dashboard", "Built-in JobRunr monitoring UI")
+System_Ext(jorunr_db, "JorRunr Database", "JobRunr storage provider (PostgreSQL 16)")
+
+Rel(ops_user, control_app, "Creates and monitors jobs", "HTTPS")
+Rel(admin, control_app, "Configures access", "HTTPS")
+Rel(external_system, control_app, "Triggers jobs", "REST API")
+
+Rel(control_app, jobrunr_dashboard, "Deep-links for details", "HTTP")
+Rel(control_app, jorunr_db, "Reads/writes job data", "JDBC")
+Rel(jobrunr_dashboard, jorunr_db, "Reads/writes job data", "JDBC")
+
+@enduml
+----
+
+.External Interfaces
+[cols="1,2,2"]
+|===
+|Interface |Partner |Description
+
+|Web UI
+|Operations Users
+|HTML/htmx interface for job scheduling and monitoring
+
+|REST API
+|External Systems
+|Trigger endpoints for external job execution
+
+|Deep Links
+|JobRunr Dashboard
+|Navigation to detailed job views in original dashboard
+
+|Database
+|JorRunr Database
+|JobRunr storage provider (shared with JobRunr Dashboard)
+|===
+
+=== Technical Context
+
+[plantuml,technical-context,svg]
+----
+@startuml
+!include <C4/C4_Container>
+
+Person(user, "User", "Operations Team")
+
+System_Boundary(control, "JobRunr Control Application") {
+    Container(web_ui, "Web UI", "Qute + htmx", "Server-side rendered interface")
+    Container(rest_api, "REST API", "JAX-RS", "External trigger endpoints")
+    Container(app_layer, "Application Layer", "Use Cases", "Business logic orchestration")
+    Container(domain_layer, "Domain Layer", "Ports & Models", "Core business rules")
+    Container(infra_layer, "Infrastructure", "JobRunr Adapters", "JobRunr integration")
+}
+
+ContainerDb(db, "JorRunr Database", "Relational DB", "JobRunr storage")
+System_Ext(jobrunr, "JobRunr Pro", "Job execution engine")
+
+Rel(user, web_ui, "Uses", "HTTPS")
+Rel(user, rest_api, "Triggers", "HTTPS/JSON")
+Rel(web_ui, app_layer, "Calls")
+Rel(rest_api, app_layer, "Calls")
+Rel(app_layer, domain_layer, "Uses")
+Rel(app_layer, infra_layer, "Uses ports")
+Rel(infra_layer, jobrunr, "Schedules jobs", "JobRunr API")
+Rel(infra_layer, db, "Queries job data", "JDBC")
+Rel(jobrunr, db, "Persists jobs", "JDBC")
+
+@enduml
+----
+
+.Technical Interfaces
+[cols="1,2,2,2"]
+|===
+|Interface |Technology |Protocol |Description
+
+|Web Browser
+|HTML5, Bootstrap 5.3, htmx 1.9.x
+|HTTP/HTTPS
+|User interface rendered server-side with partial updates via htmx
+
+|REST API
+|JAX-RS (REST-Jackson)
+|HTTP/JSON
+|OpenAPI 3.0 documented endpoints for external triggers
+
+|JobRunr Scheduler
+|JobRunr Pro API (JobScheduler, JobRequestScheduler)
+|In-Process
+|Job scheduling and lifecycle management
+
+|JobRunr Storage
+|JobRunr StorageProvider
+|JDBC
+|Read/write access to job metadata and state
+
+|Database
+|JDBC, Agroal Connection Pool
+|TCP/PostgreSQL Wire Protocol
+|JorRunr Database (PostgreSQL 16) connection with pooling
+|===
+
+== Solution Strategy
+
+=== Technology Decisions
+
+[cols="1,2,2"]
+|===
+|Decision |Rationale |Consequences
+
+|Clean Architecture / Hexagonal
+|Mandated by specification; ensures maintainability and testability
+|Clear layer boundaries, dependency inversion via ports/adapters
+
+|Server-Side Rendering (Qute + htmx)
+|Simple, functional UI without SPA complexity; faster time-to-market
+|Lower frontend complexity, reduced JavaScript, better SEO
+
+|JobRunr Pro
+|Enterprise-grade job scheduling with durability, monitoring, and batch support
+|Licensing cost, vendor lock-in, but proven reliability
+
+|Java Records
+|Immutable DTOs with minimal boilerplate (Java 21 feature)
+|Cleaner code, type safety, no need for Lombok
+
+|Constructor Injection
+|Better testability and explicit dependencies
+|Slightly more verbose but clearer dependency graphs
+
+|PostgreSQL
+|Reliable, ACID-compliant RDBMS with excellent JobRunr support
+|Standard operational tooling, backup strategies
+|===
+
+=== Architectural Patterns
+
+==== Hexagonal Architecture (Ports and Adapters)
+
+The application strictly follows Clean Architecture principles with dependency inversion:
+
+[plantuml,hexagonal-architecture,svg]
+----
+@startuml
+package "Domain Layer (Core)" {
+    [JobDefinition]
+    [ScheduledJobInfo]
+    [JobExecutionInfo]
+    [JobSchedulerPort] <<interface>>
+    [JobExecutionPort] <<interface>>
+    [JobDefinitionDiscoveryService] <<interface>>
+}
+
+package "Application Layer" {
+    [CreateScheduledJobUseCase]
+    [GetScheduledJobsUseCase]
+    [ExecuteJobImmediatelyUseCase]
+    [GetBatchProgressUseCase]
+}
+
+package "Infrastructure Layer" {
+    [JobRunrSchedulerAdapter]
+    [JobRunrExecutionAdapter]
+    [JobDefinitionDiscoveryAdapter]
+    [JobInvoker]
+}
+
+package "Adapter Layer (UI/API)" {
+    [ScheduledJobsController]
+    [JobExecutionsController]
+    [ExternalTriggerResource]
+}
+
+package "External" {
+    database "JorRunr Database" as DB
+    component "JobRunr API" as JobRunr
+}
+
+[CreateScheduledJobUseCase] --> [JobSchedulerPort]
+[GetScheduledJobsUseCase] --> [JobSchedulerPort]
+[ExecuteJobImmediatelyUseCase] --> [JobSchedulerPort]
+[GetBatchProgressUseCase] --> [JobExecutionPort]
+
+[JobRunrSchedulerAdapter] ..|> [JobSchedulerPort]
+[JobRunrExecutionAdapter] ..|> [JobExecutionPort]
+[JobDefinitionDiscoveryAdapter] ..|> [JobDefinitionDiscoveryService]
+
+[JobRunrSchedulerAdapter] --> JobRunr
+[JobRunrExecutionAdapter] --> DB
+[JobRunrSchedulerAdapter] --> DB
+
+[ScheduledJobsController] --> [CreateScheduledJobUseCase]
+[ScheduledJobsController] --> [GetScheduledJobsUseCase]
+[JobExecutionsController] --> [GetBatchProgressUseCase]
+[ExternalTriggerResource] --> [ExecuteJobImmediatelyUseCase]
+
+@enduml
+----
+
+==== Use Case Driven Design
+
+Each user interaction is modeled as a distinct use case in the application layer:
+
+* `CreateScheduledJobUseCase` - Schedule new job
+* `UpdateScheduledJobUseCase` - Modify existing scheduled job
+* `DeleteScheduledJobUseCase` - Remove scheduled job
+* `ExecuteJobImmediatelyUseCase` - Trigger job execution
+* `GetScheduledJobsUseCase` - Retrieve all scheduled jobs
+* `GetJobExecutionHistoryUseCase` - Retrieve execution history
+* `GetBatchProgressUseCase` - Asynchronously load batch progress
+
+== Building Block View
+
+=== Level 1: System Overview
+
+[plantuml,building-blocks-l1,svg]
+----
+@startuml
+package "JobRunr Control Application" {
+    [Domain Layer]
+    [Application Layer]
+    [Infrastructure Layer]
+    [Adapter Layer]
+}
+
+[Domain Layer] <-- [Application Layer]
+[Application Layer] <-- [Adapter Layer]
+[Infrastructure Layer] ..|> [Domain Layer] : implements ports
+
+database "JorRunr Database" as DB
+component "JobRunr Pro" as JobRunr
+
+[Infrastructure Layer] --> JobRunr
+[Infrastructure Layer] --> DB
+
+@enduml
+----
+
+=== Level 2: Domain Layer
+
+[plantuml,domain-layer,svg]
+----
+@startuml
+package "ch.css.jobrunr.control.domain" {
+    class JobDefinition <<record>> {
+        +String type
+        +Boolean isBatch
+        +Set<JobParameter> parameters
+    }
+
+    class ScheduledJobInfo <<record>> {
+        +UUID jobId
+        +String jobName
+        +String jobType
+        +Instant scheduledAt
+        +Map<String,Object> parameters
+        +boolean isExternallyTriggerable
+    }
+
+    class JobExecutionInfo {
+        +UUID jobId
+        +String jobName
+        +String jobType
+        +JobStatus status
+        +Instant startedAt
+        +Instant finishedAt
+        +Optional<BatchProgress> batchProgress
+        +Map<String,Object> parameters
+    }
+
+    class JobParameter <<record>> {
+        +String name
+        +JobParameterType type
+        +boolean required
+    }
+
+    enum JobParameterType {
+        STRING
+        INTEGER
+        BOOLEAN
+        DATE
+        DATETIME
+    }
+
+    enum JobStatus {
+        ENQUEUED
+        PROCESSING
+        SUCCEEDED
+        FAILED
+    }
+
+    interface JobSchedulerPort {
+        +UUID scheduleJob(...)
+        +void updateJob(...)
+        +void deleteScheduledJob(UUID)
+        +void executeJobNow(UUID)
+        +List<ScheduledJobInfo> getScheduledJobs()
+        +ScheduledJobInfo getScheduledJobById(UUID)
+    }
+
+    interface JobExecutionPort {
+        +List<JobExecutionInfo> getJobExecutions()
+        +Optional<JobExecutionInfo> getJobExecutionById(UUID)
+    }
+
+    interface JobDefinitionDiscoveryService {
+        +List<JobDefinition> getAllJobDefinitions()
+        +Optional<JobDefinition> findJobByType(String)
+    }
+
+    JobDefinition *-- JobParameter
+    JobParameter --> JobParameterType
+    JobExecutionInfo --> JobStatus
+}
+@enduml
+----
+
+=== Level 2: Application Layer
+
+[plantuml,application-layer,svg]
+----
+@startuml
+package "ch.css.jobrunr.control.application" {
+    package "scheduling" {
+        class CreateScheduledJobUseCase {
+            -JobSchedulerPort schedulerPort
+            -JobParameterValidator validator
+            +UUID execute(jobType, jobName, params, trigger, time)
+        }
+
+        class UpdateScheduledJobUseCase {
+            -JobSchedulerPort schedulerPort
+            -JobParameterValidator validator
+            +void execute(jobId, jobType, jobName, params, trigger, time)
+        }
+
+        class DeleteScheduledJobUseCase {
+            -JobSchedulerPort schedulerPort
+            +void execute(jobId)
+        }
+
+        class ExecuteJobImmediatelyUseCase {
+            -JobSchedulerPort schedulerPort
+            +void execute(jobId)
+        }
+    }
+
+    package "monitoring" {
+        class GetScheduledJobsUseCase {
+            -JobSchedulerPort schedulerPort
+            +List<ScheduledJobInfo> execute()
+        }
+
+        class GetJobExecutionHistoryUseCase {
+            -JobExecutionPort executionPort
+            +List<JobExecutionInfo> execute()
+        }
+
+        class GetBatchProgressUseCase {
+            -JobExecutionPort executionPort
+            -Duration timeout
+            +Optional<BatchProgress> execute(jobId)
+            +Uni<Optional<BatchProgress>> executeAsync(jobId)
+        }
+    }
+
+    package "validation" {
+        class JobParameterValidator {
+            +void validate(JobDefinition, Map<String,Object>)
+        }
+    }
+}
+@enduml
+----
+
+=== Level 2: Infrastructure Layer
+
+[plantuml,infrastructure-layer,svg]
+----
+@startuml
+package "ch.css.jobrunr.control.infrastructure" {
+    package "scheduler" {
+        class JobRunrSchedulerAdapter {
+            -JobScheduler jobScheduler
+            -StorageProvider storageProvider
+            -JobInvoker jobInvoker
+            +UUID scheduleJob(...)
+            +void updateJob(...)
+            +void deleteScheduledJob(UUID)
+            +void executeJobNow(UUID)
+            +List<ScheduledJobInfo> getScheduledJobs()
+            -ScheduledJobInfo mapToScheduledJobInfo(Job)
+        }
+
+        class JobInvoker {
+            -JobRequestScheduler requestScheduler
+            -JobDefinitionDiscoveryAdapter discoveryAdapter
+            +JobId scheduleJob(jobId, type, params, isBatch, time)
+            -JobRequest createRequestInstance(Class, Map)
+            -Object convertToType(Object, Class)
+        }
+    }
+
+    package "execution" {
+        class JobRunrExecutionAdapter {
+            -StorageProvider storageProvider
+            -JobDefinitionDiscoveryService discoveryService
+            -String dashboardUrl
+            +List<JobExecutionInfo> getJobExecutions()
+            +Optional<JobExecutionInfo> getJobExecutionById(UUID)
+            -BatchProgress extractBatchProgress(Job)
+        }
+    }
+
+    package "discovery" {
+        class JobDefinitionDiscoveryAdapter {
+            -Instance<ConfigurableJob> jobHandlers
+            -Set<JobDefinition> jobDefinitionsCache
+            +List<JobDefinition> getAllJobDefinitions()
+            +Optional<JobDefinition> findJobByType(String)
+            -Set<JobDefinition> discoverJobs()
+        }
+
+        interface ConfigurableJob<T> {
+            +void run(T request)
+            +Class<T> getJobRequestType()
+        }
+    }
+
+    class JobParameterExtractor {
+        +{static} Map<String,Object> extractParameters(Job)
+    }
+}
+
+JobRunrSchedulerAdapter --> JobInvoker
+JobRunrExecutionAdapter --> JobParameterExtractor
+JobDefinitionDiscoveryAdapter --> ConfigurableJob
+@enduml
+----
+
+=== Level 3: Batch Job Scheduling Workaround
+
+Due to limitations in JobRunr's batch job API, a specific workaround is implemented for scheduling batch jobs.
+This is one of the most critical design decisions in the system.
+
+[plantuml,batch-workaround,svg]
+----
+@startuml
+!theme plain
+
+participant "JobInvoker" as Invoker
+participant "JobRequestScheduler\n(JobRunr API)" as Scheduler
+participant "JobRequest" as Request
+participant "BatchJob" as Batch
+
+note over Invoker, Batch
+    **Problem**: JobRunr's startBatch() creates immediate batch parent,
+    but we need to schedule batch jobs for future execution
+end note
+
+group Scheduled Batch Job (Future Date)
+    Invoker -> Invoker: Check: isBatch && !isImmediate
+    Invoker -> Request: Create JobRequest instance
+    Invoker -> Scheduler: schedule(scheduledAt, jobRequest)
+    note right
+        Uses schedule() instead of startBatch()
+        Batch parent will be created when job executes
+    end note
+    Scheduler --> Invoker: JobId
+end
+
+group Immediate Batch Job
+    Invoker -> Invoker: Check: isBatch && isImmediate
+    Invoker -> Request: Create JobRequest instance
+    Invoker -> Scheduler: startBatch(jobRequest)
+    note right
+        Uses startBatch() to create batch parent immediately
+        Preparer job enqueued with parent relationship
+    end note
+    Scheduler -> Batch: Create BatchJob parent
+    Scheduler --> Invoker: JobId (batch parent)
+end
+
+group Regular (Non-Batch) Job
+    Invoker -> Request: Create JobRequest instance
+    Invoker -> Scheduler: schedule(scheduledAt, jobRequest)
+    Scheduler --> Invoker: JobId
+end
+
+@enduml
+----
+
+.Workaround Implementation Details
+[source,java]
+----
+public JobId scheduleJob(UUID jobId, String jobType, Map<String, Object> parameters,
+                         Boolean isBatchJob, Instant scheduledAt) {
+    Class<? extends JobRequest> requestClass = discoveryAdapter.getJobRequestClass(jobType);
+    JobRequest jobRequest = createRequestInstance(requestClass, parameters);
+
+    boolean isImmediate = scheduledAt == null || scheduledAt.isBefore(Instant.now().plusSeconds(5));
+
+    JobId resultId;
+    if (jobId != null) {
+        // Update: always use scheduleOrReplace
+        resultId = jobRequestScheduler.scheduleOrReplace(jobId, scheduledAt, jobRequest);
+    } else if (isBatchJob && isImmediate) {
+        // WORKAROUND: For immediate batch jobs, use startBatch()
+        resultId = jobRequestScheduler.startBatch(jobRequest);
+    } else {
+        // For scheduled batch jobs or regular jobs, use schedule()
+        // Batch parent will be created when the job executes
+        resultId = jobRequestScheduler.schedule(
+            scheduledAt != null ? scheduledAt : Instant.now(),
+            jobRequest
+        );
+    }
+
+    return resultId;
+}
+----
+
+== Runtime View
+
+=== Scenario: Schedule a New Batch Job
+
+[plantuml,schedule-batch-job,svg]
+----
+@startuml
+actor "Operations User" as User
+participant "ScheduledJobsController" as Controller
+participant "CreateScheduledJobUseCase" as UseCase
+participant "JobParameterValidator" as Validator
+participant "JobSchedulerPort" as Port
+participant "JobRunrSchedulerAdapter" as Adapter
+participant "JobInvoker" as Invoker
+participant "JobRequestScheduler\n(JobRunr)" as Scheduler
+database "JorRunr Database" as DB
+
+User -> Controller: POST /scheduled/create\n(jobType, jobName, params, scheduledAt)
+Controller -> UseCase: execute(jobType, jobName, params, ...)
+UseCase -> Validator: validate(jobDefinition, params)
+Validator --> UseCase: validation OK
+UseCase -> Port: scheduleJob(jobDefinition, jobName, ...)
+Port -> Adapter: scheduleJob(...)
+Adapter -> Invoker: scheduleJob(null, jobType, params, true, scheduledAt)
+
+alt Immediate Batch Job (scheduledAt < now + 5s)
+    Invoker -> Scheduler: startBatch(jobRequest)
+    Scheduler -> DB: INSERT batch parent job
+    Scheduler --> Invoker: JobId
+else Scheduled Batch Job (future date)
+    Invoker -> Scheduler: schedule(scheduledAt, jobRequest)
+    note right
+        Batch parent NOT created yet
+        Will be created when job executes
+    end note
+    Scheduler -> DB: INSERT scheduled job
+    Scheduler --> Invoker: JobId
+end
+
+Invoker --> Adapter: JobId
+Adapter -> DB: UPDATE job (set name, labels)
+Adapter --> Port: UUID
+Port --> UseCase: UUID
+UseCase --> Controller: UUID
+Controller --> User: HTTP 200 + htmx fragment
+
+@enduml
+----
+
+=== Scenario: Execute Batch Job with Progress Monitoring
+
+[plantuml,batch-execution,svg]
+----
+@startuml
+participant "JobRunr Scheduler" as Scheduler
+participant "CalculationBatchJob" as BatchJob
+participant "CalculationBatchJobPreparer" as Preparer
+participant "CalculationItemProcessor" as Processor
+database "JorRunr Database" as DB
+participant "User Browser" as Browser
+participant "JobExecutionsController" as Controller
+
+note over Scheduler, DB
+    Batch job execution triggered (scheduled time reached or manual)
+end note
+
+Scheduler -> BatchJob: run(request)
+BatchJob -> Scheduler: BackgroundJobRequest.startBatch(preparerRequest)
+note right
+    Creates batch parent if not exists
+end note
+Scheduler -> DB: INSERT/UPDATE batch parent
+Scheduler -> Preparer: run(preparerRequest)
+
+Preparer -> Preparer: Load items to process\n(e.g., 1000 items)
+Preparer -> Preparer: Sleep 5s (simulate preparation)
+Preparer -> Scheduler: BackgroundJobRequest.enqueue(items.stream())
+note right
+    Enqueues child jobs (1000 items)
+    All linked to batch parent
+end note
+
+loop For each item (1-1000)
+    Scheduler -> DB: INSERT child job
+end
+
+Preparer --> Scheduler: Completed
+Scheduler -> DB: UPDATE preparer job (SUCCEEDED)
+
+== Parallel Execution ==
+
+par Worker Thread 1
+    Scheduler -> Processor: run(item1Request)
+    Processor -> Processor: Process item 1
+    Processor --> Scheduler: Success
+    Scheduler -> DB: UPDATE job (SUCCEEDED)
+else Worker Thread 2
+    Scheduler -> Processor: run(item2Request)
+    Processor -> Processor: Process item 2
+    Processor --> Scheduler: Success
+    Scheduler -> DB: UPDATE job (SUCCEEDED)
+else Worker Thread N
+    Scheduler -> Processor: run(itemNRequest)
+    Processor -> Processor: Process item N
+    Processor --> Scheduler: Success
+    Scheduler -> DB: UPDATE job (SUCCEEDED)
+end
+
+== UI Polling ==
+
+loop Every 2 seconds (htmx polling)
+    Browser -> Controller: GET /history/batch-progress/{batchJobId}
+    Controller -> DB: Query batch job stats
+    DB --> Controller: BatchJobStats\n(total, succeeded, failed)
+    Controller --> Browser: HTML fragment\n(progress bar update)
+end
+
+@enduml
+----
+
+=== Scenario: External Trigger API
+
+[plantuml,external-trigger,svg]
+----
+@startuml
+participant "External System" as External
+participant "ExternalTriggerResource" as API
+participant "ExecuteJobImmediatelyUseCase" as UseCase
+participant "JobSchedulerPort" as Port
+participant "JobRunrSchedulerAdapter" as Adapter
+database "JorRunr Database" as DB
+participant "JobRunr Scheduler" as Scheduler
+
+External -> API: POST /api/external-trigger/{jobId}/trigger
+API -> UseCase: execute(jobId)
+UseCase -> Port: executeJobNow(jobId)
+Port -> Adapter: executeJobNow(jobId)
+Adapter -> DB: SELECT job WHERE id = jobId
+DB --> Adapter: Job (SCHEDULED state)
+Adapter -> Adapter: job.enqueue()
+Adapter -> DB: UPDATE job (ENQUEUED state)
+DB --> Adapter: Success
+Adapter --> Port: void
+Port --> UseCase: void
+UseCase --> API: void
+API --> External: HTTP 200 + JSON response
+
+note over Scheduler
+    Background job server picks up
+    ENQUEUED job and executes
+end note
+
+Scheduler -> DB: Poll for ENQUEUED jobs
+DB --> Scheduler: Job found
+Scheduler -> Scheduler: Execute job
+Scheduler -> DB: UPDATE job (PROCESSING → SUCCEEDED)
+
+== Status Check ==
+
+External -> API: GET /api/external-trigger/{jobId}/status
+API -> DB: SELECT execution info
+DB --> API: JobExecutionInfo (status, progress)
+API --> External: HTTP 200 + JSON\n{status: "PROCESSING", progress: {...}}
+
+@enduml
+----
+
+== Deployment View
+
+=== Infrastructure Overview
+
+[plantuml,deployment-view,svg]
+----
+@startuml
+node "Container Runtime (Podman/Docker)" {
+    node "Application Container" {
+        component [Quarkus Application\n(JVM Mode)] as App
+        component [JobRunr Background\nJob Server] as JobServer
+        component [JobRunr Dashboard\n(Port 8000)] as Dashboard
+    }
+
+    database "JorRunr Database Container" {
+        component [JorRunr Database (PostgreSQL 16)] as PG
+        storage "JobRunr Tables" as Tables
+    }
+}
+
+node "Client Browser" {
+    component [Web UI] as UI
+}
+
+node "External Systems" {
+    component [Trigger Client] as Trigger
+}
+
+UI --> App : HTTPS (8080)
+Trigger --> App : HTTPS/REST
+App --> PG : JDBC (5432)
+JobServer --> PG : JDBC
+Dashboard --> PG : JDBC
+App ..> Dashboard : Deep-links
+
+@enduml
+----
+
+=== Container Configuration
+
+.Application Container
+[source,dockerfile]
+----
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:latest
+COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+COPY --chown=185 target/quarkus-app/*.jar /deployments/
+COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+EXPOSE 8080 8000
+USER 185
+ENTRYPOINT ["java", "-jar", "/deployments/quarkus-run.jar"]
+----
+
+.JorRunr Database Container
+[source,bash]
+----
+podman run -d \
+  --name jobrunr-postgres \
+  -e POSTGRES_PASSWORD=your_strong_password \
+  -e POSTGRES_DB=postgres \
+  -p 5432:5432 \
+  postgres:16-alpine
+----
+
+=== Environment Configuration
+
+[cols="2,3,2"]
+|===
+|Property |Description |Default
+
+|`quarkus.datasource.jdbc.url`
+|JorRunr Database JDBC connection string
+|`jdbc:postgresql://localhost:5432/postgres`
+
+|`quarkus.datasource.username`
+|Database username
+|`postgres`
+
+|`quarkus.datasource.password`
+|Database password
+|`your_strong_password`
+
+|`quarkus.jobrunr.background-job-server.worker-count`
+|Number of worker threads
+|`20`
+
+|`jobrunr.dashboard.url`
+|URL for deep-links to JobRunr dashboard
+|`http://localhost:8000`
+
+|`jobrunr.batch-progress.timeout`
+|Timeout for batch progress queries
+|`PT5S`
+
+|`dev.test.roles`
+|Development mode user roles
+|`admin`
+|===
+
+== Cross-cutting Concepts
+
+=== External Trigger Convention
+
+JobRunr does not provide a native "external trigger" flag for jobs.
+To support this requirement, the application uses a date-based convention:
+
+.Convention Rules
+* Jobs scheduled for `2999-12-31T23:59:59Z` are marked as "externally triggerable"
+* These jobs appear in the UI with the label "External Trigger" instead of a date
+* The REST API allows triggering these jobs via POST to `/api/external-trigger/{jobId}/trigger`
+
+.Implementation
+[source,java]
+----
+public static final Instant EXTERNAL_TRIGGER = Instant.parse("2999-12-31T23:59:59Z");
+
+private UUID createOrUpdateJob(..., boolean isExternalTrigger, Instant scheduledAt) {
+    if (isExternalTrigger) {
+        scheduledAt = EXTERNAL_TRIGGER;
+    }
+    // ... schedule job with scheduledAt
+}
+
+private boolean isExternallyTriggerable(Instant scheduledAt) {
+    return scheduledAt != null && scheduledAt.equals(EXTERNAL_TRIGGER);
+}
+----
+
+.Rationale
+* Simple to implement without modifying JobRunr
+* Date 2999-12-31 is far enough in the future to never be reached by scheduler
+* Clear semantic meaning in the codebase
+* Easy to filter and identify in database queries
+
+=== Batch Job Scheduling Workaround
+
+==== Problem Statement
+
+JobRunr Pro provides two APIs for batch jobs:
+
+1. `BackgroundJobRequest.startBatch(jobRequest)` - Creates batch parent immediately
+2. `JobRequestScheduler.schedule(instant, jobRequest)` - Schedules job for future execution
+
+The problem: `startBatch()` creates the batch parent job immediately, making it impossible to schedule batch jobs for future execution using the standard API.
+
+==== Solution Approach
+
+The system implements a conditional scheduling strategy in `JobInvoker`:
+
+[plantuml,batch-workaround-flow,svg]
+----
+@startuml
+start
+
+:Receive scheduleJob request;
+
+if (Is batch job?) then (yes)
+    if (Execution time within 5 seconds?) then (yes)
+        :Use startBatch();
+        :Create batch parent immediately;
+        note right
+            Preparer job enqueued with parent context
+            Child jobs will be linked to this parent
+        end note
+    else (no)
+        :Use schedule();
+        :Schedule regular job for future;
+        note right
+            Job will call startBatch() when it executes
+            Batch parent created at execution time
+        end note
+    endif
+else (no)
+    :Use schedule();
+    :Schedule regular job;
+endif
+
+:Return JobId;
+
+stop
+@enduml
+----
+
+==== Implementation Details
+
+[source,java]
+----
+public JobId scheduleJob(UUID jobId, String jobType, Map<String, Object> parameters,
+                         Boolean isBatchJob, Instant scheduledAt) {
+    Class<? extends JobRequest> requestClass = discoveryAdapter.getJobRequestClass(jobType);
+    JobRequest jobRequest = createRequestInstance(requestClass, parameters);
+
+    // Determine if this is an immediate execution (within 5 seconds)
+    boolean isImmediate = scheduledAt == null ||
+                          scheduledAt.isBefore(Instant.now().plusSeconds(5));
+
+    JobId resultId;
+    if (jobId != null) {
+        // Update existing job
+        resultId = jobRequestScheduler.scheduleOrReplace(jobId, scheduledAt, jobRequest);
+    } else if (isBatchJob && isImmediate) {
+        // WORKAROUND: Immediate batch → use startBatch()
+        // This creates the batch parent job immediately
+        resultId = jobRequestScheduler.startBatch(jobRequest);
+    } else {
+        // Scheduled batch or regular job → use schedule()
+        // For batch jobs: parent will be created when job executes
+        resultId = jobRequestScheduler.schedule(
+            scheduledAt != null ? scheduledAt : Instant.now(),
+            jobRequest
+        );
+    }
+
+    return resultId;
+}
+----
+
+==== Batch Job Execution Flow
+
+For scheduled batch jobs, the execution follows this pattern:
+
+1. **Scheduled Time Reached**: JobRunr scheduler picks up the scheduled job
+2. **Batch Job Executes**: `CalculationBatchJob.run(request)` is called
+3. **Batch Parent Created**: Inside the job, `BackgroundJobRequest.startBatch(preparerRequest)` is called
+4. **Preparer Job Enqueued**: The preparer job is enqueued with the batch parent context
+5. **Child Jobs Created**: Preparer creates all child jobs linked to the batch parent
+
+[source,java]
+----
+@ApplicationScoped
+public class CalculationBatchJob implements ConfigurableJob<CalculationBatchJobRequest> {
+
+    @Override
+    @Job(name = "CalculationBatchJob", retries = 2)
+    public void run(CalculationBatchJobRequest request) throws Exception {
+        // Create preparer request
+        CalculationBatchJobPreparerRequest preparerRequest =
+            new CalculationBatchJobPreparerRequest(
+                request.totalItems(),
+                request.batchSize(),
+                request.simulateErrors()
+            );
+
+        // This creates the batch parent and enqueues the preparer
+        BackgroundJobRequest.startBatch(preparerRequest);
+    }
+}
+----
+
+==== Trade-offs and Consequences
+
+.Advantages
+* ✅ Enables scheduling of batch jobs for future execution
+* ✅ Preserves batch parent-child relationship
+* ✅ No modifications to JobRunr required
+* ✅ Works with JobRunr's batch progress tracking
+
+.Disadvantages
+* ❌ Scheduled batch jobs have two-level indirection (wrapper → actual batch)
+* ❌ Batch parent is not created until execution time
+* ❌ Cannot inspect batch structure before execution
+* ❌ 5-second threshold is somewhat arbitrary
+
+.Future Improvements
+* Request JobRunr to add native support for scheduled batch jobs
+* Consider making threshold configurable
+* Add documentation warnings about this limitation
+
+=== Dynamic Parameter Handling
+
+Jobs are discovered via CDI and Java Reflection.
+Parameters are extracted from `JobRequest` record components and mapped to UI form fields.
+
+.Discovery Process
+1. Scan for beans implementing `ConfigurableJob<T extends JobRequest>`
+2. Extract `JobRequest` class via `getJobRequestType()`
+3. Reflect on record components to extract parameter definitions
+4. Map Java types to `JobParameterType` enum
+
+.Type Mapping
+[cols="2,2,2"]
+|===
+|Java Type |JobParameterType |UI Component
+
+|`String`
+|`STRING`
+|`<input type="text">`
+
+|`Integer`, `int`
+|`INTEGER`
+|`<input type="number">`
+
+|`Boolean`, `boolean`
+|`BOOLEAN`
+|`<input type="checkbox">`
+
+|`LocalDate`
+|`DATE`
+|`<input type="date">`
+
+|`LocalDateTime`, `Instant`
+|`DATETIME`
+|`<input type="datetime-local">`
+|===
+
+=== Server-Side Rendering Strategy
+
+The UI uses Quarkus Qute templates with htmx for partial page updates.
+
+.Request Flow
+[plantuml,htmx-flow,svg]
+----
+@startuml
+participant Browser
+participant Controller
+participant Template
+
+Browser -> Controller: GET /scheduled
+Controller -> Template: Render full page
+Template --> Controller: HTML (base.html + content)
+Controller --> Browser: Full HTML page
+
+Browser -> Browser: User clicks filter
+
+Browser -> Controller: GET /scheduled/table?filter=external\n(htmx: hx-get, hx-target)
+note right
+    htmx adds header: HX-Request: true
+end note
+
+Controller -> Controller: Check HX-Request header
+Controller -> Template: Render fragment only
+Template --> Controller: HTML fragment (table only)
+Controller --> Browser: Partial HTML
+
+Browser -> Browser: htmx replaces #table-container
+
+@enduml
+----
+
+.Fragment Detection
+[source,java]
+----
+@GET
+@Path("/table")
+public TemplateInstance getScheduledJobsTable(@Context HttpHeaders headers) {
+    boolean isHtmxRequest = headers.getHeaderString("HX-Request") != null;
+
+    if (isHtmxRequest) {
+        return scheduledJobsTable.instance(); // Fragment only
+    } else {
+        return scheduledJobs.instance(); // Full page
+    }
+}
+----
+
+=== Asynchronous Batch Progress
+
+Batch progress calculation can be IO-intensive (querying child jobs).
+The system uses reactive patterns to avoid blocking:
+
+[source,java]
+----
+@ApplicationScoped
+public class GetBatchProgressUseCase {
+
+    public Uni<Optional<BatchProgress>> executeAsync(UUID jobId) {
+        return Uni.createFrom()
+            .item(() -> execute(jobId))
+            .ifNoItem().after(timeout).failWith(
+                new TimeoutException("Timeout loading batch progress for job " + jobId)
+            );
+    }
+}
+----
+
+The UI polls progress via htmx:
+
+[source,html]
+----
+<div hx-get="/history/batch-progress/{jobId}"
+     hx-trigger="every 2s"
+     hx-swap="innerHTML">
+    Loading...
+</div>
+----
+
+=== Security Model
+
+The application uses role-based access control with three roles:
+
+[cols="1,3,2"]
+|===
+|Role |Permissions |Use Case
+
+|`viewer`
+|Read-only access to scheduled jobs and execution history
+|Operations monitoring
+
+|`configurator`
+|Create, update, delete scheduled jobs; trigger execution
+|Job configuration and management
+
+|`admin`
+|All configurator permissions + system configuration
+|System administration
+|===
+
+.Controller Authorization
+[source,java]
+----
+@Path("/scheduled")
+public class ScheduledJobsController {
+
+    @GET
+    @RolesAllowed({"viewer", "configurator", "admin"})
+    public TemplateInstance getScheduledJobsView() { ... }
+
+    @POST
+    @Path("/create")
+    @RolesAllowed({"configurator", "admin"})
+    public Response createJob(...) { ... }
+
+    @DELETE
+    @Path("/{id}")
+    @RolesAllowed({"admin"})
+    public Response deleteJob(@PathParam("id") UUID id) { ... }
+}
+----
+
+== Design Decisions
+
+=== ADR-001: Use Clean Architecture / Hexagonal Architecture
+
+.Context
+The system needs to integrate with JobRunr (external library) while maintaining testability and future flexibility.
+
+.Decision
+Implement strict Clean Architecture with ports (interfaces) in the domain layer and adapters in infrastructure.
+
+.Consequences
+* ✅ Domain logic independent of JobRunr
+* ✅ Easy to mock for testing
+* ✅ Could swap JobRunr for another scheduler (theoretically)
+* ❌ More boilerplate (interfaces + implementations)
+* ❌ Steeper learning curve for new developers
+
+=== ADR-002: Server-Side Rendering with htmx
+
+.Context
+Need a functional UI for internal users without SPA complexity.
+
+.Decision
+Use Quarkus Qute (server-side templates) with htmx for partial updates.
+
+.Consequences
+* ✅ Fast time-to-market
+* ✅ No JavaScript build tooling
+* ✅ SEO-friendly (if needed)
+* ✅ Works without JavaScript (graceful degradation)
+* ❌ Less rich interactivity than React/Vue
+* ❌ Higher server load for rendering
+
+=== ADR-003: External Trigger via Date Convention (2999-12-31)
+
+.Context
+JobRunr has no native "external trigger" flag, but we need to mark jobs as manually triggerable.
+
+.Decision
+Use date `2999-12-31T23:59:59Z` as a convention to mark externally triggerable jobs.
+
+.Consequences
+* ✅ Simple to implement
+* ✅ No schema changes required
+* ✅ Easy to filter in queries
+* ❌ Not semantically obvious
+* ❌ Could cause issues if JobRunr changes date handling
+* ❌ Requires documentation
+
+.Alternatives Considered
+* Add custom label to job → Labels not easily filterable in UI
+* Store in separate table → Violates "no local storage" requirement
+* Modify JobRunr source → Not maintainable
+
+=== ADR-004: Batch Job Scheduling Workaround
+
+.Context
+JobRunr's `startBatch()` creates batch parent immediately, preventing future-scheduled batch jobs.
+
+.Decision
+Use conditional logic: immediate batches use `startBatch()`, scheduled batches use `schedule()` and create parent at runtime.
+
+.Consequences
+* ✅ Enables scheduled batch jobs
+* ✅ No JobRunr modifications
+* ✅ Preserves batch progress tracking
+* ❌ Two-level indirection for scheduled batches
+* ❌ Cannot inspect batch structure before execution
+* ❌ Somewhat magical behavior
+
+.Future Action
+File feature request with JobRunr for native scheduled batch support.
+
+=== ADR-005: Java Records for DTOs
+
+.Context
+Need immutable data transfer objects with minimal boilerplate.
+
+.Decision
+Use Java 21 Records for all DTOs, domain models, and value objects.
+
+.Consequences
+* ✅ Concise, readable code
+* ✅ Immutability by default
+* ✅ Built-in equals/hashCode/toString
+* ✅ No Lombok dependency
+* ❌ Requires Java 17+ (already required)
+* ❌ Less flexible than classes (no inheritance)
+
+=== ADR-006: Constructor Injection Only
+
+.Context
+Need clear dependency management and testability.
+
+.Decision
+Use constructor injection (`@Inject` on constructor) instead of field injection.
+
+.Consequences
+* ✅ Dependencies are explicit
+* ✅ Easier to unit test (manual construction)
+* ✅ Immutable dependencies
+* ❌ More verbose
+* ❌ Large constructors for many dependencies
+
+== Quality Requirements
+
+=== Quality Scenarios
+
+==== Performance
+
+[cols="1,3"]
+|===
+|Scenario |Job scheduling completes within 500ms for 95% of requests
+
+|Trigger |User submits job creation form
+
+|Response |System validates, creates JobRequest, schedules via JobRunr, updates UI
+
+|Measure |Server-side processing time < 500ms (p95)
+|===
+
+[cols="1,3"]
+|===
+|Scenario |Batch progress updates render within 2 seconds
+
+|Trigger |User views execution history with active batch jobs
+
+|Response |System queries JobRunr storage, extracts batch stats, renders HTML fragment
+
+|Measure |Query + rendering time < 2s
+|===
+
+==== Reliability
+
+[cols="1,3"]
+|===
+|Scenario |System recovers from database connection loss
+
+|Trigger |PostgreSQL container restarts
+
+|Response |Quarkus connection pool detects failure, retries connection, application continues
+
+|Measure |No manual intervention required, max 30s downtime
+|===
+
+==== Maintainability
+
+[cols="1,3"]
+|===
+|Scenario |Developer adds new job type in < 1 hour
+
+|Trigger |New business requirement for job
+
+|Response |Developer creates `JobRequest` record, implements `ConfigurableJob`, deploys
+
+|Measure |Time from requirement to deployed job type < 1 hour
+|===
+
+==== Usability
+
+[cols="1,3"]
+|===
+|Scenario |New user schedules first job without training
+
+|Trigger |Operations user receives access credentials
+
+|Response |User navigates UI, selects job type, fills parameters, submits
+
+|Measure |Task completion without help documentation < 5 minutes
+|===
+
+=== Quality Tree
+
+[plantuml,quality-tree,svg]
+----
+@startmindmap
+* Quality Goals
+** Maintainability (High)
+*** Clean Architecture
+*** Test Coverage > 80%
+*** Documentation (English)
+** Reliability (High)
+*** JobRunr Pro Durability
+*** Database ACID Guarantees
+*** Error Handling
+** Performance (Medium)
+*** Response Time < 500ms (p95)
+*** Async Batch Progress
+*** Connection Pooling
+** Usability (Medium)
+*** Functional UI Design
+*** Clear Error Messages
+*** Search & Filter
+** Testability (High)
+*** Hexagonal Architecture
+*** Constructor Injection
+*** Mockable Ports
+@endmindmap
+----
+
+== Risks and Technical Debt
+
+=== Current Risks
+
+[cols="1,3,1,2"]
+|===
+|Risk |Description |Probability |Mitigation
+
+|JobRunr API Changes
+|Breaking changes in JobRunr Pro could require significant refactoring
+|Medium
+|Hexagonal architecture isolates JobRunr to infrastructure layer; comprehensive integration tests
+
+|Batch Job Workaround Fragility
+|Date convention for external triggers could conflict with future JobRunr features
+|Low
+|Document clearly; consider moving to labels if JobRunr adds support
+
+|Database Connection Pool Exhaustion
+|High number of batch jobs could exhaust connection pool
+|Medium
+|Configure `quarkus.datasource.jdbc.max-size` appropriately; monitor with Micrometer
+
+|License Expiration
+|JobRunr Pro license expiration stops job execution
+|Low
+|Automated license monitoring; alerts before expiration
+|===
+
+=== Technical Debt
+
+[cols="2,3,1"]
+|===
+|Item |Description |Priority
+
+|Missing Unit Tests
+|Application layer use cases lack comprehensive unit tests
+|High
+
+|Missing Integration Tests
+|No end-to-end tests for job execution flows
+|High
+
+|Static Import for CDN Assets
+|Bootstrap and htmx loaded from CDN; should be bundled
+|Medium
+
+|ArchUnit Validation
+|No automated architecture rule checking
+|Medium
+
+|Library Separation
+|Sample jobs mixed with framework code; should extract to separate module
+|Low
+
+|Default Parameter Values
+|No support for default values in job parameters
+|Low
+
+|Enum Parameters
+|No support for enum-type parameters with predefined choices
+|Low
+|===
+
+== Glossary
+
+[cols="2,4"]
+|===
+|Term |Definition
+
+|Batch Job
+|A job that processes multiple items in parallel, with a parent job tracking overall progress and child jobs processing individual items
+
+|ConfigurableJob
+|Interface implemented by jobs that can be dynamically scheduled via the UI with parameterized configuration
+
+|External Trigger
+|A job scheduled for date 2999-12-31, indicating it should be triggered manually via API rather than on a schedule
+
+|JobDefinition
+|Template for a job type, including its class name, parameter schema, and batch flag
+
+|JobRequest
+|JobRunr API construct representing a serializable job invocation with typed parameters (typically a Java Record)
+
+|JobRunr Pro
+|Commercial job scheduling library providing persistence, clustering, dashboard, and batch job support
+
+|Port
+|Interface in the domain layer defining a contract for external dependencies (e.g., JobSchedulerPort)
+
+|Adapter
+|Implementation in the infrastructure layer that fulfills a port contract (e.g., JobRunrSchedulerAdapter)
+
+|Qute
+|Quarkus templating engine for server-side HTML rendering with type-safe bindings
+
+|htmx
+|JavaScript library enabling partial page updates via HTML attributes without writing JavaScript
+
+|Scheduled Job
+|An instance of a JobDefinition with specific parameter values and a planned execution time
+
+|Storage Provider
+|JobRunr component that abstracts database access for job persistence (PostgreSQL in this case)
+
+|Use Case
+|Application layer component implementing a single business operation (e.g., CreateScheduledJobUseCase)
+|===
