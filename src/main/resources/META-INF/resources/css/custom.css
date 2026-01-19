@@ -1,0 +1,188 @@
+/* Custom styles for JobRunr Control with Bootstrap 5 */
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    white-space: nowrap;
+    padding: 0.35em 0.65em;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 0.25rem;
+}
+
+.status-succeeded {
+    background-color: #198754;
+    color: white;
+}
+
+.status-failed {
+    background-color: #dc3545;
+    color: white;
+}
+
+.status-processing {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.status-enqueued {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* External Trigger Badge */
+.external-trigger {
+    background-color: #fd7e14;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Loading Skeleton */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+}
+
+/* Sortable Table Headers */
+.sortable {
+    user-select: none;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.sortable:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.sortable i {
+    font-size: 0.875rem;
+    margin-left: 0.25rem;
+}
+
+/* Pagination */
+.pagination .page-link {
+    transition: all 0.15s ease-in-out;
+}
+
+.pagination .page-link:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* HTMX Loading Indicators */
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+.htmx-indicator {
+    display: none;
+}
+
+/* Table Improvements */
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.075);
+    cursor: pointer;
+}
+
+/* Accordion for Parameters */
+.accordion-button:not(.collapsed) {
+    background-color: #e7f1ff;
+    color: #0d6efd;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(0, 0, 0, .125);
+}
+
+/* Button Group Spacing */
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Modal Improvements */
+.modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Card Styling */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    font-weight: 600;
+}
+
+/* Progress Bar */
+.progress {
+    border-radius: 0.25rem;
+}
+
+.progress-bar-striped {
+    background-image: linear-gradient(
+            45deg,
+            rgba(255, 255, 255, 0.15) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.15) 50%,
+            rgba(255, 255, 255, 0.15) 75%,
+            transparent 75%,
+            transparent
+    );
+    background-size: 1rem 1rem;
+}
+
+/* Navbar Enhancements */
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+    color: rgba(255, 255, 255, 1);
+}
+
+/* Responsive Table */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+
+    .btn-group-sm > .btn {
+        padding: 0.15rem 0.35rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Custom Alert Icons */
+.alert-heading i {
+    margin-right: 0.5rem;
+}
+
+/* Spinner Alignment */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+}
+
+

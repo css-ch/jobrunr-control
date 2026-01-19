@@ -1,0 +1,275 @@
+<div id="history-table">
+    {#if pagination.isEmpty}
+        <div class="alert alert-info" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-info-circle"></i> Keine Job-Ausführungen gefunden</h5>
+            <p class="mb-0">Führen Sie einen Job aus, um die Historie zu sehen.</p>
+        </div>
+    {#else}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                <tr>
+                    <th class="sortable"
+                        style="cursor: pointer;"
+                        hx-get="/history/table?sortBy=jobName&sortOrder={#if sortBy == 'jobName'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                        hx-target="#history-table"
+                        hx-swap="outerHTML">
+                        Job-Name
+                        {#if sortBy == 'jobName'}
+                            {#if sortOrder == 'asc'}
+                                <i class="bi bi-sort-alpha-down"></i>
+                            {#else}
+                                <i class="bi bi-sort-alpha-up-alt"></i>
+                            {/if}
+                        {#else}
+                            <i class="bi bi-arrow-down-up text-muted"></i>
+                        {/if}
+                    </th>
+                    <th class="sortable"
+                        style="cursor: pointer;"
+                        hx-get="/history/table?sortBy=jobType&sortOrder={#if sortBy == 'jobType'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                        hx-target="#history-table"
+                        hx-swap="outerHTML">
+                        Job-Typ
+                        {#if sortBy == 'jobType'}
+                            {#if sortOrder == 'asc'}
+                                <i class="bi bi-sort-alpha-down"></i>
+                            {#else}
+                                <i class="bi bi-sort-alpha-up-alt"></i>
+                            {/if}
+                        {#else}
+                            <i class="bi bi-arrow-down-up text-muted"></i>
+                        {/if}
+                    </th>
+                    <th class="sortable"
+                        style="cursor: pointer;"
+                        hx-get="/history/table?sortBy=status&sortOrder={#if sortBy == 'status'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                        hx-target="#history-table"
+                        hx-swap="outerHTML">
+                        Status
+                        {#if sortBy == 'status'}
+                            {#if sortOrder == 'asc'}
+                                <i class="bi bi-sort-alpha-down"></i>
+                            {#else}
+                                <i class="bi bi-sort-alpha-up-alt"></i>
+                            {/if}
+                        {#else}
+                            <i class="bi bi-arrow-down-up text-muted"></i>
+                        {/if}
+                    </th>
+                    <th class="sortable"
+                        style="cursor: pointer;"
+                        hx-get="/history/table?sortBy=startedAt&sortOrder={#if sortBy == 'startedAt'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                        hx-target="#history-table"
+                        hx-swap="outerHTML">
+                        Gestartet
+                        {#if sortBy == 'startedAt'}
+                            {#if sortOrder == 'asc'}
+                                <i class="bi bi-sort-numeric-down"></i>
+                            {#else}
+                                <i class="bi bi-sort-numeric-up-alt"></i>
+                            {/if}
+                        {#else}
+                            <i class="bi bi-arrow-down-up text-muted"></i>
+                        {/if}
+                    </th>
+                    <th class="sortable"
+                        style="cursor: pointer;"
+                        hx-get="/history/table?sortBy=finishedAt&sortOrder={#if sortBy == 'finishedAt'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                        hx-target="#history-table"
+                        hx-swap="outerHTML">
+                        Beendet
+                        {#if sortBy == 'finishedAt'}
+                            {#if sortOrder == 'asc'}
+                                <i class="bi bi-sort-numeric-down"></i>
+                            {#else}
+                                <i class="bi bi-sort-numeric-up-alt"></i>
+                            {/if}
+                        {#else}
+                            <i class="bi bi-arrow-down-up text-muted"></i>
+                        {/if}
+                    </th>
+                    <th>Parameter</th>
+                    <th>Batch-Fortschritt</th>
+                    <th style="width: 140px;">Aktionen</th>
+                </tr>
+                </thead>
+                <tbody>
+                {#for execution in executions}
+                    <tr>
+                        <td><strong>{execution.jobName}</strong></td>
+                        <td><code class="text-muted small">{execution.jobType}</code></td>
+                        <td>
+                                <span class="status-badge status-{execution.status.name().toLowerCase()}">
+                                    {execution.status}
+                                </span>
+                        </td>
+                        <td>
+                            {#if execution.startedAt}
+                                <small class="text-muted">{execution.startedAt}</small>
+                            {#else}
+                                <small class="text-muted">-</small>
+                            {/if}
+                        </td>
+                        <td>
+                            {#if execution.finishedAt.isPresent()}
+                                <small class="text-muted">{execution.finishedAt.get()}</small>
+                            {#else}
+                                {#if execution.status.name() == 'PROCESSING'}
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Läuft...</span>
+                                    </div>
+                                    <small class="text-muted ms-1">Läuft...</small>
+                                {#else}
+                                    <small class="text-muted">-</small>
+                                {/if}
+                            {/if}
+                        </td>
+                        <td>
+                            {#if execution.parameters.empty}
+                                <small class="text-muted">Keine Parameter</small>
+                            {#else}
+                                <div class="accordion accordion-flush" id="params-{execution.jobId}">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed py-1 px-2" type="button"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#collapse-{execution.jobId}">
+                                                <small>{execution.parameters.size()} Parameter</small>
+                                            </button>
+                                        </h2>
+                                        <div id="collapse-{execution.jobId}" class="accordion-collapse collapse"
+                                             data-bs-parent="#params-{execution.jobId}">
+                                            <div class="accordion-body p-2">
+                                                <ul class="list-unstyled mb-0 small">
+                                                    {#for param in execution.parameters}
+                                                        <li><code>{param.key}</code>: {param.value}</li>
+                                                    {/for}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {/if}
+                        </td>
+                        <td id="batch-{execution.jobId}">
+                            {#if execution.batchProgress.isPresent()}
+                                    {#include components/batch-progress progress = execution.batchProgress.get() /}
+                            {#else}
+                                {#if execution.status.name() == 'PROCESSING'}
+                                    <div hx-get="/history/{execution.jobId}/batch-progress"
+                                         hx-trigger="load delay:1s"
+                                         hx-swap="outerHTML">
+                                        <small class="skeleton">Lädt...</small>
+                                    </div>
+                                {#else}
+                                    <small class="text-muted">-</small>
+                                {/if}
+                            {/if}
+                        </td>
+                        <td>
+                            <a href="{config:['jobrunr.dashboard.url']}/dashboard/jobs/{execution.jobId}"
+                               target="_blank"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </td>
+                    </tr>
+                {/for}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted small">
+                Zeige {pagination.startItem} - {pagination.endItem} von {pagination.totalElements} Ausführungen
+            </div>
+
+            <nav aria-label="Execution History Pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {#if ! pagination.hasPrevious}disabled{/if}">
+                        <button class="page-link"
+                                {#if pagination.hasPrevious}
+                                    hx-get="/history/table?page=0&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
+                                    hx-target="#history-table"
+                                    hx-swap="outerHTML"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Erste Seite">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </button>
+                    </li>
+                    <li class="page-item {#if ! pagination.hasPrevious}disabled{/if}">
+                        <button class="page-link"
+                                {#if pagination.hasPrevious}
+                                    hx-get="/history/table?page={pagination.previousPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
+                                    hx-target="#history-table"
+                                    hx-swap="outerHTML"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Vorherige Seite">
+                            <span aria-hidden="true">&laquo;</span>
+                        </button>
+                    </li>
+
+                    {#for pageItem in pageRange}
+                        <li class="page-item {#if pageItem.index == pagination.page}active{/if}">
+                            <button class="page-link"
+                                    hx-get="/history/table?page={pageItem.index}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
+                                    hx-target="#history-table"
+                                    hx-swap="outerHTML">
+                                {pageItem.label}
+                            </button>
+                        </li>
+                    {/for}
+
+                    <li class="page-item {#if ! pagination.hasNext}disabled{/if}">
+                        <button class="page-link"
+                                {#if pagination.hasNext}
+                                    hx-get="/history/table?page={pagination.nextPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
+                                    hx-target="#history-table"
+                                    hx-swap="outerHTML"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Nächste Seite">
+                            <span aria-hidden="true">&raquo;</span>
+                        </button>
+                    </li>
+                    <li class="page-item {#if ! pagination.hasNext}disabled{/if}">
+                        <button class="page-link"
+                                {#if pagination.hasNext}
+                                    hx-get="/history/table?page={pagination.lastPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
+                                    hx-target="#history-table"
+                                    hx-swap="outerHTML"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Letzte Seite">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+
+            <div>
+                <select class="form-select form-select-sm"
+                        style="width: auto;"
+                        hx-get="/history/table"
+                        hx-trigger="change"
+                        hx-vals='js:&#123;"page": 0, "sortBy": "{sortBy}", "sortOrder": "{sortOrder}", "search": "{search}", "status-filter": "{statusFilter}", "size": event.target.value&#125;'
+                        hx-target="#history-table"
+                        hx-swap="outerHTML"
+                        name="pageSize">
+                    <option value="5" {#if pagination.size == 5}selected{/if}>5 pro Seite</option>
+                    <option value="10" {#if pagination.size == 10}selected{/if}>10 pro Seite</option>
+                    <option value="25" {#if pagination.size == 25}selected{/if}>25 pro Seite</option>
+                    <option value="50" {#if pagination.size == 50}selected{/if}>50 pro Seite</option>
+                </select>
+            </div>
+        </div>
+    {/if}
+</div>

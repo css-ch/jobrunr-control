@@ -1,0 +1,18 @@
+<div>
+    <div class="progress" style="height: 20px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated"
+             role="progressbar"
+             style="width: {progress.progress}%"
+             aria-valuenow="{progress.processed}"
+             aria-valuemin="0"
+             aria-valuemax="{progress.total}">
+            {progress.progress}%
+        </div>
+    </div>
+    <small class="text-muted mt-1 d-block">
+        {progress.processed} / {progress.total}
+        ({progress.succeeded} <i class="bi bi-check-circle text-success"></i>,
+        {progress.failed} <i class="bi bi-x-circle text-danger"></i>)
+    </small>
+</div>
+

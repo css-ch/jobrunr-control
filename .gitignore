@@ -1,0 +1,38 @@
+# Maven / Gradle
+target/
+build/
+out/
+*.iml
+
+# IDEs
+.idea/
+*.iws
+*.ipr
+*.iml
+.vscode/
+*.sw?
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Quarkus specific
+.quarkus/
+.quarkus-profile-*
+
+# Test coverage
+coverage/
+jacoco.exec
+
+# Local dev
+*.local
+/src/main/resources/jobrunr-pro.license
