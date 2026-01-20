@@ -16,6 +16,7 @@
 * [ ] Static import for bootstrap and htmx
 * [ ] Upgrade htmx, bootstrap to latest version
 * [ ] Format datetime and date in parameter in the list views
+* [ ] Integrate Security with JobRunr Dashboard
 
 # Future Features
 
