@@ -14,7 +14,7 @@
 * [ ] Write user documentation
 * [ ] Add ArchUnit to check architecture
 * [x] Static import for bootstrap and htmx
-* [ ] Upgrade htmx, bootstrap to latest version
+* [x] Upgrade htmx, bootstrap to latest version
 * [ ] Format datetime and date in parameter in the list views
 * [ ] Integrate Security with JobRunr Dashboard
 

@@ -4,110 +4,60 @@ import ch.css.jobrunr.control.infrastructure.discovery.annotation.BatchJob;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.util.Arrays;
 
-/**
- * Extended JobRequestHandler interface that provides access to the JobRequest type at runtime.
- *
- * @param <T> The JobRequest type this handler processes
- */
 public interface ConfigurableJob<T extends JobRequest> extends JobRequestHandler<T> {
 
     default boolean isBatchJob() {
-        try {
-            Class<?> implementingClass = this.getClass();
-            Class<T> jobRequestType = this.getJobRequestType();
-            Method runMethod = implementingClass.getMethod("run", jobRequestType);
-            return runMethod.getAnnotation(BatchJob.class) != null;
-        } catch (NoSuchMethodException e) {
-            LoggerFactory.getLogger(ConfigurableJob.class).error("Could not find run method in class: {}", this.getClass().getName(), e);
-        }
-        return false;
+        return findRunMethod().isAnnotationPresent(BatchJob.class);
     }
 
     default String getJobType() {
-        try {
-            Class<?> implementingClass = this.getClass();
-            Class<T> jobRequestType = this.getJobRequestType();
+        Method runMethod = findRunMethod();
+        Job jobAnnotation = runMethod.getAnnotation(Job.class);
 
-            // Find the run method that takes the JobRequest type parameter
-            Method runMethod = implementingClass.getMethod("run", jobRequestType);
-            Job jobAnnotation = runMethod.getAnnotation(Job.class);
-
-            if (jobAnnotation != null && jobAnnotation.name() != null && !jobAnnotation.name().isEmpty()) {
-                return jobAnnotation.name();
-            }
-            return implementingClass.getSimpleName();
-        } catch (NoSuchMethodException e) {
-            LoggerFactory.getLogger(ConfigurableJob.class).error("Could not find run method in class: {}", this.getClass().getName(), e);
+        if (jobAnnotation != null && !jobAnnotation.name().isBlank()) {
+            return jobAnnotation.name();
         }
-        return null;
+        // Fallback: Class name (use superclass/user class for proxies)
+        return getUserClass().getSimpleName();
     }
 
-    /**
-     * Gets the actual JobRequest class type for this handler.
-     * Uses reflection to extract the generic type parameter.
-     *
-     * @return The Class object representing the JobRequest type
-     * @throws IllegalStateException if the type cannot be determined
-     */
-    default Class<T> getJobRequestType() {
-        // Get the class of the implementing instance
-        Class<?> currentClass = this.getClass();
-
-        // Search through the class hierarchy and interfaces for the generic type
-        Class<T> requestType = extractGenericType(currentClass);
-
-        if (requestType != null) {
-            return requestType;
-        }
-
-        throw new IllegalStateException(
-                "Could not determine JobRequest type for " + currentClass.getName() +
-                        ". Make sure the class directly implements ConfigurableJob<YourRequestType>."
-        );
-    }
-
-    /**
-     * Recursively extracts the generic type parameter from the class hierarchy.
-     */
     @SuppressWarnings("unchecked")
-    private Class<T> extractGenericType(Class<?> clazz) {
-        // Check all implemented interfaces
-        Type[] genericInterfaces = clazz.getGenericInterfaces();
-        for (Type genericInterface : genericInterfaces) {
-            if (genericInterface instanceof ParameterizedType parameterizedType) {
-                // Check if this is Jorrr or JobRequestHandler interface
-                Type rawType = parameterizedType.getRawType();
-                if (rawType.equals(ConfigurableJob.class) || rawType.equals(JobRequestHandler.class)) {
-                    Type[] typeArguments = parameterizedType.getActualTypeArguments();
-                    if (typeArguments.length > 0 && typeArguments[0] instanceof Class) {
-                        return (Class<T>) typeArguments[0];
-                    }
-                }
-            }
-        }
+    default Class<T> getJobRequestType() {
+        // The type of T is simply the first parameter of the run method
+        return (Class<T>) findRunMethod().getParameterTypes()[0];
+    }
 
-        // Check the generic superclass
-        Type genericSuperclass = clazz.getGenericSuperclass();
-        if (genericSuperclass instanceof ParameterizedType) {
-            ParameterizedType parameterizedType = (ParameterizedType) genericSuperclass;
-            Type[] typeArguments = parameterizedType.getActualTypeArguments();
-            if (typeArguments.length > 0 && typeArguments[0] instanceof Class) {
-                return (Class<T>) typeArguments[0];
-            }
-        }
+    /**
+     * Finds the actual 'run' method in the user class.
+     * Bypasses issues with generics erasure and proxies.
+     */
+    private Method findRunMethod() {
+        Class<?> currentClass = getUserClass();
+        return Arrays.stream(currentClass.getMethods())
+                .filter(m -> "run".equals(m.getName()))
+                .filter(m -> !m.isBridge()) // Important: Ignore generated bridge methods (run(Object))
+                .filter(m -> m.getParameterCount() == 1)
+                .filter(m -> JobRequest.class.isAssignableFrom(m.getParameterTypes()[0]))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Could not find valid run(JobRequest) method in " + currentClass.getName()));
+    }
 
-        // Recursively check parent class
-        Class<?> superclass = clazz.getSuperclass();
-        if (superclass != null && superclass != Object.class) {
-            return extractGenericType(superclass);
+    /**
+     * Helper method to find the real class behind Quarkus/CDI proxies.
+     * Quarkus often uses subclassing (MyBean_Subclass extends MyBean).
+     */
+    private Class<?> getUserClass() {
+        Class<?> clazz = this.getClass();
+        // Simple check: If the class name contains "_Subclass" or similar,
+        // it's likely a Quarkus proxy. Checking the superclass is often safer.
+        if (clazz.getName().contains("_Subclass") || clazz.getName().contains("$$")) {
+            return clazz.getSuperclass();
         }
-
-        return null;
+        return clazz;
     }
 }

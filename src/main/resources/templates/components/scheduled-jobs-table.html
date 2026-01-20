@@ -78,31 +78,7 @@
                             {/if}
                         </td>
                         <td>
-                            {#if job.parameters.empty}
-                                <small class="text-muted">Keine Parameter</small>
-                            {#else}
-                                <div class="accordion accordion-flush" id="params-{job.jobId}">
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed py-1 px-2" type="button"
-                                                    data-bs-toggle="collapse"
-                                                    data-bs-target="#collapse-{job.jobId}">
-                                                <small>{job.parameters.size()} Parameter</small>
-                                            </button>
-                                        </h2>
-                                        <div id="collapse-{job.jobId}" class="accordion-collapse collapse"
-                                             data-bs-parent="#params-{job.jobId}">
-                                            <div class="accordion-body p-2">
-                                                <ul class="list-unstyled mb-0 small">
-                                                    {#for param in job.parameters}
-                                                        <li><code>{param.key}</code>: {param.value}</li>
-                                                    {/for}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            {/if}
+                            {#include components/parameter-list.html parameters=job.parameters jobId=job.jobId /}
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm" role="group">

@@ -126,31 +126,7 @@
                             {/if}
                         </td>
                         <td>
-                            {#if execution.parameters.empty}
-                                <small class="text-muted">Keine Parameter</small>
-                            {#else}
-                                <div class="accordion accordion-flush" id="params-{execution.jobId}">
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed py-1 px-2" type="button"
-                                                    data-bs-toggle="collapse"
-                                                    data-bs-target="#collapse-{execution.jobId}">
-                                                <small>{execution.parameters.size()} Parameter</small>
-                                            </button>
-                                        </h2>
-                                        <div id="collapse-{execution.jobId}" class="accordion-collapse collapse"
-                                             data-bs-parent="#params-{execution.jobId}">
-                                            <div class="accordion-body p-2">
-                                                <ul class="list-unstyled mb-0 small">
-                                                    {#for param in execution.parameters}
-                                                        <li><code>{param.key}</code>: {param.value}</li>
-                                                    {/for}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            {/if}
+                            {#include components/parameter-list.html parameters=execution.parameters jobId=execution.jobId /}
                         </td>
                         <td id="batch-{execution.jobId}">
                             {#if execution.batchProgress.isPresent()}

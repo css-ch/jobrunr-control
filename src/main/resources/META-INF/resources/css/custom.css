@@ -30,6 +30,11 @@
     color: white;
 }
 
+.status-processed {
+    background-color: #009dca;
+    color: white;
+}
+
 /* External Trigger Badge */
 .external-trigger {
     background-color: #fd7e14;
