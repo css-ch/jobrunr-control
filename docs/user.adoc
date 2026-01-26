@@ -1,0 +1,404 @@
+= JobRunr Control Extension - User Guide
+:toc: left
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: rouge
+
+== Introduction
+
+This guide explains how to use the JobRunr Control dashboard to schedule, configure, and monitor jobs. The dashboard provides a user-friendly interface for managing background jobs without requiring direct code changes.
+
+=== Accessing the Dashboard
+
+The JobRunr Control dashboard is available at:
+
+----
+http://your-server:port/q/jobrunr-control
+----
+
+=== Roles and Permissions
+
+Access to features depends on your assigned role:
+
+[cols="1,3"]
+|===
+|Role |Permissions
+
+|**viewer**
+|View scheduled jobs and execution history (read-only)
+
+|**configurator**
+|All viewer permissions, plus create, edit, and delete scheduled jobs
+
+|**admin**
+|All permissions, including immediate job execution
+|===
+
+== Dashboard Overview
+
+The dashboard consists of two main sections:
+
+. **Scheduled Jobs** - View and manage jobs waiting to be executed
+. **Execution History** - View completed, running, and failed job executions
+
+=== Navigation
+
+The main navigation provides quick access to:
+
+* **Scheduled Jobs** - List of all scheduled and externally triggerable jobs
+* **Execution History** - History of job executions with status
+
+== Scheduled Jobs
+
+=== Viewing Scheduled Jobs
+
+The Scheduled Jobs view displays all jobs that are:
+
+* Scheduled for future execution
+* Configured as externally triggerable (waiting for API call)
+
+.Table Columns
+[cols="1,3"]
+|===
+|Column |Description
+
+|Job Name
+|User-defined name for the job instance
+
+|Job Type
+|The type of job (derived from the handler class name)
+
+|Scheduled At
+|When the job will execute (or "External Trigger" for API-triggered jobs)
+
+|Parameters
+|Number of configured parameters
+
+|Actions
+|Available actions (Edit, Delete, Execute, View in JobRunr)
+|===
+
+=== Filtering Jobs
+
+Use the filter dropdown to show:
+
+* **All Jobs** - Both scheduled and externally triggerable jobs
+* **Scheduled Only** - Jobs with a specific execution time
+* **External Trigger Only** - Jobs waiting for external API trigger
+
+=== Searching Jobs
+
+Use the search box to filter jobs by:
+
+* Job name
+* Job type
+* Parameter values
+
+=== Sorting
+
+Click on column headers to sort by:
+
+* Job name (alphabetically)
+* Job type (alphabetically)
+* Scheduled time (chronologically)
+
+== Configuring Jobs
+
+=== Creating a New Job
+
+[NOTE]
+====
+Requires **configurator** or **admin** role.
+====
+
+. Click the **New Job** button
+. Select the **Job Type** from the dropdown
+.. The dropdown shows all discovered configurable jobs
+.. Parameter fields will update based on the selected type
+. Enter a **Job Name** (descriptive name for this job instance)
+. Choose the **Trigger Type**:
+** *Scheduled*: Execute at a specific date/time
+** *External Trigger*: Wait for API call to execute
+. If scheduled, select the **Execution Date/Time**
+. Configure **Parameters** based on the job type
+. Click **Save** to create the job
+
+=== Editing an Existing Job
+
+[NOTE]
+====
+Requires **configurator** or **admin** role.
+====
+
+. Find the job in the Scheduled Jobs list
+. Click the **Edit** button (pencil icon)
+. Modify the job settings as needed
+. Click **Save** to update the job
+
+[IMPORTANT]
+====
+Editing a job creates a new version. The previous scheduled state is replaced.
+====
+
+=== Deleting a Job
+
+[NOTE]
+====
+Requires **configurator** or **admin** role.
+====
+
+. Find the job in the Scheduled Jobs list
+. Click the **Delete** button (trash icon)
+. Confirm the deletion
+
+[WARNING]
+====
+Deleted jobs cannot be recovered. Jobs in progress are not affected.
+====
+
+== Parameter Configuration
+
+=== Supported Parameter Types
+
+[cols="1,2,2"]
+|===
+|Type |Input Format |Example
+
+|**String**
+|Free text
+|`Hello World`
+
+|**Integer**
+|Whole number
+|`42`, `-10`, `1000`
+
+|**Boolean**
+|Checkbox (true/false)
+|Checked = true
+
+|**Date**
+|Date picker (YYYY-MM-DD)
+|`2024-06-15`
+
+|**DateTime**
+|Date and time picker
+|`2024-06-15T14:30:00`
+
+|**Enum**
+|Dropdown selection
+|`OPTION_A`, `HIGH`, `ACTIVE`
+|===
+
+=== Default Values
+
+Many parameters have default values:
+
+* Pre-filled in the form when creating a new job
+* Displayed as placeholder text in input fields
+* Can be overridden by entering a custom value
+
+=== Required vs Optional Parameters
+
+* **Required** parameters are marked with an asterisk (*)
+* Form cannot be submitted with empty required fields
+* **Optional** parameters can be left empty
+
+== Scheduling Options
+
+=== Scheduled Execution
+
+Select "Scheduled" as the trigger type to execute a job at a specific time:
+
+. Set the date using the date picker
+. Set the time using the time picker
+. The job will automatically execute at the specified time
+
+=== External Trigger
+
+Select "External Trigger" to create a job that waits for an API call:
+
+* The job remains in scheduled state until triggered via REST API
+* Useful for integration with external systems
+* Can be triggered multiple times (creates new executions)
+
+== Monitoring Jobs
+
+=== Execution History
+
+The Execution History view shows all job executions with their current status:
+
+.Status Indicators
+[cols="1,2"]
+|===
+|Status |Description
+
+|**ENQUEUED**
+|Job is queued and waiting to be processed
+
+|**PROCESSING**
+|Job is currently being executed
+
+|**SUCCEEDED**
+|Job completed successfully
+
+|**FAILED**
+|Job execution failed (may retry automatically)
+|===
+
+=== Filtering by Status
+
+Use the status filter dropdown to show only jobs in a specific state:
+
+* All
+* Enqueued
+* Processing
+* Succeeded
+* Failed
+
+=== Batch Job Progress
+
+For batch jobs, the execution history shows real-time progress:
+
+* **Total**: Number of child jobs created
+* **Succeeded**: Number of completed child jobs
+* **Failed**: Number of failed child jobs
+* **Progress Bar**: Visual representation of completion percentage
+
+The progress updates automatically while viewing the execution details.
+
+=== Viewing Job Details
+
+Click on a job in the execution history to see:
+
+* Full job parameters
+* Execution timestamps (started, finished)
+* Batch progress (for batch jobs)
+* Link to JobRunr Pro Dashboard for detailed logs
+
+== Executing Jobs
+
+=== Execute Now (Admin Only)
+
+[NOTE]
+====
+Requires **admin** role.
+====
+
+To immediately execute a scheduled job:
+
+. Find the job in the Scheduled Jobs list
+. Click the **Execute Now** button (play icon)
+. The job will be moved to the processing queue immediately
+
+=== Execute via REST API
+
+External systems can trigger jobs using the REST API:
+
+[source,bash]
+----
+# Trigger a job
+POST /q/jobrunr-control/api/jobs/{jobId}/start
+
+# Example with curl
+curl -X POST http://localhost:8080/q/jobrunr-control/api/jobs/{jobId}/start \
+  -H "Content-Type: application/json" \
+  -d '{"param1": "value1", "param2": "value2"}'
+----
+
+== Deep Links
+
+=== Linking to Specific Jobs
+
+The dashboard integrates with the JobRunr Pro Dashboard via deep links:
+
+.Deep Link Types
+[cols="1,3"]
+|===
+|Link |Purpose
+
+|**View in JobRunr**
+|Opens the job details in JobRunr Pro Dashboard
+
+|**View by Label**
+|Shows all jobs of the same type in JobRunr Dashboard
+|===
+
+=== Using Deep Links
+
+. Click the **external link** icon next to a job
+. You will be redirected to the JobRunr Pro Dashboard
+. View detailed logs, retries, and execution history
+
+=== Constructing Deep Links
+
+Deep links follow this pattern:
+
+----
+http://jobrunr-dashboard/dashboard/jobs/{jobId}
+----
+
+You can share these links to direct others to specific job executions.
+
+== Handling Failed Jobs
+
+=== Understanding Failures
+
+Jobs can fail due to:
+
+* Application errors (exceptions in job code)
+* Infrastructure issues (database, network)
+* Timeout exceeded
+* Resource constraints
+
+=== Automatic Retries
+
+JobRunr Pro automatically retries failed jobs based on configuration:
+
+* Default retry count is configurable per job type
+* Exponential backoff between retries
+* Jobs move to FAILED state after all retries exhausted
+
+=== Manual Intervention
+
+For failed jobs that need manual intervention:
+
+. Navigate to JobRunr Pro Dashboard via deep link
+. Review the error details and stack trace
+. Use JobRunr's built-in requeue functionality to retry
+
+=== Rerunning Failed Batch Child Jobs
+
+For batch jobs with failed child jobs:
+
+. Open the batch job in JobRunr Pro Dashboard
+. Navigate to the failed child jobs
+. Use JobRunr's batch management to retry failed items
+
+The batch progress in JobRunr Control will update as child jobs complete.
+
+== Tips and Best Practices
+
+=== Naming Conventions
+
+* Use descriptive job names that indicate purpose and context
+* Include date or batch identifiers for recurring jobs
+* Example: `Daily-Report-2024-01`, `Customer-Import-Production`
+
+=== Parameter Management
+
+* Use default values for commonly used configurations
+* Document expected parameter formats in job descriptions
+* Test parameter combinations before scheduling production jobs
+
+=== Monitoring Recommendations
+
+* Regularly check execution history for failed jobs
+* Set up alerts in JobRunr Pro for recurring failures
+* Review batch progress for long-running operations
+
+=== Security Considerations
+
+* Use role-based access control appropriately
+* Limit admin access to authorized personnel
+* Audit job executions through JobRunr Dashboard

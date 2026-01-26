@@ -1,0 +1,682 @@
+= JobRunr Control Extension - Programmer's Guide
+:toc: left
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: rouge
+
+== Introduction
+
+This guide explains how to implement jobs that integrate with the JobRunr Control dashboard. You will learn how to create configurable jobs, define parameters, implement batch jobs, and use lifecycle callbacks.
+
+=== Prerequisites
+
+* Java 21+
+* Quarkus 3.30.8
+* JobRunr Pro 8.4.1 with valid license
+* JobRunr Control Extension dependency
+
+=== Key Concepts
+
+* **JobRequest**: A serializable record containing job parameters
+* **JobRequestHandler**: A CDI bean that executes the job logic
+* **@ConfigurableJob**: Annotation marking a job for dashboard discovery
+* **@JobParameterDefinition**: Annotation defining parameter metadata
+
+== Getting Started
+
+=== Add Dependencies
+
+[source,xml]
+----
+<dependency>
+    <groupId>ch.css.jobrunr</groupId>
+    <artifactId>jobrunr-control-extension</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+</dependency>
+<dependency>
+    <groupId>org.jobrunr</groupId>
+    <artifactId>quarkus-jobrunr-pro</artifactId>
+    <version>8.4.1</version>
+</dependency>
+----
+
+=== Basic Job Structure
+
+Every configurable job consists of two components:
+
+. A **JobRequest** record containing parameters
+. A **JobRequestHandler** CDI bean executing the job logic
+
+[source,java]
+----
+// 1. JobRequest - defines parameters
+public record MyJobRequest(
+    String message,
+    Integer count
+) implements JobRequest {
+    @Override
+    public Class<MyJobHandler> getJobRequestHandler() {
+        return MyJobHandler.class;
+    }
+}
+
+// 2. JobRequestHandler - executes the job
+@ApplicationScoped
+public class MyJobHandler implements JobRequestHandler<MyJobRequest> {
+
+    @ConfigurableJob
+    @Override
+    public void run(MyJobRequest request) {
+        // Job implementation
+        jobContext().logger().info("Processing: " + request.message());
+    }
+}
+----
+
+== Discovery Mechanism
+
+[IMPORTANT]
+====
+Only jobs marked with `@ConfigurableJob` annotation are discovered by the dashboard. Jobs without this annotation will not appear in the UI.
+====
+
+=== How Discovery Works
+
+. At **Quarkus build time**, the extension scans for `JobRequestHandler` implementations
+. It looks for the `@ConfigurableJob` annotation on the `run()` method
+. It analyzes the `JobRequest` type parameter to extract field metadata
+. Job definitions are stored in a registry for runtime access
+
+=== What Gets Discovered
+
+The scanner extracts:
+
+* Job type (simple class name of handler)
+* JobRequest class name
+* Parameter definitions from record components
+* Job settings from `@ConfigurableJob` annotation
+
+== Implementing Simple Jobs
+
+=== Step 1: Create the JobRequest
+
+Define your parameters as a Java record implementing `JobRequest`:
+
+[source,java]
+----
+package com.example.jobs;
+
+import ch.css.jobrunr.control.annotations.JobParameterDefinition;
+import org.jobrunr.jobs.lambdas.JobRequest;
+
+public record ReportJobRequest(
+    @JobParameterDefinition(defaultValue = "2024-01-01")
+    LocalDate startDate,
+
+    @JobParameterDefinition(defaultValue = "2024-12-31")
+    LocalDate endDate,
+
+    @JobParameterDefinition(defaultValue = "PDF")
+    OutputFormat format
+) implements JobRequest {
+
+    @Override
+    public Class<ReportJobHandler> getJobRequestHandler() {
+        return ReportJobHandler.class;
+    }
+}
+----
+
+=== Step 2: Create the JobRequestHandler
+
+Implement the handler as a CDI bean:
+
+[source,java]
+----
+package com.example.jobs;
+
+import ch.css.jobrunr.control.annotations.ConfigurableJob;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.jobrunr.jobs.lambdas.JobRequestHandler;
+
+@ApplicationScoped
+public class ReportJobHandler implements JobRequestHandler<ReportJobRequest> {
+
+    @ConfigurableJob(
+        name = "Generate Report",
+        labels = {"Reports", "Production"},
+        retries = 3
+    )
+    @Override
+    public void run(ReportJobRequest request) throws Exception {
+        var logger = jobContext().logger();
+
+        logger.info("Generating report from %s to %s",
+            request.startDate(), request.endDate());
+
+        // Your job logic here
+        generateReport(request);
+
+        logger.info("Report generated successfully");
+    }
+
+    private void generateReport(ReportJobRequest request) {
+        // Implementation
+    }
+}
+----
+
+== Implementing Batch Jobs
+
+Batch jobs process multiple items and track overall progress.
+
+=== Step 1: Create the Main Batch Job
+
+[source,java]
+----
+public record BatchImportJobRequest(
+    @JobParameterDefinition(defaultValue = "1000")
+    Integer batchSize,
+
+    @JobParameterDefinition(defaultValue = "false")
+    Boolean dryRun
+) implements JobRequest {
+
+    @Override
+    public Class<BatchImportJobHandler> getJobRequestHandler() {
+        return BatchImportJobHandler.class;
+    }
+}
+----
+
+[source,java]
+----
+@ApplicationScoped
+public class BatchImportJobHandler implements JobRequestHandler<BatchImportJobRequest> {
+
+    @Inject
+    DataSource dataSource;
+
+    @ConfigurableJob(
+        isBatch = true,  // <-- Mark as batch job
+        name = "Batch Import",
+        labels = {"Import", "Batch"}
+    )
+    @Override
+    public void run(BatchImportJobRequest request) throws Exception {
+        var logger = jobContext().logger();
+
+        // 1. Load items to process
+        List<ImportItem> items = loadItems(request.batchSize());
+        logger.info("Found %d items to process", items.size());
+
+        // 2. Create child job requests
+        List<ImportItemJobRequest> childRequests = items.stream()
+            .map(item -> new ImportItemJobRequest(item.id(), request.dryRun()))
+            .toList();
+
+        // 3. Enqueue all child jobs
+        BackgroundJobRequest.enqueue(childRequests.stream());
+
+        logger.info("Enqueued %d child jobs", childRequests.size());
+    }
+}
+----
+
+=== Step 2: Create the Child Job
+
+[source,java]
+----
+// Child job request (not annotated with @ConfigurableJob)
+public record ImportItemJobRequest(
+    Long itemId,
+    Boolean dryRun
+) implements JobRequest {
+
+    @Override
+    public Class<ImportItemJobHandler> getJobRequestHandler() {
+        return ImportItemJobHandler.class;
+    }
+}
+----
+
+[source,java]
+----
+// Child job handler (no @ConfigurableJob - not shown in dashboard)
+@ApplicationScoped
+public class ImportItemJobHandler implements JobRequestHandler<ImportItemJobRequest> {
+
+    @Override
+    public void run(ImportItemJobRequest request) throws Exception {
+        // Process individual item
+        processItem(request.itemId(), request.dryRun());
+    }
+}
+----
+
+=== Batch Progress Tracking
+
+The dashboard automatically tracks batch progress:
+
+* **Total**: Number of child jobs created
+* **Succeeded**: Completed child jobs
+* **Failed**: Failed child jobs
+* **Progress**: Percentage complete
+
+Progress updates in real-time as child jobs complete.
+
+== Parameter Configuration
+
+=== @JobParameterDefinition Annotation
+
+Use this annotation on record components to define parameter metadata:
+
+[source,java]
+----
+public record MyJobRequest(
+    @JobParameterDefinition(
+        name = "Customer Name",    // Display name in UI
+        defaultValue = "Default"   // Pre-filled value
+    )
+    String customerName,
+
+    @JobParameterDefinition(defaultValue = "100")
+    Integer maxResults
+) implements JobRequest { ... }
+----
+
+.Annotation Properties
+[cols="1,3"]
+|===
+|Property |Description
+
+|`name`
+|Display name in the UI (defaults to field name)
+
+|`defaultValue`
+|Default value as String (parsed to target type)
+|===
+
+=== Supported Parameter Types
+
+[cols="1,2,2"]
+|===
+|Java Type |UI Input |Default Value Format
+
+|`String`
+|Text input
+|`"any text"`
+
+|`Integer` / `int`
+|Number input
+|`"42"`
+
+|`Long` / `long`
+|Number input
+|`"1234567890"`
+
+|`Boolean` / `boolean`
+|Checkbox
+|`"true"` or `"false"`
+
+|`LocalDate`
+|Date picker
+|`"2024-01-15"` (ISO format)
+
+|`LocalDateTime`
+|DateTime picker
+|`"2024-01-15T14:30:00"` (ISO format)
+
+|`Enum`
+|Dropdown
+|`"ENUM_VALUE"` (constant name)
+|===
+
+=== Required vs Optional Parameters
+
+By default, all parameters are **required**. A parameter becomes optional when:
+
+* It has a `defaultValue` specified in `@JobParameterDefinition`
+
+[source,java]
+----
+public record MyJobRequest(
+    String requiredParam,  // Required - no default
+
+    @JobParameterDefinition(defaultValue = "optional")
+    String optionalParam   // Optional - has default
+) implements JobRequest { ... }
+----
+
+=== Enum Parameters
+
+Enums are automatically rendered as dropdowns with all available values:
+
+[source,java]
+----
+public enum Priority {
+    LOW, MEDIUM, HIGH, CRITICAL
+}
+
+public record TaskJobRequest(
+    @JobParameterDefinition(defaultValue = "MEDIUM")
+    Priority priority
+) implements JobRequest { ... }
+----
+
+== Lifecycle Callbacks
+
+=== Success Callback
+
+Implement `JobRequestOnSuccessFactory` to chain a job after successful completion:
+
+[source,java]
+----
+public record MyBatchJobRequest(
+    Integer batchSize
+) implements JobRequest, JobRequestOnSuccessFactory {
+
+    @Override
+    public Class<MyBatchJobHandler> getJobRequestHandler() {
+        return MyBatchJobHandler.class;
+    }
+
+    @Override
+    public JobRequest createOnSuccessJobRequest(
+            JobRequestId jobRequestId,
+            JobRequest jobRequest) {
+        return new NotifySuccessRequest(
+            jobRequestId.asUUID(),
+            "Batch completed successfully"
+        );
+    }
+}
+----
+
+The success callback job is automatically scheduled when the main job completes successfully.
+
+=== Failure Callback
+
+Implement `JobRequestOnFailureFeactory` to chain a job when execution fails:
+
+[source,java]
+----
+public record MyBatchJobRequest(
+    Integer batchSize
+) implements JobRequest, JobRequestOnFailureFeactory {
+
+    @Override
+    public Class<MyBatchJobHandler> getJobRequestHandler() {
+        return MyBatchJobHandler.class;
+    }
+
+    @Override
+    public JobRequest createOnFailureJobRequest(
+            JobRequestId jobRequestId,
+            JobRequest jobRequest) {
+        return new AlertFailureRequest(
+            jobRequestId.asUUID(),
+            "Batch job failed!"
+        );
+    }
+}
+----
+
+=== Combining Callbacks
+
+You can implement both interfaces:
+
+[source,java]
+----
+public record MyBatchJobRequest(Integer batchSize)
+    implements JobRequest,
+               JobRequestOnSuccessFactory,
+               JobRequestOnFailureFeactory {
+
+    @Override
+    public JobRequest createOnSuccessJobRequest(...) {
+        return new SuccessNotificationRequest(...);
+    }
+
+    @Override
+    public JobRequest createOnFailureJobRequest(...) {
+        return new FailureAlertRequest(...);
+    }
+}
+----
+
+== @ConfigurableJob Options
+
+=== Full Annotation Reference
+
+[source,java]
+----
+@ConfigurableJob(
+    // Job identification
+    name = "My Job Name",
+
+    // Batch job flag
+    isBatch = false,
+
+    // Retry configuration
+    retries = 3,
+
+    // Labels for filtering/organization
+    labels = {"Production", "Daily", "Reports"},
+
+    // Queue assignment
+    queue = "high-priority",
+
+    // Concurrency control
+    mutex = "my-unique-mutex",
+    rateLimiter = "my-rate-limiter",
+
+    // Server routing (JobRunr Pro)
+    runOnServerWithTag = "dedicated-server",
+
+    // Timeout configuration (ISO 8601 duration)
+    processTimeOut = "PT30M",  // 30 minutes
+
+    // Cleanup configuration
+    deleteOnSuccess = "PT5M!PT10H",  // Move to deleted after 5min, purge after 10h
+    deleteOnFailure = "PT24H!PT48H"  // Move to deleted after 24h, purge after 48h
+)
+----
+
+.Annotation Properties
+[cols="1,1,3"]
+|===
+|Property |Type |Description
+
+|`name`
+|String
+|Display name for the job
+
+|`isBatch`
+|boolean
+|Mark as batch job (default: false)
+
+|`retries`
+|int
+|Number of retry attempts (default: use global setting)
+
+|`labels`
+|String[]
+|Labels for filtering and organization
+
+|`queue`
+|String
+|Queue name for job routing
+
+|`mutex`
+|String
+|Mutex for exclusive execution
+
+|`rateLimiter`
+|String
+|Rate limiter ID
+
+|`runOnServerWithTag`
+|String
+|Server tag for routing
+
+|`processTimeOut`
+|String
+|Maximum processing time (ISO 8601 duration)
+
+|`deleteOnSuccess`
+|String
+|Cleanup timing for succeeded jobs
+
+|`deleteOnFailure`
+|String
+|Cleanup timing for failed jobs
+|===
+
+== REST API Usage
+
+=== Starting a Job
+
+[source,bash]
+----
+POST /q/jobrunr-control/api/jobs/{jobId}/start
+Content-Type: application/json
+
+{
+  "param1": "override-value",
+  "param2": 42
+}
+----
+
+Response:
+[source,json]
+----
+{
+  "jobId": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "Job started successfully"
+}
+----
+
+=== Cloning and Starting a Job
+
+[source,bash]
+----
+POST /q/jobrunr-control/api/jobs
+Content-Type: application/json
+
+{
+  "cloneFromId": "550e8400-e29b-41d4-a716-446655440000",
+  "suffix": "20240126",
+  "parameters": {
+    "batchSize": 500
+  }
+}
+----
+
+Response:
+[source,json]
+----
+{
+  "jobId": "660e8400-e29b-41d4-a716-446655440001",
+  "message": "Job cloned and started successfully"
+}
+----
+
+=== Getting Job Status
+
+[source,bash]
+----
+GET /q/jobrunr-control/api/jobs/{jobId}
+----
+
+Response:
+[source,json]
+----
+{
+  "jobId": "550e8400-e29b-41d4-a716-446655440000",
+  "jobName": "Daily Import",
+  "jobType": "BatchImportJobHandler",
+  "status": "PROCESSING",
+  "startedAt": "2024-01-26T10:30:00Z",
+  "finishedAt": null,
+  "batchProgress": {
+    "total": 1000,
+    "succeeded": 450,
+    "failed": 5,
+    "pending": 545,
+    "progress": 45.5
+  }
+}
+----
+
+== Best Practices
+
+=== Job Design
+
+. **Keep jobs idempotent**: Jobs may be retried, so ensure repeated execution is safe
+. **Use meaningful names**: Help operators understand job purpose
+. **Log progress**: Use `jobContext().logger()` for dashboard-visible logs
+. **Handle interruption**: Check `Thread.currentThread().isInterrupted()` for long operations
+
+=== Parameter Design
+
+. **Use sensible defaults**: Reduce configuration effort for common cases
+. **Validate early**: Check parameters at the start of execution
+. **Document format**: Use clear naming for date/time formats
+
+=== Batch Job Design
+
+. **Balance batch size**: Too small = overhead, too large = long-running
+. **Handle partial failures**: Design for some child jobs failing
+. **Use progress logging**: Log batch milestones for visibility
+
+=== Error Handling
+
+[source,java]
+----
+@Override
+public void run(MyJobRequest request) throws Exception {
+    var logger = jobContext().logger();
+
+    try {
+        // Main logic
+        processData(request);
+    } catch (RecoverableException e) {
+        // Let JobRunr retry
+        logger.warn("Recoverable error, will retry: " + e.getMessage());
+        throw e;
+    } catch (PermanentException e) {
+        // Don't retry - fail immediately
+        logger.error("Permanent failure: " + e.getMessage());
+        throw new JobRunrException("Job failed permanently", e);
+    }
+}
+----
+
+== Troubleshooting
+
+=== Job Not Appearing in Dashboard
+
+* Verify `@ConfigurableJob` annotation is on the `run()` method
+* Check that the handler implements `JobRequestHandler<T>`
+* Ensure the JobRequest implements `JobRequest` interface
+* Rebuild the application (discovery happens at build time)
+
+=== Parameters Not Showing
+
+* Verify JobRequest is a Java record
+* Check that record components have correct types
+* Rebuild after adding `@JobParameterDefinition`
+
+=== Serialization Errors
+
+* Ensure all parameter types are Jackson-serializable
+* Check that enums have a default constructor
+* Verify complex types are properly annotated
+
+=== Build-Time Errors
+
+* Check for circular dependencies in JobRequest
+* Verify all referenced classes are on the classpath
+* Review Quarkus build output for scanner warnings

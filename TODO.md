@@ -49,3 +49,5 @@
 * The Configurable Job Configuration is collected at build time using Quarkus build steps
 * It is not tested for quarkus native mode
 * Do not go into details, only high level architecture and important decisions
+* Only docuemnt the classes/interfaces/annotation that are used by the users of the extension, all other classes should
+  be considered internal and not part of the public API

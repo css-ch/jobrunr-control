@@ -1,0 +1,543 @@
+= JobRunr Control Extension - Architecture Documentation
+:toc: left
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: rouge
+
+== Introduction and Goals
+
+=== Requirements Overview
+
+JobRunr Control is a **Quarkus extension** that provides a web-based dashboard and REST API for managing and monitoring jobs in JobRunr Pro. It extends the standard JobRunr Pro capabilities with advanced scheduling, parameter configuration, and external trigger features.
+
+.Key Capabilities
+* Dynamic job scheduling with type-safe parameter configuration
+* Support for scheduled and externally triggerable jobs
+* Batch job execution with real-time progress monitoring
+* External trigger REST API for integration with external systems
+* Deep-link integration with JobRunr Pro Dashboard for detailed job analysis
+
+=== Scope and Constraints
+
+[IMPORTANT]
+====
+.Critical Architectural Decisions
+. **JobRunr Pro Only**: This extension is designed exclusively for JobRunr Pro. The community edition of JobRunr is not supported.
+. **Quarkus Only**: Built as a Quarkus extension; other frameworks (Spring Boot, Micronaut) are not supported.
+. **JobRequest Pattern Only**: Strictly supports the `JobRequest` / `JobRequestHandler` pattern. Lambda-based jobs are not supported for configurable jobs.
+. **Native Mode Not Tested**: The extension has not been tested for Quarkus native mode compilation.
+====
+
+=== Quality Goals
+
+[cols="1,3,1"]
+|===
+|Priority |Quality Goal |Motivation
+
+|1
+|Maintainability
+|Hexagonal Architecture ensures changes remain local and the system evolves independently
+
+|2
+|Reliability
+|Jobs must be scheduled correctly; JobRunr Pro provides durability guarantees
+
+|3
+|Usability
+|Simple, functional UI for internal users without unnecessary complexity
+
+|4
+|Testability
+|Hexagonal Architecture enables isolated unit and integration testing
+|===
+
+== Architecture Decisions
+
+=== AD-1: Hexagonal Architecture (Clean Architecture)
+
+The extension is built using **Hexagonal Architecture** (also known as Clean Architecture or Ports & Adapters). The codebase is modularized into distinct layers:
+
+[plantuml,hexagonal-layers,svg]
+----
+@startuml
+!include <C4/C4_Container>
+
+rectangle "Adapter Layer" as adapter {
+    rectangle "REST API\n(ExternalTriggerResource)" as rest
+    rectangle "Web UI\n(Controllers + Qute)" as ui
+}
+
+rectangle "Application Layer" as app {
+    rectangle "Use Cases\n(Scheduling, Monitoring)" as usecases
+    rectangle "Validation\n(JobParameterValidator)" as validation
+}
+
+rectangle "Domain Layer (Core)" as domain {
+    rectangle "Entities & Value Objects\n(JobDefinition, JobParameter, ...)" as entities
+    rectangle "Ports (Interfaces)\n(JobSchedulerPort, JobExecutionPort, ...)" as ports
+}
+
+rectangle "Infrastructure Layer" as infra {
+    rectangle "JobRunr Adapters\n(JobRunrSchedulerAdapter, ...)" as jobrunr_adapters
+    rectangle "Quarkus Adapters\n(BuildTimeConfigurationAdapter)" as quarkus_adapters
+    rectangle "Discovery\n(JobDefinitionRecorder)" as discovery
+}
+
+adapter -down-> app
+app -down-> domain
+infra -up-> domain : implements ports
+
+@enduml
+----
+
+.Package Structure
+[source]
+----
+ch.css.jobrunr.control/
+├── adapter/           # Adapters (UI, REST API)
+│   ├── rest/         # JAX-RS REST endpoints
+│   └── ui/           # Qute template controllers
+├── application/       # Use Cases
+│   ├── discovery/    # Job discovery use cases
+│   ├── monitoring/   # Job monitoring use cases
+│   ├── scheduling/   # Job scheduling use cases
+│   └── validation/   # Parameter validation
+├── domain/            # Domain Core (Entities, Ports)
+├── infrastructure/    # Infrastructure Adapters
+│   ├── discovery/    # Job definition discovery
+│   ├── jobrunr/      # JobRunr Pro integration
+│   └── quarkus/      # Quarkus-specific adapters
+└── annotations/       # Public API annotations
+----
+
+=== AD-2: No Separate Persistence
+
+The extension relies entirely on **JobRunr's persistence layer**. There is no separate database or storage mechanism for job definitions or schedules.
+
+.Rationale
+* Job definitions are discovered at **build time** using Quarkus build steps
+* Job schedules and execution data are stored in JobRunr's storage provider
+* This avoids data synchronization issues between two persistence layers
+
+=== AD-3: Build-Time Job Discovery
+
+Configurable jobs are discovered and registered at **Quarkus build time** using Jandex index scanning:
+
+[source,java]
+----
+@BuildStep
+@Record(ExecutionTime.STATIC_INIT)
+void discoverAndRegisterJobs(
+        CombinedIndexBuildItem indexBuildItem,
+        JobDefinitionRecorder recorder) {
+    recorder.registerJobMetadata(
+        JobDefinitionIndexScanner.findJobSpecifications(indexBuildItem.getIndex())
+    );
+}
+----
+
+This approach:
+
+* Minimizes runtime reflection for better native image compatibility
+* Provides early feedback on configuration errors
+* Improves startup performance
+
+=== AD-4: JobRunr Pro Java API Integration
+
+The extension integrates with JobRunr Pro through its **Java API**, not direct database access:
+
+* `JobScheduler` / `JobRequestScheduler` for scheduling jobs
+* `StorageProvider` for querying job states
+* No direct SQL queries or database manipulation
+
+=== AD-5: Jackson Serialization
+
+The extension uses **Jackson ObjectMapper** for:
+
+* Serializing/deserializing job parameters
+* Converting UI form data to JobRequest objects
+* REST API request/response handling
+
+=== AD-6: Role-Based Access Control (RBAC)
+
+Three roles control access to dashboard features:
+
+[cols="1,3"]
+|===
+|Role |Permissions
+
+|`viewer`
+|Read-only access to scheduled jobs and execution history
+
+|`configurator`
+|All viewer permissions plus: create, edit, delete scheduled jobs
+
+|`admin`
+|All configurator permissions plus: execute jobs immediately
+|===
+
+Security is enforced using Quarkus Security annotations:
+
+[source,java]
+----
+@GET
+@RolesAllowed({"viewer", "configurator", "admin"})
+public TemplateInstance getScheduledJobsView() { ... }
+
+@POST
+@RolesAllowed({"configurator", "admin"})
+public Response createJob(...) { ... }
+
+@POST
+@Path("/{id}/execute")
+@RolesAllowed({"admin"})
+public TemplateInstance executeJob(@PathParam("id") UUID jobId) { ... }
+----
+
+== System Scope and Context
+
+=== Business Context
+
+[plantuml,business-context,svg]
+----
+@startuml
+!include <C4/C4_Context>
+
+Person(ops_user, "Operations User", "Schedules and monitors jobs via UI")
+Person(admin, "Administrator", "Manages system and executes jobs")
+System_Ext(external_system, "External System", "Triggers jobs via REST API")
+
+System_Boundary(jobrunr_control, "JobRunr Control") {
+    System(control_app, "Control Extension", "Web UI and API for job control")
+}
+
+System_Ext(jobrunr_dashboard, "JobRunr Pro Dashboard", "Built-in JobRunr monitoring UI")
+System_Ext(jobrunr_runtime, "JobRunr Pro Runtime", "Job execution engine")
+
+Rel(ops_user, control_app, "Creates and monitors jobs", "HTTPS")
+Rel(admin, control_app, "Executes jobs", "HTTPS")
+Rel(external_system, control_app, "Triggers jobs", "REST API")
+
+Rel(control_app, jobrunr_dashboard, "Deep-links for details", "HTTP")
+Rel(control_app, jobrunr_runtime, "Schedules/queries jobs", "Java API")
+
+@enduml
+----
+
+=== Technical Context
+
+.External Interfaces
+[cols="1,2,2"]
+|===
+|Interface |Technology |Description
+
+|Web UI
+|Qute Templates + htmx
+|Server-side rendered dashboard with htmx for interactivity
+
+|REST API
+|JAX-RS (Quarkus REST)
+|External trigger endpoints for job execution and status
+
+|JobRunr Pro API
+|Java API
+|JobScheduler, JobRequestScheduler, StorageProvider
+
+|Deep Links
+|HTTP URLs
+|Navigation links to JobRunr Pro Dashboard
+|===
+
+== Building Block View
+
+=== Level 1: Container Diagram
+
+[plantuml,container-view,svg]
+----
+@startuml
+!include <C4/C4_Container>
+
+System_Boundary(control, "JobRunr Control Extension") {
+    Container(web_ui, "Web UI", "Qute + htmx", "Dashboard for job management")
+    Container(rest_api, "REST API", "JAX-RS", "External trigger endpoints")
+    Container(app_layer, "Application Layer", "Use Cases", "Business logic")
+    Container(domain, "Domain", "Java", "Core business rules and ports")
+    Container(infra, "Infrastructure", "Adapters", "JobRunr integration")
+}
+
+Container_Ext(jobrunr, "JobRunr Pro", "Library", "Job scheduling engine")
+
+web_ui --> app_layer
+rest_api --> app_layer
+app_layer --> domain
+infra --> domain : implements
+infra --> jobrunr : uses
+
+@enduml
+----
+
+=== Level 2: Component View - Domain Layer
+
+The domain layer defines the core business model and port interfaces:
+
+.Domain Entities and Value Objects
+[cols="1,3"]
+|===
+|Class |Description
+
+|`JobDefinition`
+|Represents a discovered configurable job with its parameters and settings
+
+|`JobParameter`
+|Defines a single parameter with name, type, default value, and constraints
+
+|`JobParameterType`
+|Enumeration of supported types: STRING, INTEGER, BOOLEAN, DATE, DATETIME, ENUM
+
+|`ScheduledJobInfo`
+|Represents a scheduled job instance with parameters
+
+|`JobExecutionInfo`
+|Represents a job execution with status and optional batch progress
+
+|`BatchProgress`
+|Tracks batch job progress: total, succeeded, failed counts
+
+|`JobSettings`
+|Job configuration from @ConfigurableJob annotation
+|===
+
+.Port Interfaces
+[cols="1,3"]
+|===
+|Interface |Description
+
+|`JobSchedulerPort`
+|Port for scheduling, updating, deleting, and executing jobs
+
+|`JobExecutionPort`
+|Port for querying job execution history
+
+|`JobDefinitionDiscoveryService`
+|Port for accessing discovered job definitions
+
+|`BuildTimeConfigurationPort`
+|Port for accessing build-time detected capabilities
+|===
+
+== Public API
+
+=== Annotations
+
+The extension provides the following annotations for developers:
+
+==== @ConfigurableJob
+
+Marks a `JobRequestHandler.run()` method as a configurable job:
+
+[source,java]
+----
+@ConfigurableJob(
+    name = "My Job",
+    isBatch = false,
+    retries = 3,
+    labels = {"Production", "Daily"},
+    queue = "high-priority",
+    mutex = "my-mutex",
+    processTimeOut = "PT5M",
+    deleteOnSuccess = "PT5M!PT10H",
+    deleteOnFailure = "PT24H!PT48H"
+)
+@Override
+public void run(MyJobRequest request) { ... }
+----
+
+==== @JobParameterDefinition
+
+Annotates record components to define parameter metadata:
+
+[source,java]
+----
+public record MyJobRequest(
+    @JobParameterDefinition(name = "Count", defaultValue = "100")
+    Integer count,
+
+    @JobParameterDefinition(defaultValue = "OPTION_A")
+    MyEnum option
+) implements JobRequest { ... }
+----
+
+=== Lifecycle Interfaces
+
+==== JobRequestOnSuccessFactory
+
+Implement this interface on your JobRequest to chain a success callback job:
+
+[source,java]
+----
+public record MyBatchJobRequest(...)
+    implements JobRequest, JobRequestOnSuccessFactory {
+
+    @Override
+    public JobRequest createOnSuccessJobRequest(
+            JobRequestId jobRequestId,
+            JobRequest jobRequest) {
+        return new MySuccessNotificationRequest(jobRequestId);
+    }
+}
+----
+
+==== JobRequestOnFailureFeactory
+
+Implement this interface on your JobRequest to chain a failure callback job:
+
+[source,java]
+----
+public record MyBatchJobRequest(...)
+    implements JobRequest, JobRequestOnFailureFeactory {
+
+    @Override
+    public JobRequest createOnFailureJobRequest(
+            JobRequestId jobRequestId,
+            JobRequest jobRequest) {
+        return new MyFailureNotificationRequest(jobRequestId);
+    }
+}
+----
+
+=== REST API Endpoints
+
+Base path: `/q/jobrunr-control/api/jobs`
+
+[cols="1,2,3"]
+|===
+|Method |Path |Description
+
+|POST
+|`/{jobId}/start`
+|Start an externally triggerable job immediately
+
+|POST
+|`/`
+|Clone and start a job from an existing template
+
+|GET
+|`/{jobId}`
+|Get current status and progress of a job
+|===
+
+== Runtime View
+
+=== Job Discovery (Build Time)
+
+[plantuml,job-discovery,svg]
+----
+@startuml
+participant "Quarkus Build" as build
+participant "JobDiscoveryProcessor" as processor
+participant "JobDefinitionIndexScanner" as scanner
+participant "Jandex Index" as jandex
+participant "JobDefinitionRecorder" as recorder
+
+build -> processor: discoverAndRegisterJobs()
+processor -> scanner: findJobSpecifications(index)
+scanner -> jandex: getAllKnownImplementations(JobRequestHandler)
+jandex --> scanner: ClassInfo[]
+
+loop for each handler
+    scanner -> jandex: check @ConfigurableJob annotation
+    scanner -> jandex: resolve JobRequest type parameter
+    scanner -> jandex: analyze record parameters
+end
+
+scanner --> processor: Set<JobDefinition>
+processor -> recorder: registerJobMetadata(definitions)
+recorder --> processor: stored in registry
+
+@enduml
+----
+
+=== Job Scheduling (Runtime)
+
+[plantuml,job-scheduling,svg]
+----
+@startuml
+actor User
+participant "UI Controller" as ui
+participant "CreateScheduledJobUseCase" as usecase
+participant "JobParameterValidator" as validator
+participant "JobSchedulerPort" as port
+participant "JobRunrSchedulerAdapter" as adapter
+participant "JobRunr Pro" as jobrunr
+
+User -> ui: Submit job form
+ui -> usecase: execute(jobType, name, params, ...)
+usecase -> validator: convertAndValidate(definition, params)
+validator --> usecase: Map<String, Object>
+usecase -> port: scheduleJob(definition, name, params, ...)
+port -> adapter: scheduleJob(...)
+adapter -> jobrunr: JobRequestScheduler.createOrReplace(...)
+jobrunr --> adapter: JobId
+adapter --> port: UUID
+port --> usecase: UUID
+usecase --> ui: job created
+
+@enduml
+----
+
+== Cross-Cutting Concerns
+
+=== Security
+
+* Authentication is handled by Quarkus Security (configurable via application.properties)
+* Authorization uses `@RolesAllowed` annotations with roles: `viewer`, `configurator`, `admin`
+* REST API endpoints use `@PermitAll` to allow external system access (secure via network/API gateway)
+
+=== Logging
+
+* Uses JBoss Logging (standard Quarkus logging)
+* Structured logging for job operations
+* Job execution logging via JobRunr's `JobDashboardLogger`
+
+=== Error Handling
+
+* Validation errors return user-friendly messages
+* REST API returns standard HTTP status codes with error details
+* UI displays error notifications via htmx
+
+== Technical Debt and Limitations
+
+=== Known Limitations
+
+. **Native Mode**: Not tested for Quarkus native mode compilation
+. **JobFilter Support**: Not fully implemented in job settings
+. **Server Tag Support**: Not fully implemented for job routing
+
+=== Future Considerations
+
+* Support for recurring job configuration
+* Enhanced parameter types (file upload, complex objects)
+* Dashboard theming and customization
+
+== Glossary
+
+[cols="1,3"]
+|===
+|Term |Definition
+
+|JobRequest
+|A serializable object representing a job's input parameters (JobRunr Pro pattern)
+
+|JobRequestHandler
+|A CDI bean that processes a specific JobRequest type
+
+|Configurable Job
+|A job discovered at build time and manageable through the dashboard
+
+|External Trigger
+|A scheduled job that waits for external API call to execute
+
+|Batch Job
+|A job that creates and manages child jobs for parallel processing
+|===
