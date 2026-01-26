@@ -37,7 +37,7 @@ public class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
 
         String response = triggerJobViaApi(scheduledJobId);
         System.out.println("Trigger response: " + response);
-        assertTrue(response.contains("Job triggered successfully"), "Job should be triggered successfully");
+        assertTrue(response.contains("Job started successfully"), "Job should be started successfully");
     }
 
     @Test

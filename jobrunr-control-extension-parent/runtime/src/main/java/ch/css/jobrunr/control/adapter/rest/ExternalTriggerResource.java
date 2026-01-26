@@ -1,10 +1,11 @@
 package ch.css.jobrunr.control.adapter.rest;
 
 import ch.css.jobrunr.control.adapter.rest.dto.BatchProgressDTO;
+import ch.css.jobrunr.control.adapter.rest.dto.CloneAndStartJobRequestDTO;
 import ch.css.jobrunr.control.adapter.rest.dto.JobStatusResponse;
-import ch.css.jobrunr.control.adapter.rest.dto.TriggerJobRequestDTO;
 import ch.css.jobrunr.control.adapter.rest.dto.TriggerJobResponse;
 import ch.css.jobrunr.control.application.monitoring.GetJobExecutionByIdUseCase;
+import ch.css.jobrunr.control.application.scheduling.CloneAndStartJobUseCase;
 import ch.css.jobrunr.control.application.scheduling.ExecuteJobImmediatelyUseCase;
 import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
@@ -35,7 +36,7 @@ import java.util.UUID;
  * Note: The base path can be configured via jobrunr.control.api.basePath
  * Additional programmatic routes are registered in deployment module.
  */
-@Path("/q/jobrunr-control/api/external-trigger")
+@Path("/q/jobrunr-control/api/jobs")
 @Tag(name = "External Trigger", description = "API for triggering and monitoring externally triggerable jobs")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -46,27 +47,31 @@ public class ExternalTriggerResource {
 
     private final ExecuteJobImmediatelyUseCase executeJobUseCase;
     private final GetJobExecutionByIdUseCase getJobExecutionByIdUseCase;
+    private final CloneAndStartJobUseCase cloneAndStartJobUseCase;
 
     @Inject
     public ExternalTriggerResource(
             ExecuteJobImmediatelyUseCase executeJobUseCase,
-            GetJobExecutionByIdUseCase getJobExecutionByIdUseCase) {
+            GetJobExecutionByIdUseCase getJobExecutionByIdUseCase,
+            CloneAndStartJobUseCase cloneAndStartJobUseCase) {
         this.executeJobUseCase = executeJobUseCase;
         this.getJobExecutionByIdUseCase = getJobExecutionByIdUseCase;
+        this.cloneAndStartJobUseCase = cloneAndStartJobUseCase;
     }
 
     /**
-     * Triggers an externally triggerable job immediately.
+     * Starts an externally triggerable job immediately.
      *
-     * @param request Request containing jobId and optional parameter overrides
+     * @param jobId      Job ID from path parameter
+     * @param parameters Optional map of parameter overrides in request body
      * @return Response containing the triggered job ID and message
      */
     @POST
-    @Path("/trigger")
+    @Path("/{jobId}/start")
     @PermitAll
     @Operation(
-            summary = "Trigger a job",
-            description = "Triggers an externally triggerable job immediately with optional parameter overrides. The job must be scheduled with external trigger flag."
+            summary = "Start a job",
+            description = "Starts an externally triggerable job immediately with optional parameter overrides. The job must be scheduled with external trigger flag."
     )
     @APIResponses({
             @APIResponse(
@@ -87,32 +92,33 @@ public class ExternalTriggerResource {
                     description = "Internal server error"
             )
     })
-    public Response triggerJob(
-            @RequestBody(description = "Trigger job request with jobId and optional parameters", required = true,
-                    content = @Content(schema = @Schema(implementation = TriggerJobRequestDTO.class)))
-            TriggerJobRequestDTO request) {
+    public Response startJob(
+            @Parameter(description = "Job ID", required = true)
+            @PathParam("jobId") UUID jobId,
+            @RequestBody(description = "Optional parameter overrides", required = false,
+                    content = @Content(schema = @Schema(implementation = java.util.Map.class)))
+            java.util.Map<String, Object> parameters) {
 
-        if (request == null || request.jobId() == null) {
+        if (jobId == null) {
             log.error("Invalid request: jobId is required");
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponse("jobId is required"))
                     .build();
         }
 
-        UUID jobId = request.jobId();
-        log.info("Triggering job with ID: {} with {} parameter override(s)",
+        log.info("Starting job with ID: {} with {} parameter override(s)",
                 jobId,
-                request.parameters() != null ? request.parameters().size() : 0);
+                parameters != null ? parameters.size() : 0);
 
         try {
-            executeJobUseCase.execute(jobId, request.parameters());
+            executeJobUseCase.execute(jobId, parameters);
 
             TriggerJobResponse response = new TriggerJobResponse(
                     jobId,
-                    "Job triggered successfully"
+                    "Job started successfully"
             );
 
-            log.info("Job {} triggered successfully", jobId);
+            log.info("Job {} started successfully", jobId);
             return Response.ok(response).build();
 
         } catch (IllegalArgumentException e) {
@@ -121,9 +127,80 @@ public class ExternalTriggerResource {
                     .entity(new ErrorResponse("Invalid job ID: " + e.getMessage()))
                     .build();
         } catch (Exception e) {
-            log.error("Error triggering job {}", jobId, e);
+            log.error("Error starting job {}", jobId, e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(new ErrorResponse("Failed to trigger job: " + e.getMessage()))
+                    .entity(new ErrorResponse("Failed to start job: " + e.getMessage()))
+                    .build();
+        }
+    }
+
+    /**
+     * Clones an existing job and starts it immediately.
+     *
+     * @param request Request containing cloneFromId and optional parameter overrides
+     * @return Response containing the new job ID and message
+     */
+    @POST
+    @PermitAll
+    @Operation(
+            summary = "Clone and start a job",
+            description = "Clones an existing scheduled job and starts it immediately with optional parameter overrides."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Job cloned and started successfully",
+                    content = @Content(schema = @Schema(implementation = TriggerJobResponse.class))
+            ),
+            @APIResponse(
+                    responseCode = "400",
+                    description = "Invalid request"
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Source job not found"
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error"
+            )
+    })
+    public Response cloneAndStartJob(
+            @RequestBody(description = "Clone and start job request with cloneFromId and optional parameters", required = true,
+                    content = @Content(schema = @Schema(implementation = CloneAndStartJobRequestDTO.class)))
+            CloneAndStartJobRequestDTO request) {
+
+        if (request == null || request.cloneFromId() == null) {
+            log.error("Invalid request: cloneFromId is required");
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("cloneFromId is required"))
+                    .build();
+        }
+
+        log.info("Cloning and starting job with ID: {} with {} parameter override(s)",
+                request.cloneFromId(),
+                request.parameters() != null ? request.parameters().size() : 0);
+
+        try {
+            UUID newJobId = cloneAndStartJobUseCase.execute(request.cloneFromId(), request.suffix(), request.parameters());
+
+            TriggerJobResponse response = new TriggerJobResponse(
+                    newJobId,
+                    "Job cloned and started successfully"
+            );
+
+            log.info("Job cloned and started successfully with new ID: {}", newJobId);
+            return Response.ok(response).build();
+
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid request: {}", e.getMessage(), e);
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse(e.getMessage()))
+                    .build();
+        } catch (Exception e) {
+            log.error("Error cloning and starting job {}", request.cloneFromId(), e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Failed to clone and start job: " + e.getMessage()))
                     .build();
         }
     }
@@ -135,7 +212,7 @@ public class ExternalTriggerResource {
      * @return Response containing job status and progress information
      */
     @GET
-    @Path("/{jobId}/status")
+    @Path("/{jobId}")
     @PermitAll
     @Operation(
             summary = "Get job status",
