@@ -1,0 +1,117 @@
+<form id="jobForm"
+        {#if isEdit}
+            hx-put="/q/jobrunr-control/scheduled/{job.jobId}"
+        {#else}
+            hx-post="/q/jobrunr-control/scheduled"
+        {/if}
+      hx-target="#jobs-table"
+      hx-swap="outerHTML">
+
+    <div id="form-alerts"></div>
+
+    <div class="mb-3">
+        <label for="jobType" class="form-label">Job-Typ auswählen</label>
+        <select name="jobType"
+                id="jobType"
+                class="form-select"
+                required
+                {#if isEdit}disabled{/if}
+                hx-get="/q/jobrunr-control/scheduled/modal/parameters"
+                hx-target="#parameters-container"
+                hx-swap="innerHTML">
+            <option value="">-- Job-Typ auswählen --</option>
+            {#for jobDef in jobDefinitions}
+                <option value="{jobDef.jobType()}"
+                        {#if isEdit && job.jobType == jobDef.jobType()}selected{/if}>{jobDef.jobType()}</option>
+            {/for}
+        </select>
+        {#if isEdit}
+            <input type="hidden" name="jobType" value="{job.jobType}">
+        {/if}
+        <div class="form-text">Der Typ bestimmt, welche Job-Klasse ausgeführt wird.</div>
+    </div>
+
+    <div class="mb-3">
+        <label for="jobName" class="form-label">Job-Name</label>
+        <input type="text"
+               name="jobName"
+               id="jobName"
+               class="form-control"
+               placeholder="z.B. Monatsbericht Januar 2026"
+               {#if isEdit}value="{job.jobName}"{/if}
+               required>
+        <div class="form-text">Ein beschreibender Name für diese Job-Instanz.</div>
+    </div>
+
+    <div id="parameters-container" class="mb-3">
+        {#if isEdit}
+                {#include components/param-inputs.html parameters = parameters existingValues = job.parameters /}
+        {#else}
+            <div class="alert alert-secondary" role="alert">
+                <small>Wählen Sie einen Job aus, um die Parameter zu sehen.</small>
+            </div>
+        {/if}
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong>Zeitplanung</strong>
+        </div>
+        <div class="card-body">
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="triggerType"
+                       id="triggerScheduled" value="scheduled"
+                       {#if ! isEdit || (isEdit && ! job.externallyTriggerable)}checked{/if}
+                       onchange="toggleScheduling(this.value)">
+                <label class="form-check-label" for="triggerScheduled">
+                    Einmalige Ausführung
+                </label>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="radio" name="triggerType"
+                       id="triggerExternal" value="external"
+                       {#if isEdit && job.externallyTriggerable}checked{/if}
+                       onchange="toggleScheduling(this.value)">
+                <label class="form-check-label" for="triggerExternal">
+                    Externer Trigger
+                </label>
+            </div>
+
+            <div id="scheduling-options" {#if isEdit && job.externallyTriggerable}style="display:none;"{/if}>
+                <label for="scheduledAt" class="form-label">Ausführungszeitpunkt</label>
+                <input type="datetime-local"
+                       name="scheduledAt"
+                       id="scheduledAt"
+                       class="form-control"
+                       {#if isEdit && ! job.externallyTriggerable}value="{job.scheduledAt.format("yyyy-MM-dd'T'HH:mm")}"{/if}
+                    {#if ! isEdit || (isEdit && ! job.externallyTriggerable)}required{/if}>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Abbrechen
+        </button>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> {#if isEdit}Job aktualisieren{#else}Job erstellen{/if}
+        </button>
+    </div>
+</form>
+
+<script>
+    function toggleScheduling(type) {
+        const schedulingOptions = document.getElementById('scheduling-options');
+        const scheduledAtInput = document.getElementById('scheduledAt');
+
+        if (type === 'external') {
+            schedulingOptions.style.display = 'none';
+            scheduledAtInput.removeAttribute('required');
+        } else {
+            schedulingOptions.style.display = 'block';
+            scheduledAtInput.setAttribute('required', 'required');
+        }
+    }
+</script>
+

@@ -1,4 +1,4 @@
-= Architecture Documentation: JobRunr Pro Scheduler Extension
+= Architecture Documentation: JobRunr Controller Extension
 :toc: left
 :toclevels: 3
 :sectnums:
@@ -9,12 +9,12 @@
 
 === Requirements Overview
 
-The JobRunr Pro Scheduler Extension is a web-based control application that extends the standard JobRunr Pro Dashboard with advanced scheduling and monitoring capabilities.
+The JobRunr Control Extension is a web-based control application that extends the standard JobRunr Pro Dashboard with advanced scheduling and monitoring capabilities.
 The application provides a dedicated user interface for planning, parameterizing, and monitoring jobs while using JobRunr API as the single source of truth without maintaining its own job data.
 
 .Key Features
 * Dynamic job scheduling with type-safe parameter configuration
-* Support for scheduled, periodic, and externally triggerable jobs
+* Support for scheduled and externally triggerable jobs
 * Batch job execution with real-time progress monitoring
 * External trigger API for integration with external systems
 * Deep-link integration with JobRunr Pro Dashboard for detailed job analysis
@@ -77,7 +77,7 @@ The application provides a dedicated user interface for planning, parameterizing
 |===
 |Constraint |Description
 
-|Java 21
+|Java 21+
 |Required for modern language features (Records, Pattern Matching, Virtual Threads)
 
 |Quarkus 3.30.6
@@ -85,12 +85,6 @@ The application provides a dedicated user interface for planning, parameterizing
 
 |JobRunr Pro 8.4.0
 |Licensed job scheduling engine, provides core functionality
-
-|JorRunr Database (PostgreSQL 16)
-|Database for JobRunr storage provider
-
-|Podman
-|Container runtime for development and testing
 
 |Server-Side Rendering
 |Qute templates with htmx for interactivity (no SPA framework)
@@ -128,7 +122,7 @@ The application provides a dedicated user interface for planning, parameterizing
 |JUnit 5 + Mockito for unit tests, QuarkusTest for integration tests
 
 |Logging
-|JBoss Logging with structured logging principles
+|slf4j Logging with structured logging principles
 
 |Documentation
 |English for all public APIs and documentation
@@ -152,15 +146,15 @@ System_Boundary(jobrunr_control, "JobRunr Control") {
 }
 
 System_Ext(jobrunr_dashboard, "JobRunr Pro Dashboard", "Built-in JobRunr monitoring UI")
-System_Ext(jorunr_db, "JorRunr Database", "JobRunr storage provider (PostgreSQL 16)")
+System_Ext(jorunr_runtime, "JorRunr Runtime", "JobRunr storage provider")
 
 Rel(ops_user, control_app, "Creates and monitors jobs", "HTTPS")
 Rel(admin, control_app, "Configures access", "HTTPS")
 Rel(external_system, control_app, "Triggers jobs", "REST API")
 
 Rel(control_app, jobrunr_dashboard, "Deep-links for details", "HTTP")
-Rel(control_app, jorunr_db, "Reads/writes job data", "JDBC")
-Rel(jobrunr_dashboard, jorunr_db, "Reads/writes job data", "JDBC")
+Rel(control_app, jorunr_runtime, "Reads/writes job data", "API calls")
+Rel(jobrunr_dashboard, jorunr_runtime, "Reads/writes job data", "API calls")
 
 @enduml
 ----
@@ -906,8 +900,8 @@ podman run -d \
 |Property |Description |Default
 
 |`quarkus.datasource.jdbc.url`
-|JorRunr Database JDBC connection string
-|`jdbc:postgresql://localhost:5432/postgres`
+|JobRunr Database JDBC connection (managed by JobRunr)
+|`jdbc:postgresql://localhost:5432/jobrunr`
 
 |`quarkus.datasource.username`
 |Database username
@@ -921,18 +915,17 @@ podman run -d \
 |Number of worker threads
 |`20`
 
-|`jobrunr.dashboard.url`
-|URL for deep-links to JobRunr dashboard
-|`http://localhost:8000`
-
-|`jobrunr.batch-progress.timeout`
-|Timeout for batch progress queries
-|`PT5S`
+|`quarkus.jobrunr.dashboard.enabled`
+|Enable JobRunr Dashboard
+|`true`
 
 |`dev.test.roles`
 |Development mode user roles
 |`admin`
 |===
+
+Note: All database access is managed by JobRunr Runtime.
+The extension never accesses the database directly.
 
 == Cross-cutting Concepts
 
@@ -944,14 +937,14 @@ To support this requirement, the application uses a date-based convention:
 .Convention Rules
 * Jobs scheduled for `2999-12-31T23:59:59Z` are marked as "externally triggerable"
 * These jobs appear in the UI with the label "External Trigger" instead of a date
-* The REST API allows triggering these jobs via POST to `/api/external-trigger/{jobId}/trigger`
+* The REST API allows triggering these jobs via POST to `+/api/external-trigger/{jobId}/trigger+`
 
 .Implementation
 [source,java]
 ----
 public static final Instant EXTERNAL_TRIGGER = Instant.parse("2999-12-31T23:59:59Z");
 
-private UUID createOrUpdateJob(..., boolean isExternalTrigger, Instant scheduledAt) {
+private UUID createOrUpdateJob(/* other params */, boolean isExternalTrigger, Instant scheduledAt) {
     if (isExternalTrigger) {
         scheduledAt = EXTERNAL_TRIGGER;
     }
@@ -1146,7 +1139,45 @@ Parameters are extracted from `JobRequest` record components and mapped to UI fo
 |`LocalDateTime`, `Instant`
 |`DATETIME`
 |`<input type="datetime-local">`
+
+|`Enum`
+|`ENUM`
+|`<select>` with enum values
 |===
+
+.@JobParameter Annotation
+Parameters can be annotated with `@JobParameterDefinition` to specify metadata:
+
+[source,java]
+----
+public record ExampleBatchJobRequest(
+        @JobParameter(defaultValue = "100")
+        Integer numberOfJunks,
+        @JobParameter(defaultValue = "1000")
+        Integer junkSize,
+        @JobParameter(defaultValue = "true")
+        Boolean simulateErrors
+) implements JobRequest {
+    @Override
+    public Class<ExampleBatchJob> getJobRequestHandler() {
+        return ExampleBatchJob.class;
+    }
+}
+----
+
+The `@JobParameterDefinition` annotation supports:
+
+* `name()` - Override the parameter name (defaults to field name)
+* `defaultValue()` - Default value as a string (parsed to target type)
+
+Default values are automatically parsed to the correct type:
+
+* Strings: `"some text"`
+* Booleans: `"true"` or `"false"`
+* Integers: `"123"`
+* Dates: `"2024-01-01"` (ISO-8601)
+* DateTimes: `"2024-01-01T12:00:00"` (ISO-8601)
+* Enums: `"ENUM_VALUE"` (enum constant name)
 
 === Server-Side Rendering Strategy
 
@@ -1258,326 +1289,102 @@ public class ScheduledJobsController {
 
     @GET
     @RolesAllowed({"viewer", "configurator", "admin"})
-    public TemplateInstance getScheduledJobsView() { ... }
+    public TemplateInstance getScheduledJobsView() { /* ... */ }
 
     @POST
     @Path("/create")
     @RolesAllowed({"configurator", "admin"})
-    public Response createJob(...) { ... }
+    public Response createJob(/* ... */) { /* ... */ }
 
     @DELETE
     @Path("/{id}")
     @RolesAllowed({"admin"})
-    public Response deleteJob(@PathParam("id") UUID id) { ... }
+    public Response deleteJob(@PathParam("id") UUID id) { /* ... */ }
 }
 ----
 
-== Design Decisions
+=== API Endpoints
 
-=== ADR-001: Use Clean Architecture / Hexagonal Architecture
+==== UI Endpoints
 
-.Context
-The system needs to integrate with JobRunr (external library) while maintaining testability and future flexibility.
+The UI is accessible at `/q/jobrunr-control/*`:
 
-.Decision
-Implement strict Clean Architecture with ports (interfaces) in the domain layer and adapters in infrastructure.
-
-.Consequences
-* ✅ Domain logic independent of JobRunr
-* ✅ Easy to mock for testing
-* ✅ Could swap JobRunr for another scheduler (theoretically)
-* ❌ More boilerplate (interfaces + implementations)
-* ❌ Steeper learning curve for new developers
-
-=== ADR-002: Server-Side Rendering with htmx
-
-.Context
-Need a functional UI for internal users without SPA complexity.
-
-.Decision
-Use Quarkus Qute (server-side templates) with htmx for partial updates.
-
-.Consequences
-* ✅ Fast time-to-market
-* ✅ No JavaScript build tooling
-* ✅ SEO-friendly (if needed)
-* ✅ Works without JavaScript (graceful degradation)
-* ❌ Less rich interactivity than React/Vue
-* ❌ Higher server load for rendering
-
-=== ADR-003: External Trigger via Date Convention (2999-12-31)
-
-.Context
-JobRunr has no native "external trigger" flag, but we need to mark jobs as manually triggerable.
-
-.Decision
-Use date `2999-12-31T23:59:59Z` as a convention to mark externally triggerable jobs.
-
-.Consequences
-* ✅ Simple to implement
-* ✅ No schema changes required
-* ✅ Easy to filter in queries
-* ❌ Not semantically obvious
-* ❌ Could cause issues if JobRunr changes date handling
-* ❌ Requires documentation
-
-.Alternatives Considered
-* Add custom label to job → Labels not easily filterable in UI
-* Store in separate table → Violates "no local storage" requirement
-* Modify JobRunr source → Not maintainable
-
-=== ADR-004: Batch Job Scheduling Workaround
-
-.Context
-JobRunr's `startBatch()` creates batch parent immediately, preventing future-scheduled batch jobs.
-
-.Decision
-Use conditional logic: immediate batches use `startBatch()`, scheduled batches use `schedule()` and create parent at runtime.
-
-.Consequences
-* ✅ Enables scheduled batch jobs
-* ✅ No JobRunr modifications
-* ✅ Preserves batch progress tracking
-* ❌ Two-level indirection for scheduled batches
-* ❌ Cannot inspect batch structure before execution
-* ❌ Somewhat magical behavior
-
-.Future Action
-File feature request with JobRunr for native scheduled batch support.
-
-=== ADR-005: Java Records for DTOs
-
-.Context
-Need immutable data transfer objects with minimal boilerplate.
-
-.Decision
-Use Java 21 Records for all DTOs, domain models, and value objects.
-
-.Consequences
-* ✅ Concise, readable code
-* ✅ Immutability by default
-* ✅ Built-in equals/hashCode/toString
-* ✅ No Lombok dependency
-* ❌ Requires Java 17+ (already required)
-* ❌ Less flexible than classes (no inheritance)
-
-=== ADR-006: Constructor Injection Only
-
-.Context
-Need clear dependency management and testability.
-
-.Decision
-Use constructor injection (`@Inject` on constructor) instead of field injection.
-
-.Consequences
-* ✅ Dependencies are explicit
-* ✅ Easier to unit test (manual construction)
-* ✅ Immutable dependencies
-* ❌ More verbose
-* ❌ Large constructors for many dependencies
-
-== Quality Requirements
-
-=== Quality Scenarios
-
-==== Performance
-
-[cols="1,3"]
+[cols="1,2,3"]
 |===
-|Scenario |Job scheduling completes within 500ms for 95% of requests
+|Path |Method |Description
 
-|Trigger |User submits job creation form
+|`/q/jobrunr-control`
+|GET
+|Dashboard home (redirects to scheduled jobs)
 
-|Response |System validates, creates JobRequest, schedules via JobRunr, updates UI
+|`/q/jobrunr-control/scheduled`
+|GET
+|Scheduled jobs overview page
 
-|Measure |Server-side processing time < 500ms (p95)
+|`/q/jobrunr-control/scheduled/table`
+|GET
+|Scheduled jobs table fragment (htmx)
+
+|`/q/jobrunr-control/scheduled/form`
+|GET
+|Job creation/edit form modal (htmx)
+
+|`/q/jobrunr-control/scheduled/param-inputs`
+|GET
+|Dynamic parameter input fields (htmx)
+
+|`/q/jobrunr-control/scheduled/create`
+|POST
+|Create new scheduled job
+
+|`+/q/jobrunr-control/scheduled/{id}/update+`
+|POST
+|Update existing scheduled job
+
+|`+/q/jobrunr-control/scheduled/{id}/delete+`
+|DELETE
+|Delete scheduled job
+
+|`+/q/jobrunr-control/scheduled/{id}/execute+`
+|POST
+|Execute job immediately
+
+|`/q/jobrunr-control/history`
+|GET
+|Job execution history page
+
+|`/q/jobrunr-control/history/table`
+|GET
+|Execution history table fragment (htmx)
+
+|`+/q/jobrunr-control/history/batch-progress/{id}+`
+|GET
+|Batch progress modal (htmx, polling)
 |===
 
-[cols="1,3"]
+==== REST API Endpoints
+
+The REST API is accessible at `/q/jobrunr-control/api/external-trigger/*`:
+
+[cols="1,2,3"]
 |===
-|Scenario |Batch progress updates render within 2 seconds
+|Path |Method |Description
 
-|Trigger |User views execution history with active batch jobs
+|`+/q/jobrunr-control/api/external-trigger/{jobId}/trigger+`
+|POST
+|Trigger externally triggerable job immediately
 
-|Response |System queries JobRunr storage, extracts batch stats, renders HTML fragment
+|`+/q/jobrunr-control/api/external-trigger/{jobId}/status+`
+|GET
+|Get job execution status and progress
 
-|Measure |Query + rendering time < 2s
-|===
+|`/q/openapi`
+|GET
+|OpenAPI 3.0 specification (Swagger)
 
-==== Reliability
-
-[cols="1,3"]
-|===
-|Scenario |System recovers from database connection loss
-
-|Trigger |PostgreSQL container restarts
-
-|Response |Quarkus connection pool detects failure, retries connection, application continues
-
-|Measure |No manual intervention required, max 30s downtime
-|===
-
-==== Maintainability
-
-[cols="1,3"]
-|===
-|Scenario |Developer adds new job type in < 1 hour
-
-|Trigger |New business requirement for job
-
-|Response |Developer creates `JobRequest` record, implements `ConfigurableJob`, deploys
-
-|Measure |Time from requirement to deployed job type < 1 hour
+|`/q/swagger-ui`
+|GET
+|Swagger UI for API testing
 |===
 
-==== Usability
-
-[cols="1,3"]
-|===
-|Scenario |New user schedules first job without training
-
-|Trigger |Operations user receives access credentials
-
-|Response |User navigates UI, selects job type, fills parameters, submits
-
-|Measure |Task completion without help documentation < 5 minutes
-|===
-
-=== Quality Tree
-
-[plantuml,quality-tree,svg]
-----
-@startmindmap
-* Quality Goals
-** Maintainability (High)
-*** Clean Architecture
-*** Test Coverage > 80%
-*** Documentation (English)
-** Reliability (High)
-*** JobRunr Pro Durability
-*** Database ACID Guarantees
-*** Error Handling
-** Performance (Medium)
-*** Response Time < 500ms (p95)
-*** Async Batch Progress
-*** Connection Pooling
-** Usability (Medium)
-*** Functional UI Design
-*** Clear Error Messages
-*** Search & Filter
-** Testability (High)
-*** Hexagonal Architecture
-*** Constructor Injection
-*** Mockable Ports
-@endmindmap
-----
-
-== Risks and Technical Debt
-
-=== Current Risks
-
-[cols="1,3,1,2"]
-|===
-|Risk |Description |Probability |Mitigation
-
-|JobRunr API Changes
-|Breaking changes in JobRunr Pro could require significant refactoring
-|Medium
-|Hexagonal architecture isolates JobRunr to infrastructure layer; comprehensive integration tests
-
-|Batch Job Workaround Fragility
-|Date convention for external triggers could conflict with future JobRunr features
-|Low
-|Document clearly; consider moving to labels if JobRunr adds support
-
-|Database Connection Pool Exhaustion
-|High number of batch jobs could exhaust connection pool
-|Medium
-|Configure `quarkus.datasource.jdbc.max-size` appropriately; monitor with Micrometer
-
-|License Expiration
-|JobRunr Pro license expiration stops job execution
-|Low
-|Automated license monitoring; alerts before expiration
-|===
-
-=== Technical Debt
-
-[cols="2,3,1"]
-|===
-|Item |Description |Priority
-
-|Missing Unit Tests
-|Application layer use cases lack comprehensive unit tests
-|High
-
-|Missing Integration Tests
-|No end-to-end tests for job execution flows
-|High
-
-|Static Import for CDN Assets
-|Bootstrap and htmx loaded from CDN; should be bundled
-|Medium
-
-|ArchUnit Validation
-|No automated architecture rule checking
-|Medium
-
-|Library Separation
-|Sample jobs mixed with framework code; should extract to separate module
-|Low
-
-|Default Parameter Values
-|No support for default values in job parameters
-|Low
-
-|Enum Parameters
-|No support for enum-type parameters with predefined choices
-|Low
-|===
-
-== Glossary
-
-[cols="2,4"]
-|===
-|Term |Definition
-
-|Batch Job
-|A job that processes multiple items in parallel, with a parent job tracking overall progress and child jobs processing individual items
-
-|ConfigurableJob
-|Interface implemented by jobs that can be dynamically scheduled via the UI with parameterized configuration
-
-|External Trigger
-|A job scheduled for date 2999-12-31, indicating it should be triggered manually via API rather than on a schedule
-
-|JobDefinition
-|Template for a job type, including its class name, parameter schema, and batch flag
-
-|JobRequest
-|JobRunr API construct representing a serializable job invocation with typed parameters (typically a Java Record)
-
-|JobRunr Pro
-|Commercial job scheduling library providing persistence, clustering, dashboard, and batch job support
-
-|Port
-|Interface in the domain layer defining a contract for external dependencies (e.g., JobSchedulerPort)
-
-|Adapter
-|Implementation in the infrastructure layer that fulfills a port contract (e.g., JobRunrSchedulerAdapter)
-
-|Qute
-|Quarkus templating engine for server-side HTML rendering with type-safe bindings
-
-|htmx
-|JavaScript library enabling partial page updates via HTML attributes without writing JavaScript
-
-|Scheduled Job
-|An instance of a JobDefinition with specific parameter values and a planned execution time
-
-|Storage Provider
-|JobRunr component that abstracts database access for job persistence (PostgreSQL in this case)
-
-|Use Case
-|Application layer component implementing a single business operation (e.g., CreateScheduledJobUseCase)
-|===
+All REST endpoints return JSON and follow OpenAPI 3.0 specification available at `/q/openapi`.

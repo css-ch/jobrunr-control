@@ -1,0 +1,101 @@
+{#include base title="Geplante Jobs" subtitle="Verwalten Sie geplante Job-Ausführungen"}
+
+{#content}
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <input type="search"
+                                   class="form-control"
+                                   name="search"
+                                   placeholder="Jobs durchsuchen..."
+                                   hx-get="/q/jobrunr-control/scheduled/table"
+                                   hx-trigger="keyup changed delay:300ms"
+                                   hx-target="#jobs-table"
+                                   hx-vals='{"page": "0", "size": "10", "sortBy": "scheduledAt", "sortOrder": "asc"}'
+                                   hx-include="[name='filter']">
+                        </div>
+                        <div class="col-md-3">
+                            <select name="filter"
+                                    class="form-select"
+                                    hx-get="/q/jobrunr-control/scheduled/table"
+                                    hx-target="#jobs-table"
+                                    hx-vals='{"page": "0", "size": "10", "sortBy": "scheduledAt", "sortOrder": "asc"}'
+                                    hx-include="[name='search']">
+                                <option value="all">Alle Jobs</option>
+                                <option value="external">Nur externe Trigger</option>
+                                <option value="scheduled">Nur geplante</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            {#if security:hasOneOfRole('configurator', 'admin')}
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#jobModal">
+                                <i class="bi bi-plus-circle"></i> Neuen Job erstellen
+                            </button>
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="jobs-table"
+         hx-get="/q/jobrunr-control/scheduled/table"
+         hx-trigger="load"
+         hx-swap="outerHTML">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Lade Jobs...</span>
+            </div>
+            <p class="mt-2">Lade Jobs...</p>
+        </div>
+    </div>
+
+    <!-- Bootstrap Modal -->
+    <div class="modal fade" id="jobModal" tabindex="-1" aria-labelledby="jobModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="jobModalLabel">Job planen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body"
+                     id="modal-content"
+                     hx-get="/q/jobrunr-control/scheduled/modal/new"
+                     hx-trigger="load"
+                     hx-swap="innerHTML">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Lade Formular...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh every 10 seconds
+        setInterval(() => {
+            htmx.trigger('#jobs-table', 'load');
+        }, 10000);
+
+        // Listen for closeModal event from HTMX response header
+        document.body.addEventListener('closeModal', function() {
+            const modalElement = document.getElementById('jobModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+        });
+
+        // Reset modal content when closed
+        document.getElementById('jobModal').addEventListener('hidden.bs.modal', function () {
+            // Reload modal content for next use
+            htmx.trigger('#modal-content', 'load');
+        });
+    </script>
+{/content}

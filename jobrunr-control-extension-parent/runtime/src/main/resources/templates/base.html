@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title ?: 'JobRunr Control'}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/webjars/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="/webjars/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- HTMX -->
+    <script src="/webjars/htmx.org/dist/htmx.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/custom.css">
+
+    <style>
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .status-succeeded { background: #198754; color: white; }
+        .status-failed { background: #dc3545; color: white; }
+        .status-processing { background: #0d6efd; color: white; }
+        .status-enqueued { background: #6c757d; color: white; }
+
+        .external-trigger {
+            background: #fd7e14;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/q/jobrunr-control/scheduled">
+                <i class="bi bi-clock-history"></i> JobRunr Control
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/q/jobrunr-control/scheduled">
+                            <i class="bi bi-calendar-check"></i> Geplante Jobs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/q/jobrunr-control/history">
+                            <i class="bi bi-clock-history"></i> Historie
+                        </a>
+                    </li>
+                    {#if dashboard.hasOpenApi()}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/swagger-ui" target="_blank">
+                            <i class="bi bi-file-earmark-code"></i> API Docs
+                        </a>
+                    </li>
+                    {/if}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{dashboard.url()}" target="_blank">
+                            <i class="bi bi-speedometer2"></i> JobRunr Dashboard
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mt-4">
+        <div class="mb-4">
+            <h1>{title}</h1>
+            {#if subtitle}
+                <p class="text-muted">{subtitle}</p>
+            {/if}
+        </div>
+
+        {#insert content /}
+    </main>
+
+    <footer class="container mt-5 pt-4 border-top">
+        <div class="row">
+            <div class="col-md-12 text-center text-muted">
+                <small>
+                    JobRunr Control v{dashboard.version()} |
+                    {#if dashboard.hasOpenApi()}
+                    <a href="/swagger-ui">API Documentation</a> |
+                    {/if}
+                    <a href="{dashboard.url()}" target="_blank">JobRunr Dashboard</a>
+                </small>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function copyToClipboard(text, event) {
+            navigator.clipboard.writeText(text).then(function() {
+                // Show success feedback
+                const btn = event.target.closest('button');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check2"></i> Kopiert!';
+                btn.classList.remove('btn-outline-secondary');
+                btn.classList.add('btn-success');
+                setTimeout(function() {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-secondary');
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Fehler beim Kopieren: ', err);
+                alert('Fehler beim Kopieren in die Zwischenablage');
+            });
+        }
+    </script>
+
+</body>
+</html>
+
