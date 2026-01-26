@@ -2,7 +2,6 @@ package ch.css.jobrunr.control.infrastructure.jobrunr.execution;
 
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobParameterExtractor;
-import io.quarkus.arc.impl.DefaultAsyncObserverExceptionHandler;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -30,15 +29,14 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
 
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
-    private final DefaultAsyncObserverExceptionHandler defaultAsyncObserverExceptionHandler;
 
     @Inject
     public JobRunrExecutionAdapter(
             StorageProvider storageProvider,
-            JobDefinitionDiscoveryService jobDefinitionDiscoveryService, DefaultAsyncObserverExceptionHandler defaultAsyncObserverExceptionHandler) {
+            JobDefinitionDiscoveryService jobDefinitionDiscoveryService
+    ) {
         this.storageProvider = storageProvider;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
-        this.defaultAsyncObserverExceptionHandler = defaultAsyncObserverExceptionHandler;
     }
 
     @Override

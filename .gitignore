@@ -8,7 +8,6 @@ out/
 .idea/
 *.iws
 *.ipr
-*.iml
 .vscode/
 *.sw?
 *.sublime-workspace

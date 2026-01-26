@@ -241,17 +241,7 @@ public class ExternalTriggerResource {
         try {
             JobExecutionInfo executionInfo = getJobExecutionByIdUseCase.execute(jobId);
 
-            BatchProgressDTO batchProgressDTO = null;
-            if (executionInfo.getBatchProgress().isPresent()) {
-                BatchProgress progress = executionInfo.getBatchProgress().get();
-                batchProgressDTO = new BatchProgressDTO(
-                        progress.total(),
-                        progress.succeeded(),
-                        progress.failed(),
-                        progress.getPending(),
-                        progress.getProgress()
-                );
-            }
+            BatchProgressDTO batchProgressDTO = getBatchProgressDTO(executionInfo);
 
             JobStatusResponse response = new JobStatusResponse(
                     executionInfo.getJobId().toString(),
@@ -284,6 +274,21 @@ public class ExternalTriggerResource {
                     .entity(new ErrorResponse("Failed to get job status: " + e.getMessage()))
                     .build();
         }
+    }
+
+    private static BatchProgressDTO getBatchProgressDTO(JobExecutionInfo executionInfo) {
+        BatchProgressDTO batchProgressDTO = null;
+        if (executionInfo.getBatchProgress().isPresent()) {
+            BatchProgress progress = executionInfo.getBatchProgress().get();
+            batchProgressDTO = new BatchProgressDTO(
+                    progress.total(),
+                    progress.succeeded(),
+                    progress.failed(),
+                    progress.getPending(),
+                    progress.getProgress()
+            );
+        }
+        return batchProgressDTO;
     }
 
     /**

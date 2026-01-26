@@ -29,7 +29,7 @@
 * [ ] Configuring Jobs
 * [ ] Actions on Scheduling Jobs
 * [ ] Monitoring Jobs
-* [ ] Deep Links
+* [ ] Deep Links,
 * [ ] Rerun failed child jobs in the Dashboard
 
 ## Arc42

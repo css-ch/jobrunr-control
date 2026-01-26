@@ -138,10 +138,7 @@ class JobDefinitionIndexScanner {
         if (classInfo.superName() != null) {
             ClassInfo superClass = index.getClassByName(classInfo.superName());
             if (superClass != null) {
-                Type found = findParameterizedInterfaceArgument(superClass, index, targetInterface);
-                if (found != null) {
-                    return found;
-                }
+                return findParameterizedInterfaceArgument(superClass, index, targetInterface);
             }
         }
 
@@ -162,9 +159,7 @@ class JobDefinitionIndexScanner {
 
         if (classInfo.superName() != null) {
             ClassInfo superClass = index.getClassByName(classInfo.superName());
-            if (superClass != null && implementsInterfaceRecursive(superClass, index, targetInterface)) {
-                return true;
-            }
+            return superClass != null && implementsInterfaceRecursive(superClass, index, targetInterface);
         }
 
         return false;
