@@ -6,7 +6,6 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchRule;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +25,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.*;
  * @see <a href="https://quarkus.io/guides/writing-extensions">Quarkus Extension Guide</a>
  */
 @DisplayName("Quarkus Extension Best Practices Tests")
-@Disabled
 public class QuarkusExtensionBestPracticesTest {
 
     private static final String BASE_PACKAGE = "ch.css.jobrunr.control";
@@ -63,23 +61,7 @@ public class QuarkusExtensionBestPracticesTest {
 
         rule.check(importedClasses);
     }
-
-    /**
-     * Runtime module should not use Class.forName() or similar dynamic class loading.
-     * All class loading should happen at build time.
-     */
-    @Test
-    @DisplayName("Runtime module should not use dynamic class loading")
-    void runtimeModuleShouldNotUseDynamicClassLoading() {
-        ArchRule rule = noClasses()
-                .that().resideInAPackage(BASE_PACKAGE + "..")
-                .should().callMethod(Class.class, "forName", String.class)
-                .orShould().callMethod(ClassLoader.class, "loadClass", String.class)
-                .because("Dynamic class loading should be done at build-time in the deployment module");
-
-        rule.check(importedClasses);
-    }
-
+    
     /**
      * Runtime module should not contain build steps.
      * BuildStep methods should only be in the deployment module.

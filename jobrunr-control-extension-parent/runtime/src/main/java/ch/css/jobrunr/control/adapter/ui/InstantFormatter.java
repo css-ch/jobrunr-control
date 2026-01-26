@@ -7,9 +7,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Provides formatting for {@link Instant} objects in Qute templates.
+ * Provides formatting for {@link Instant} objects in type-safe Qute templates.
  * <p>
- * Example usage in a Qute template:
+ * Example usage in a type-safe Qute template:
  * <pre>
  *   &lt;span class="text-muted"&gt;{job.scheduledAt.format('dd.MM.yyyy HH:mm')}&lt;/span&gt;
  * </pre>
@@ -18,7 +18,7 @@ import java.time.format.DateTimeFormatter;
 public class InstantFormatter {
 
     /**
-     * Allows formatting of {@link Instant} objects in Qute templates using a custom pattern.
+     * Allows formatting of {@link Instant} objects in type-safe Qute templates using a custom pattern.
      * Automatically uses the system time zone of the server.
      *
      * @param instant the instant to format

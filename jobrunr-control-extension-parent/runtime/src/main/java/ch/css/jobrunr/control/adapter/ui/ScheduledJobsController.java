@@ -8,7 +8,7 @@ import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
-import io.quarkus.qute.Template;
+import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.security.RolesAllowed;
@@ -27,28 +27,37 @@ import java.util.stream.Collectors;
 
 /**
  * UI Controller for scheduled jobs.
- * Renders Qute templates and processes HTMX requests.
+ * Renders type-safe Qute templates and processes HTMX requests.
  */
 @Path("/q/jobrunr-control/scheduled")
 public class ScheduledJobsController {
 
     private static final Logger log = Logger.getLogger(ScheduledJobsController.class);
 
-    @Inject
-    @io.quarkus.qute.Location("scheduled-jobs.html")
-    Template scheduledJobs;
+    @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
+    public static class Templates {
+        public static native TemplateInstance scheduledJobs();
+    }
 
-    @Inject
-    @io.quarkus.qute.Location("components/scheduled-jobs-table.html")
-    Template scheduledJobsTable;
+    @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
+    public static class Components {
+        public static native TemplateInstance scheduledJobsTable(List<ScheduledJobInfo> jobs,
+                                                                 Map<String, Object> pagination,
+                                                                 List<TemplateExtensions.PageItem> pageRange,
+                                                                 String search, String filter,
+                                                                 String sortBy, String sortOrder);
 
-    @Inject
-    @io.quarkus.qute.Location("modals/job-form.html")
-    Template jobForm;
+        public static native TemplateInstance paramInputs(List<JobParameter> parameters,
+                                                          Map<String, Object> existingValues);
+    }
 
-    @Inject
-    @io.quarkus.qute.Location("components/param-inputs.html")
-    Template paramInputs;
+    @CheckedTemplate(basePath = "modals", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
+    public static class Modals {
+        public static native TemplateInstance jobForm(List<JobDefinition> jobDefinitions,
+                                                      boolean isEdit,
+                                                      ScheduledJobInfo job,
+                                                      List<JobParameter> parameters);
+    }
 
     @Inject
     DiscoverJobsUseCase discoverJobsUseCase;
@@ -81,7 +90,7 @@ public class ScheduledJobsController {
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getScheduledJobsView() {
-        return scheduledJobs.instance();
+        return Templates.scheduledJobs();
     }
 
     @GET
@@ -124,14 +133,15 @@ public class ScheduledJobsController {
         // Pagination anwenden
         PaginationHelper.PaginationResult<ScheduledJobInfo> paginationResult = PaginationHelper.paginate(jobs, page, size);
 
-        return scheduledJobsTable
-                .data("jobs", paginationResult.getPageItems())
-                .data("pagination", paginationResult.getMetadata())
-                .data("pageRange", paginationResult.getPageRange())
-                .data("search", search != null ? search : "")
-                .data("filter", filter)
-                .data("sortBy", sortBy)
-                .data("sortOrder", sortOrder);
+        return Components.scheduledJobsTable(
+                paginationResult.getPageItems(),
+                paginationResult.getMetadata(),
+                paginationResult.getPageRange(),
+                search != null ? search : "",
+                filter,
+                sortBy,
+                sortOrder
+        );
     }
 
 
@@ -142,9 +152,7 @@ public class ScheduledJobsController {
     public TemplateInstance getNewJobModal() {
         List<JobDefinition> jobDefinitions = getSortedJobDefinitions();
 
-        return jobForm
-                .data("jobDefinitions", jobDefinitions)
-                .data("isEdit", false);
+        return Modals.jobForm(jobDefinitions, false, null, null);
     }
 
     @GET
@@ -166,11 +174,7 @@ public class ScheduledJobsController {
             log.errorf("Error loading parameters for job type '%s': %s", jobInfo.getJobType(), e.getMessage(), e);
         }
 
-        return jobForm
-                .data("jobDefinitions", jobDefinitions)
-                .data("isEdit", true)
-                .data("job", jobInfo)
-                .data("parameters", parameters);
+        return Modals.jobForm(jobDefinitions, true, jobInfo, parameters);
     }
 
     @GET
@@ -182,8 +186,7 @@ public class ScheduledJobsController {
 
         if (jobType == null || jobType.isBlank()) {
             log.warnf("jobType is empty");
-            return paramInputs.data("parameters", List.of())
-                    .data("existingValues", null);
+            return Components.paramInputs(List.of(), null);
         }
 
         try {
@@ -193,12 +196,10 @@ public class ScheduledJobsController {
                 log.infof("  - Parameter: %s (type: %s, required: %s, defaultValue: '%s')",
                         param.name(), param.type(), param.required(), param.defaultValue());
             }
-            return paramInputs.data("parameters", parameters)
-                    .data("existingValues", null);
+            return Components.paramInputs(parameters, null);
         } catch (Exception e) {
             log.errorf("Error getting parameters for job type '%s': %s", jobType, e.getMessage(), e);
-            return paramInputs.data("parameters", List.of())
-                    .data("existingValues", null);
+            return Components.paramInputs(List.of(), null);
         }
     }
 
@@ -216,7 +217,7 @@ public class ScheduledJobsController {
         // Validate required fields
         if (jobType == null || jobType.isBlank()) {
             log.warnf("Job type is empty");
-            return Response.ok(scheduledJobsTable.data("jobs", Collections.emptyList())).build();
+            return Response.ok(getDefaultScheduledJobsTable()).build();
         }
 
         boolean isExternalTrigger = "external".equals(triggerType);
@@ -254,7 +255,7 @@ public class ScheduledJobsController {
         // Validate required fields
         if (jobType == null || jobType.isBlank()) {
             log.warnf("Job type is empty");
-            return Response.ok(scheduledJobsTable.data("jobs", Collections.emptyList())).build();
+            return Response.ok(getDefaultScheduledJobsTable()).build();
         }
 
         boolean isExternalTrigger = "external".equals(triggerType);

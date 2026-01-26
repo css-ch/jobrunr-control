@@ -10,7 +10,7 @@ public record JobDefinition(String jobType,
                             boolean isRecord,
                             JobSettings jobSettings) {
 
-    @SuppressWarnings("unused") // Used in qute templates
+    @SuppressWarnings("unused") // Used in type-safe qute templates
     public List<String> getParameterNames() {
         return parameters.stream()
                 .map(JobParameter::name)

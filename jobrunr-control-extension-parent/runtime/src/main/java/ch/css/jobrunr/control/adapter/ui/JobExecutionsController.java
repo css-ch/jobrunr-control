@@ -5,36 +5,37 @@ import ch.css.jobrunr.control.application.monitoring.GetJobExecutionHistoryUseCa
 import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import ch.css.jobrunr.control.domain.JobStatus;
-import io.quarkus.qute.Template;
+import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * UI Controller for job execution history.
- * Renders execution details and batch progress.
+ * Renders execution details and batch progress using type-safe Qute templates.
  */
 @Path("/q/jobrunr-control/history")
 public class JobExecutionsController {
 
-    @Inject
-    @io.quarkus.qute.Location("execution-history.html")
-    Template executionHistory;
+    @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
+    public static class Templates {
+        public static native TemplateInstance executionHistory();
+    }
 
-    @Inject
-    @io.quarkus.qute.Location("components/execution-history-table.html")
-    Template executionHistoryTable;
+    @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
+    public static class Components {
+        public static native TemplateInstance executionHistoryTable(List<JobExecutionInfo> executions,
+                                                                    Map<String, Object> pagination,
+                                                                    List<TemplateExtensions.PageItem> pageRange,
+                                                                    String search, String statusFilter,
+                                                                    String sortBy, String sortOrder);
 
-    @Inject
-    @io.quarkus.qute.Location("components/batch-progress.html")
-    Template batchProgress;
+        public static native TemplateInstance batchProgress(BatchProgress progress);
+    }
 
     @Inject
     GetJobExecutionHistoryUseCase getHistoryUseCase;
@@ -46,7 +47,7 @@ public class JobExecutionsController {
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getExecutionHistoryView() {
-        return executionHistory.instance();
+        return Templates.executionHistory();
     }
 
     @GET
@@ -85,14 +86,15 @@ public class JobExecutionsController {
         // Pagination anwenden
         PaginationHelper.PaginationResult<JobExecutionInfo> paginationResult = PaginationHelper.paginate(executions, page, size);
 
-        return executionHistoryTable
-                .data("executions", paginationResult.getPageItems())
-                .data("pagination", paginationResult.getMetadata())
-                .data("pageRange", paginationResult.getPageRange())
-                .data("search", search != null ? search : "")
-                .data("statusFilter", statusFilter)
-                .data("sortBy", sortBy)
-                .data("sortOrder", sortOrder);
+        return Components.executionHistoryTable(
+                paginationResult.getPageItems(),
+                paginationResult.getMetadata(),
+                paginationResult.getPageRange(),
+                search != null ? search : "",
+                statusFilter,
+                sortBy,
+                sortOrder
+        );
     }
 
     @GET
@@ -103,7 +105,7 @@ public class JobExecutionsController {
         Optional<BatchProgress> progress = getBatchProgressUseCase.execute(jobId);
 
         if (progress.isPresent()) {
-            return batchProgress.data("progress", progress.get()).render();
+            return Components.batchProgress(progress.get()).render();
         } else {
             return "<small>Kein Batch-Job</small>";
         }

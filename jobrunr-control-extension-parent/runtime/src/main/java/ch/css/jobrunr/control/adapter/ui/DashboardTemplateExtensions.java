@@ -26,14 +26,14 @@ public class DashboardTemplateExtensions {
     }
 
     /**
-     * Dashboard helper class that provides URL methods in templates.
+     * Dashboard helper class that provides URL methods in type-safe templates.
      * Usage:
      * - {dashboard.url()} - Dashboard root URL
      * - {dashboard.jobUrl(jobId)} - Job details URL
      * - {dashboard.jobsByLabelUrl(label)} - Jobs by type URL
      */
     @TemplateData
-    @SuppressWarnings("unused") // Methods are used in Qute templates
+    @SuppressWarnings("unused") // Methods are used in type-safe Qute templates
     public static class Dashboard {
         private final DashboardUrlUtils service;
         private final BuildTimeConfigurationPort buildConfigPort;

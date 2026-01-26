@@ -36,7 +36,7 @@ public class ParameterValueFormatter {
      * @param value The parameter value to format
      * @return Formatted string representation
      */
-    @SuppressWarnings("unused") // Used by Qute templates
+    @SuppressWarnings("unused") // Used by type-safe Qute templates
     public static String formatParameterValue(Object value) {
         if (value == null) {
             return "<i class=\"text-muted\">null</i>";
