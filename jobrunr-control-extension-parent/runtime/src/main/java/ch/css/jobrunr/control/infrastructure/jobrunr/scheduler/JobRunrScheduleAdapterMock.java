@@ -51,6 +51,11 @@ public class JobRunrScheduleAdapterMock implements JobSchedulerPort {
 
     @Override
     public void executeJobNow(UUID jobId) {
+        executeJobNow(jobId, null);
+    }
+
+    @Override
+    public void executeJobNow(UUID jobId, java.util.Map<String, Object> parameterOverrides) {
         deleteScheduledJob(jobId);
     }
 }

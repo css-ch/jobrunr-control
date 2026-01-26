@@ -26,11 +26,21 @@ public class ExecuteJobImmediatelyUseCase {
      * @param jobId ID of the job to execute
      */
     public void execute(UUID jobId) {
+        execute(jobId, null);
+    }
+
+    /**
+     * Executes a scheduled job immediately with parameter overrides.
+     *
+     * @param jobId    ID of the job to execute
+     * @param metadata Additional metadata
+     */
+    public void execute(UUID jobId, java.util.Map<String, Object> metadata) {
         if (jobId == null) {
             throw new IllegalArgumentException("jobId must not be null");
         }
 
-        jobSchedulerPort.executeJobNow(jobId);
+        jobSchedulerPort.executeJobNow(jobId, metadata);
     }
 }
 

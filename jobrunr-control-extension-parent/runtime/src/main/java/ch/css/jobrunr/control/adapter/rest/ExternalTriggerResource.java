@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.adapter.rest;
 
 import ch.css.jobrunr.control.adapter.rest.dto.BatchProgressDTO;
 import ch.css.jobrunr.control.adapter.rest.dto.JobStatusResponse;
+import ch.css.jobrunr.control.adapter.rest.dto.TriggerJobRequestDTO;
 import ch.css.jobrunr.control.adapter.rest.dto.TriggerJobResponse;
 import ch.css.jobrunr.control.application.monitoring.GetJobExecutionByIdUseCase;
 import ch.css.jobrunr.control.application.scheduling.ExecuteJobImmediatelyUseCase;
@@ -16,6 +17,7 @@ import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -56,21 +58,25 @@ public class ExternalTriggerResource {
     /**
      * Triggers an externally triggerable job immediately.
      *
-     * @param jobId The UUID of the scheduled job to trigger
+     * @param request Request containing jobId and optional parameter overrides
      * @return Response containing the triggered job ID and message
      */
     @POST
-    @Path("/{jobId}/trigger")
+    @Path("/trigger")
     @PermitAll
     @Operation(
             summary = "Trigger a job",
-            description = "Triggers an externally triggerable job immediately. The job must be scheduled with external trigger flag."
+            description = "Triggers an externally triggerable job immediately with optional parameter overrides. The job must be scheduled with external trigger flag."
     )
     @APIResponses({
             @APIResponse(
                     responseCode = "200",
                     description = "Job triggered successfully",
                     content = @Content(schema = @Schema(implementation = TriggerJobResponse.class))
+            ),
+            @APIResponse(
+                    responseCode = "400",
+                    description = "Invalid request"
             ),
             @APIResponse(
                     responseCode = "404",
@@ -82,13 +88,24 @@ public class ExternalTriggerResource {
             )
     })
     public Response triggerJob(
-            @Parameter(description = "Job ID", required = true)
-            @PathParam("jobId") UUID jobId) {
+            @RequestBody(description = "Trigger job request with jobId and optional parameters", required = true,
+                    content = @Content(schema = @Schema(implementation = TriggerJobRequestDTO.class)))
+            TriggerJobRequestDTO request) {
 
-        log.info("Triggering job with ID: {}", jobId);
+        if (request == null || request.jobId() == null) {
+            log.error("Invalid request: jobId is required");
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("jobId is required"))
+                    .build();
+        }
+
+        UUID jobId = request.jobId();
+        log.info("Triggering job with ID: {} with {} parameter override(s)",
+                jobId,
+                request.parameters() != null ? request.parameters().size() : 0);
 
         try {
-            executeJobUseCase.execute(jobId);
+            executeJobUseCase.execute(jobId, request.parameters());
 
             TriggerJobResponse response = new TriggerJobResponse(
                     jobId,

@@ -56,7 +56,15 @@ public interface JobSchedulerPort {
     /**
      * Executes a scheduled job immediately.
      *
-     * @param jobId Job ID
+     * @param jobId ID of the job to execute
      */
     void executeJobNow(UUID jobId);
+
+    /**
+     * Executes a scheduled job immediately with metadata.
+     *
+     * @param jobId    ID of the job to execute
+     * @param metadata Additional metadata
+     */
+    void executeJobNow(UUID jobId, Map<String, Object> metadata);
 }

@@ -28,6 +28,7 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
             Thread.currentThread().interrupt();
         }
 
+        jobContext().saveMetadata("hello", "ExampleBatchJob#run");
         // Enqueue background jobs for each item
         BackgroundJobRequest.enqueue(items.stream());
     }

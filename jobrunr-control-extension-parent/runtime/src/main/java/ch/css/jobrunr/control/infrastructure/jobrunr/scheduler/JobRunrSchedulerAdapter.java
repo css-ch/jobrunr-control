@@ -190,12 +190,26 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
 
     @Override
     public void executeJobNow(UUID jobId) {
+        executeJobNow(jobId, null);
+    }
+
+    @Override
+    public void executeJobNow(UUID jobId, Map<String, Object> metadata) {
         try {
             // Get the existing job
             org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
             if (job == null) {
                 log.warn("Job not found: {}", jobId);
                 throw new JobSchedulingException("Job not found: " + jobId, null);
+            }
+
+            // Override parameters if provided
+            if (metadata != null && !metadata.isEmpty()) {
+                // Update job metadata with parameter overrides
+                metadata.forEach((key, value) ->
+                        job.getMetadata().put(key, value)
+                );
+                log.info("Job {} will be executed with {} parameter override(s)", jobId, metadata.size());
             }
 
             // Set job to ENQUEUED state for immediate execution

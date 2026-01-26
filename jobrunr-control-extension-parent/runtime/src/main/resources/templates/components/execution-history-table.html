@@ -90,6 +90,7 @@
                         {/if}
                     </th>
                     <th>Parameter</th>
+                    <th>Metadaten</th>
                     <th>Batch-Fortschritt</th>
                 </tr>
                 </thead>
@@ -117,8 +118,8 @@
                             {/if}
                         </td>
                         <td>
-                            {#if execution.finishedAt.isPresent()}
-                                <small class="text-muted">{execution.finishedAt.get().format('dd.MM.yyyy HH:mm')}</small>
+                            {#if execution.getFinishedAt().isPresent()}
+                                <small class="text-muted">{execution.getFinishedAt().get().format('dd.MM.yyyy HH:mm')}</small>
                             {#else}
                                 {#if execution.status.name() == 'PROCESSING'}
                                     <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -133,9 +134,12 @@
                         <td>
                                 {#include components/parameter-list.html parameters = execution.parameters jobId = execution.jobId /}
                         </td>
+                        <td>
+                                {#include components/metadata-list.html metadata = execution.metadata jobId = execution.jobId /}
+                        </td>
                         <td id="batch-{execution.jobId}">
-                            {#if execution.batchProgress.isPresent()}
-                                    {#include components/batch-progress progress = execution.batchProgress.get() /}
+                            {#if execution.getBatchProgress().isPresent()}
+                                    {#include components/batch-progress progress = execution.getBatchProgress().get() /}
                             {#else}
                                 {#if execution.status.name() == 'PROCESSING'}
                                     <div hx-get="/q/jobrunr-control/history/{execution.jobId}/batch-progress"

@@ -1,0 +1,34 @@
+{!
+    Reusable component for displaying job metadata.
+
+    Parameters:
+    - metadata: Map<String, Object> - The metadata to display
+    - jobId: String - Unique ID for accordion
+!}
+{#if metadata == null || metadata.empty}
+    <small class="text-muted">Keine Metadaten</small>
+{#else}
+    <div class="accordion accordion-flush" id="metadata-{jobId}">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-1 px-2" type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapse-metadata-{jobId}">
+                    <small>{metadata.size()} Metadaten</small>
+                </button>
+            </h2>
+            <div id="collapse-metadata-{jobId}" class="accordion-collapse collapse"
+                 data-bs-parent="#metadata-{jobId}">
+                <div class="accordion-body p-2">
+                    <ul class="list-unstyled mb-0 small">
+                        {#for meta in metadata}
+                            <li>
+                                <code>{meta.key}</code>: {format:formatParameterValue(meta.value).raw}
+                            </li>
+                        {/for}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}

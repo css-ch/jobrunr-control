@@ -106,10 +106,20 @@ public abstract class JobTriggerUITestBase {
     // API interaction methods
 
     protected String triggerJobViaApi(UUID jobId) {
+        String requestBody = String.format("""
+                {
+                    "jobId": "%s",
+                    "parameters": {
+                        "test": "true"
+                    }
+                }
+                """, jobId);
+
         return RestAssured.given()
                 .contentType(ContentType.JSON)
+                .body(requestBody)
                 .when()
-                .post(baseUrl + "q/jobrunr-control/api/external-trigger/" + jobId + "/trigger")
+                .post(baseUrl + "q/jobrunr-control/api/external-trigger/trigger")
                 .then()
                 .statusCode(200)
                 .extract()

@@ -178,6 +178,12 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         BatchProgress batchProgress = extractBatchProgress(job);
         String jobName = job.getJobName();
         var parameters = JobParameterExtractor.extractParameters(job);
+        var metadata = job.getMetadata().entrySet().stream()
+                .filter(entry -> !entry.getKey().startsWith("jobRunr"))
+                .collect(java.util.stream.Collectors.toMap(
+                        java.util.Map.Entry::getKey,
+                        java.util.Map.Entry::getValue
+                ));
 
         return new JobExecutionInfo(
                 job.getId(),
@@ -187,7 +193,8 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                 startedAt,
                 finishedAt,
                 batchProgress,
-                parameters
+                parameters,
+                metadata
         );
     }
 
