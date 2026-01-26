@@ -7,8 +7,10 @@ public record JobDefinition(String jobType,
                             String jobRequestTypeName,
                             String handlerClassName,
                             List<JobParameter> parameters,
-                            boolean isRecord) {
+                            boolean isRecord,
+                            JobSettings jobSettings) {
 
+    @SuppressWarnings("unused") // Used in qute templates
     public List<String> getParameterNames() {
         return parameters.stream()
                 .map(JobParameter::name)

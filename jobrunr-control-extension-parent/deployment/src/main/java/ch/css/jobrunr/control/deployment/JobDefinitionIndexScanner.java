@@ -5,6 +5,7 @@ import ch.css.jobrunr.control.annotations.JobParameterDefinition;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterType;
+import ch.css.jobrunr.control.domain.JobSettings;
 import org.jboss.jandex.*;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
@@ -55,6 +56,9 @@ class JobDefinitionIndexScanner {
                         // Analyze the record parameters
                         List<JobParameter> parameters = analyzeRecordParameters(requestClassInfo, index);
 
+                        // Extract JobSettings from annotation
+                        JobSettings jobSettings = extractJobSettings(runMethod);
+
                         // Extract field names from parameters
                         log.info("Discovered job: {} (batch={}) with {} parameters", jobType, isBatchJob, parameters.size());
 
@@ -64,7 +68,8 @@ class JobDefinitionIndexScanner {
                                 requestClassInfo.name().toString(),
                                 classInfo.name().toString(), // handlerClassName
                                 parameters,
-                                isRecord(requestClassInfo)
+                                isRecord(requestClassInfo),
+                                jobSettings
                         ));
                     } else {
                         log.debug("Request class {} is not a valid record JobRequest or does not implement JobRequest", jobRequestType.name());
@@ -190,6 +195,118 @@ class JobDefinitionIndexScanner {
             return value != null && value.asBoolean(); // default is false (check ConfigurableJob)
         }
         return false;
+    }
+
+    private static JobSettings extractJobSettings(MethodInfo method) {
+        AnnotationInstance annotation = method.annotation(ConfigurableJob.class);
+        if (annotation == null) {
+            return createDefaultJobSettings();
+        }
+
+        // Extract name
+        String name = getAnnotationValue(annotation, "name", "");
+
+        // Extract isBatch
+        boolean isBatch = getAnnotationValue(annotation, "isBatch", false);
+
+        // Extract retries
+        int retries = getAnnotationValue(annotation, "retries", ConfigurableJob.NBR_OF_RETRIES_NOT_PROVIDED);
+
+        // Extract labels
+        List<String> labels = getAnnotationValueAsStringList(annotation, "labels");
+
+        // Extract jobFilters as class names
+        List<String> jobFilters = getAnnotationValueAsClassNameList(annotation, "jobFilters");
+
+        // Extract queue
+        String queue = getAnnotationValue(annotation, "queue", "");
+
+        // Extract runOnServerWithTag
+        String runOnServerWithTag = getAnnotationValue(annotation, "runOnServerWithTag", "");
+
+        // Extract mutex
+        String mutex = getAnnotationValue(annotation, "mutex", "");
+
+        // Extract rateLimiter
+        String rateLimiter = getAnnotationValue(annotation, "rateLimiter", "");
+
+        // Extract processTimeOut
+        String processTimeOut = getAnnotationValue(annotation, "processTimeOut", "");
+
+        // Extract deleteOnSuccess
+        String deleteOnSuccess = getAnnotationValue(annotation, "deleteOnSuccess", "");
+
+        // Extract deleteOnFailure
+        String deleteOnFailure = getAnnotationValue(annotation, "deleteOnFailure", "");
+
+        return new JobSettings(
+                name,
+                isBatch,
+                retries,
+                labels,
+                jobFilters,
+                queue,
+                runOnServerWithTag,
+                mutex,
+                rateLimiter,
+                processTimeOut,
+                deleteOnSuccess,
+                deleteOnFailure
+        );
+    }
+
+    private static JobSettings createDefaultJobSettings() {
+        return new JobSettings(
+                "",
+                false,
+                ConfigurableJob.NBR_OF_RETRIES_NOT_PROVIDED,
+                List.of(),
+                List.of(),
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+        );
+    }
+
+    private static String getAnnotationValue(AnnotationInstance annotation, String name, String defaultValue) {
+        AnnotationValue value = annotation.value(name);
+        return value != null ? value.asString() : defaultValue;
+    }
+
+    private static boolean getAnnotationValue(AnnotationInstance annotation, String name, boolean defaultValue) {
+        AnnotationValue value = annotation.value(name);
+        return value != null ? value.asBoolean() : defaultValue;
+    }
+
+    private static int getAnnotationValue(AnnotationInstance annotation, String name, int defaultValue) {
+        AnnotationValue value = annotation.value(name);
+        return value != null ? value.asInt() : defaultValue;
+    }
+
+    private static List<String> getAnnotationValueAsStringList(AnnotationInstance annotation, String name) {
+        AnnotationValue value = annotation.value(name);
+        if (value == null) {
+            return List.of();
+        }
+        return List.of(value.asStringArray());
+    }
+
+    private static List<String> getAnnotationValueAsClassNameList(AnnotationInstance annotation, String name) {
+        AnnotationValue value = annotation.value(name);
+        if (value == null) {
+            return List.of();
+        }
+        // In Jandex, class arrays are represented as Type[]
+        Type[] types = value.asClassArray();
+        List<String> result = new ArrayList<>();
+        for (Type type : types) {
+            result.add(type.name().toString());
+        }
+        return result;
     }
 
     private static List<JobParameter> analyzeRecordParameters(ClassInfo recordClass, IndexView index) {

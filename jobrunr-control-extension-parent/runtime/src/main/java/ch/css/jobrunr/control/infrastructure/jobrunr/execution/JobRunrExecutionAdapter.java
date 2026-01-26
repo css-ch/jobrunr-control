@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.infrastructure.jobrunr.execution;
 
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobParameterExtractor;
+import io.quarkus.arc.impl.DefaultAsyncObserverExceptionHandler;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jobrunr.jobs.BatchJob;
@@ -30,13 +31,15 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
 
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
+    private final DefaultAsyncObserverExceptionHandler defaultAsyncObserverExceptionHandler;
 
     @Inject
     public JobRunrExecutionAdapter(
             StorageProvider storageProvider,
-            JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
+            JobDefinitionDiscoveryService jobDefinitionDiscoveryService, DefaultAsyncObserverExceptionHandler defaultAsyncObserverExceptionHandler) {
         this.storageProvider = storageProvider;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
+        this.defaultAsyncObserverExceptionHandler = defaultAsyncObserverExceptionHandler;
     }
 
     @Override
@@ -197,8 +200,10 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
             case ProcessedState s -> JobStatus.PROCESSED;
             case SucceededState s -> JobStatus.SUCCEEDED;
             case FailedState s -> JobStatus.FAILED;
-            case null, default -> {
-                log.warn("Unexpected job state: {}. Defaulting to ENQUEUED.", jobState);
+            case FailedBatchJobState s -> JobStatus.FAILED;
+            case null -> JobStatus.ENQUEUED;
+            default -> {
+                log.warn("Unexpected job state: {}. Defaulting to ENQUEUED.", jobState.getName());
                 yield JobStatus.ENQUEUED;
             }
         };

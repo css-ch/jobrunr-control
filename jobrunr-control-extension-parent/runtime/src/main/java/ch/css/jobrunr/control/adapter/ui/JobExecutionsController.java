@@ -95,18 +95,6 @@ public class JobExecutionsController {
                 .data("sortOrder", sortOrder);
     }
 
-    private Comparator<JobExecutionInfo> getExecutionComparator(String sortBy) {
-        return switch (sortBy) {
-            case "jobName" -> Comparator.comparing(JobExecutionInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
-            case "jobType" -> Comparator.comparing(JobExecutionInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
-            case "status" -> Comparator.comparing(e -> e.getStatus().name());
-            case "finishedAt" -> Comparator.comparing(e -> e.getFinishedAt().orElse(null),
-                    Comparator.nullsLast(Comparator.naturalOrder()));
-            default -> Comparator.comparing(JobExecutionInfo::getStartedAt,
-                    Comparator.nullsLast(Comparator.naturalOrder()));
-        };
-    }
-
     @GET
     @Path("/{id}/batch-progress")
     @RolesAllowed({"viewer", "configurator", "admin"})
@@ -119,5 +107,17 @@ public class JobExecutionsController {
         } else {
             return "<small>Kein Batch-Job</small>";
         }
+    }
+
+    private Comparator<JobExecutionInfo> getExecutionComparator(String sortBy) {
+        return switch (sortBy) {
+            case "jobName" -> Comparator.comparing(JobExecutionInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
+            case "jobType" -> Comparator.comparing(JobExecutionInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
+            case "status" -> Comparator.comparing(e -> e.getStatus().name());
+            case "finishedAt" -> Comparator.comparing(e -> e.getFinishedAt().orElse(null),
+                    Comparator.nullsLast(Comparator.naturalOrder()));
+            default -> Comparator.comparing(JobExecutionInfo::getStartedAt,
+                    Comparator.nullsLast(Comparator.naturalOrder()));
+        };
     }
 }

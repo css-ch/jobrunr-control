@@ -2,7 +2,6 @@ package ch.css.jobrunr.control.jobs.parameters;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.context.JobDashboardLogger;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
@@ -15,7 +14,6 @@ public class ParameterDemoJob implements JobRequestHandler<ParameterDemoJobReque
 
     @Override
     @ConfigurableJob()
-    @Job(name = "Parameter Demo Job", labels = "sdfsd") // TODO Remove
     public void run(ParameterDemoJobRequest request) throws Exception {
         JobDashboardLogger log = jobContext().logger();
         log.info(String.format("String parameter: %s", request.stringParameter()));

@@ -21,10 +21,12 @@ public class TemplateExtensions {
             this.label = index + 1;
         }
 
+        @SuppressWarnings("unused") // Used in templates
         public int getIndex() {
             return index;
         }
 
+        @SuppressWarnings("unused") // Used in templates
         public int getLabel() {
             return label;
         }

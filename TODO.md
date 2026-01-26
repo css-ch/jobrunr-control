@@ -1,10 +1,8 @@
 # TODO List
 
-* [x] Add default parameter values
-* [x] Add enums for parameters
-* [x] Create default value for Job-Name in der plan dialog
 * [ ] Check status for (batch-) jobs (business error, technical error, running, etc.)
 * [ ] Only use ConfigurableJob (not Job) and add more parameters there
+* [ ] Format date and datetime in the parameters correctly
 
 # Completion
 

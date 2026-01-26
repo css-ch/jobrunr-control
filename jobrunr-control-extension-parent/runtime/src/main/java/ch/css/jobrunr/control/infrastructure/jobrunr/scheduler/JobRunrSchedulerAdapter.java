@@ -64,9 +64,9 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
             // Create JobId and set job name
             JobId newJobId = jobInvoker.scheduleJob(
                     jobId,
-                    jobDefinition.jobType(),
+                    jobName,
+                    jobDefinition,
                     parameters,
-                    jobDefinition.isBatchJob(),
                     scheduledAt
             );
 
@@ -74,7 +74,6 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
             try {
                 var job = storageProvider.getJobById(newJobId);
                 job.setJobName(jobName);
-                job.setLabels(List.of("jobtype:" + jobDefinition.jobType()));
                 storageProvider.save(job);
             } catch (Exception e) {
                 log.warn("Could not set job name for job {}: {}", jobId, e.getMessage());
