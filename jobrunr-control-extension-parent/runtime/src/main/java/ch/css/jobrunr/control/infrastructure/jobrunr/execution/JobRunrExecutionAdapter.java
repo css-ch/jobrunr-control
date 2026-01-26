@@ -5,14 +5,13 @@ import ch.css.jobrunr.control.infrastructure.jobrunr.JobParameterExtractor;
 import io.quarkus.arc.impl.DefaultAsyncObserverExceptionHandler;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.states.*;
 import org.jobrunr.storage.JobSearchRequest;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.navigation.AmountRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -27,7 +26,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class JobRunrExecutionAdapter implements JobExecutionPort {
 
-    private static final Logger log = LoggerFactory.getLogger(JobRunrExecutionAdapter.class);
+    private static final Logger log = Logger.getLogger(JobRunrExecutionAdapter.class);
 
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
@@ -76,13 +75,13 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                             }
                         }
                     } catch (Exception e) {
-                        log.warn("Fehler beim Abrufen von Jobs im Status {} und Typ {}: {}", state, jobDefinition.jobType(), e.getMessage());
+                        log.warnf("Fehler beim Abrufen von Jobs im Status %s und Typ %s: %s", state, jobDefinition.jobType(), e.getMessage());
                     }
                 }
             }
             return jobExecutionInfos;
         } catch (Exception e) {
-            log.error("Fehler beim Abrufen der Job-Ausführungen", e);
+            log.errorf("Fehler beim Abrufen der Job-Ausführungen", e);
             throw new JobExecutionException("Fehler beim Abrufen der Job-Ausführungen", e);
         }
     }
@@ -166,7 +165,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                     .orElse(null);
             return Optional.of(mapToJobExecutionInfo(jobType, job));
         } catch (Exception e) {
-            log.error("Fehler beim Abrufen von Job {}", jobId, e);
+            log.errorf(e, "Fehler beim Abrufen von Job %s", jobId);
             return Optional.empty();
         }
     }
@@ -210,7 +209,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
             case FailedBatchJobState s -> JobStatus.FAILED;
             case null -> JobStatus.ENQUEUED;
             default -> {
-                log.warn("Unexpected job state: {}. Defaulting to ENQUEUED.", jobState.getName());
+                log.warnf("Unexpected job state: %s. Defaulting to ENQUEUED.", jobState.getName());
                 yield JobStatus.ENQUEUED;
             }
         };

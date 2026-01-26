@@ -22,8 +22,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -42,7 +41,7 @@ import java.util.UUID;
 @Consumes(MediaType.APPLICATION_JSON)
 public class ExternalTriggerResource {
 
-    private static final Logger log = LoggerFactory.getLogger(ExternalTriggerResource.class);
+    private static final Logger log = Logger.getLogger(ExternalTriggerResource.class);
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
     private final ExecuteJobImmediatelyUseCase executeJobUseCase;
@@ -100,13 +99,13 @@ public class ExternalTriggerResource {
             java.util.Map<String, Object> parameters) {
 
         if (jobId == null) {
-            log.error("Invalid request: jobId is required");
+            log.errorf("Invalid request: jobId is required");
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponse("jobId is required"))
                     .build();
         }
 
-        log.info("Starting job with ID: {} with {} parameter override(s)",
+        log.infof("Starting job with ID: %s with %s parameter override(s)",
                 jobId,
                 parameters != null ? parameters.size() : 0);
 
@@ -118,16 +117,16 @@ public class ExternalTriggerResource {
                     "Job started successfully"
             );
 
-            log.info("Job {} started successfully", jobId);
+            log.infof("Job %s started successfully", jobId);
             return Response.ok(response).build();
 
         } catch (IllegalArgumentException e) {
-            log.error("Invalid job ID: {}", jobId, e);
+            log.errorf("Invalid job ID: %s", jobId, e);
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponse("Invalid job ID: " + e.getMessage()))
                     .build();
         } catch (Exception e) {
-            log.error("Error starting job {}", jobId, e);
+            log.errorf("Error starting job %s", jobId, e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(new ErrorResponse("Failed to start job: " + e.getMessage()))
                     .build();
@@ -171,13 +170,13 @@ public class ExternalTriggerResource {
             CloneAndStartJobRequestDTO request) {
 
         if (request == null || request.cloneFromId() == null) {
-            log.error("Invalid request: cloneFromId is required");
+            log.errorf("Invalid request: cloneFromId is required");
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponse("cloneFromId is required"))
                     .build();
         }
 
-        log.info("Cloning and starting job with ID: {} with {} parameter override(s)",
+        log.infof("Cloning and starting job with ID: %s with %s parameter override(s)",
                 request.cloneFromId(),
                 request.parameters() != null ? request.parameters().size() : 0);
 
@@ -189,16 +188,16 @@ public class ExternalTriggerResource {
                     "Job cloned and started successfully"
             );
 
-            log.info("Job cloned and started successfully with new ID: {}", newJobId);
+            log.infof("Job cloned and started successfully with new ID: %s", newJobId);
             return Response.ok(response).build();
 
         } catch (IllegalArgumentException e) {
-            log.error("Invalid request: {}", e.getMessage(), e);
+            log.errorf("Invalid request: %s", e.getMessage(), e);
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponse(e.getMessage()))
                     .build();
         } catch (Exception e) {
-            log.error("Error cloning and starting job {}", request.cloneFromId(), e);
+            log.errorf("Error cloning and starting job %s", request.cloneFromId(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(new ErrorResponse("Failed to clone and start job: " + e.getMessage()))
                     .build();
@@ -237,7 +236,7 @@ public class ExternalTriggerResource {
             @Parameter(description = "Job ID", required = true)
             @PathParam("jobId") UUID jobId) {
 
-        log.debug("Getting status for job: {}", jobId);
+        log.debugf("Getting status for job: %s", jobId);
 
         try {
             JobExecutionInfo executionInfo = getJobExecutionByIdUseCase.execute(jobId);
@@ -267,12 +266,12 @@ public class ExternalTriggerResource {
             return Response.ok(response).build();
 
         } catch (IllegalArgumentException e) {
-            log.error("Invalid job ID: {}", jobId, e);
+            log.errorf(e, "Invalid job ID: %s", jobId);
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponse("Invalid job ID: " + e.getMessage()))
                     .build();
         } catch (Exception e) {
-            log.error("Error getting status for job {}", jobId, e);
+            log.errorf(e, "Error getting status for job %s", jobId);
 
             // Check if it's a not found exception
             if (e.getMessage() != null && e.getMessage().contains("not found")) {

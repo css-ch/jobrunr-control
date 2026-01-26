@@ -3,8 +3,7 @@ package ch.css.jobrunr.control.infrastructure.discovery;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -16,7 +15,7 @@ import java.util.Optional;
 @ApplicationScoped
 public class JobDefinitionDiscoveryAdapter implements JobDefinitionDiscoveryService {
 
-    private static final Logger log = LoggerFactory.getLogger(JobDefinitionDiscoveryAdapter.class);
+    private static final Logger log = Logger.getLogger(JobDefinitionDiscoveryAdapter.class);
 
     /**
      * Returns all discovered job definitions.

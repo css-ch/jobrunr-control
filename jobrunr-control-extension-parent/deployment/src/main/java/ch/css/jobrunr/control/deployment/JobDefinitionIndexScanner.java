@@ -7,10 +7,9 @@ import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterType;
 import ch.css.jobrunr.control.domain.JobSettings;
 import org.jboss.jandex.*;
+import org.jboss.logging.Logger;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +21,7 @@ import java.util.Set;
  */
 class JobDefinitionIndexScanner {
 
-    private static final Logger log = LoggerFactory.getLogger(JobDefinitionIndexScanner.class);
+    private static final Logger log = Logger.getLogger(JobDefinitionIndexScanner.class);
 
     private static final DotName JOB_REQUEST_HANDLER = DotName.createSimple(JobRequestHandler.class.getName());
     private static final DotName JOB_REQUEST = DotName.createSimple(JobRequest.class.getName());
@@ -33,20 +32,20 @@ class JobDefinitionIndexScanner {
 
     public static Set<JobDefinition> findJobSpecifications(IndexView index) {
         Set<JobDefinition> jobDefinitions = new java.util.HashSet<>();
-        log.debug("Searching for JobRequestHandler implementations");
+        log.debugf("Searching for JobRequestHandler implementations");
         // Find all classes that implement JobRequestHandler
         var implementations = index.getAllKnownImplementations(JOB_REQUEST_HANDLER);
 
         for (ClassInfo classInfo : implementations) {
-            log.debug("Inspecting implementation: {}", classInfo.name());
+            log.debugf("Inspecting implementation: %s", classInfo.name());
             // Check if the class has a method annotated with @ConfigurableJob
             MethodInfo runMethod = findRunMethodWithConfigurableJobAnnotation(classInfo);
             if (runMethod != null) {
-                log.debug("Found @ConfigurableJob run method on {}", classInfo.name());
+                log.debugf("Found @ConfigurableJob run method on %s", classInfo.name());
                 // Extract the type parameter from JobRequestHandler
                 Type jobRequestType = findParameterizedInterfaceArgument(classInfo, index, JOB_REQUEST_HANDLER);
                 if (jobRequestType != null && jobRequestType.kind() == Type.Kind.CLASS) {
-                    log.debug("JobRequest type resolved: {}", jobRequestType.name());
+                    log.debugf("JobRequest type resolved: %s", jobRequestType.name());
                     ClassInfo requestClassInfo = index.getClassByName(jobRequestType.name());
                     if (requestClassInfo != null && isRecord(requestClassInfo) && implementsInterfaceRecursive(requestClassInfo, index, JOB_REQUEST)) {
                         // Extract job type and batch flag
@@ -60,7 +59,7 @@ class JobDefinitionIndexScanner {
                         JobSettings jobSettings = extractJobSettings(runMethod);
 
                         // Extract field names from parameters
-                        log.info("Discovered job: {} (batch={}) with {} parameters", jobType, isBatchJob, parameters.size());
+                        log.infof("Discovered job: %s (batch=%s) with %s parameters", jobType, isBatchJob, parameters.size());
 
                         jobDefinitions.add(new JobDefinition(
                                 jobType,
@@ -72,10 +71,10 @@ class JobDefinitionIndexScanner {
                                 jobSettings
                         ));
                     } else {
-                        log.debug("Request class {} is not a valid record JobRequest or does not implement JobRequest", jobRequestType.name());
+                        log.debugf("Request class %s is not a valid record JobRequest or does not implement JobRequest", jobRequestType.name());
                     }
                 } else {
-                    log.debug("Could not resolve parameterized JobRequest type");
+                    log.debugf("Could not resolve parameterized JobRequest type");
                 }
             }
         }
@@ -84,12 +83,12 @@ class JobDefinitionIndexScanner {
 
     private static MethodInfo findRunMethodWithConfigurableJobAnnotation(ClassInfo classInfo) {
         for (MethodInfo method : classInfo.methods()) {
-            log.debug("Search @ConfigurableJob run method on {}:{}", classInfo.name(), method.name());
-            log.debug("   Annotations are {}", classInfo.annotations());
-            log.debug("   Parameters are {}", method.name().equals("run"));
+            log.debugf("Search @ConfigurableJob run method on %s:%s", classInfo.name(), method.name());
+            log.debugf("   Annotations are %s", classInfo.annotations());
+            log.debugf("   Parameters are %s", method.name().equals("run"));
 
             if (method.name().equals("run") && method.hasAnnotation(ConfigurableJob.class)) {
-                log.debug("Method {}#{} annotated with @ConfigurableJob", classInfo.name(), method.name());
+                log.debugf("Method %s#%s annotated with @ConfigurableJob", classInfo.name(), method.name());
                 return method;
             }
         }
@@ -101,11 +100,11 @@ class JobDefinitionIndexScanner {
     private static Type findParameterizedInterfaceArgument(ClassInfo classInfo, IndexView index, DotName targetInterface) {
         // Check interfaces on this class
         for (Type interfaceType : classInfo.interfaceTypes()) {
-            log.debug(">> Inspecting interface: {}", interfaceType.name());
+            log.debugf(">> Inspecting interface: %s", interfaceType.name());
             if (interfaceType.kind() == Type.Kind.PARAMETERIZED_TYPE) {
                 ParameterizedType pt = interfaceType.asParameterizedType();
                 if (pt.name().equals(targetInterface) && !pt.arguments().isEmpty()) {
-                    log.debug("Found parameterized interface {} on {} -> argument {}", targetInterface, classInfo.name(), pt.arguments().getFirst().name());
+                    log.debugf("Found parameterized interface %s on %s -> argument %s", targetInterface, classInfo.name(), pt.arguments().getFirst().name());
                     return pt.arguments().getFirst();
                 }
 
@@ -115,14 +114,14 @@ class JobDefinitionIndexScanner {
                 if (ifaceInfo != null && implementsInterfaceRecursive(ifaceInfo, index, targetInterface)) {
                     // This interface extends the target, so return its type argument
                     if (!pt.arguments().isEmpty()) {
-                        log.debug("Found parameterized interface {} (which extends {}) on {} -> argument {}",
+                        log.debugf("Found parameterized interface %s (which extends %s) on %s -> argument %s",
                                 pt.name(), targetInterface, classInfo.name(), pt.arguments().getFirst().name());
                         return pt.arguments().getFirst();
                     }
                 }
             } else if (interfaceType.name().equals(targetInterface)) {
                 // raw type found, no type argument
-                log.debug("Found raw interface {} on {}", targetInterface, classInfo.name());
+                log.debugf("Found raw interface %s on %s", targetInterface, classInfo.name());
             }
 
             // Recurse into the interface's declaration (in case it extends other interfaces)
@@ -363,7 +362,7 @@ class JobDefinitionIndexScanner {
     private static JobParameterType mapToJobParameterType(Type type) {
         // Handle null or unknown types early
         if (type == null || type.name() == null) {
-            log.debug("Type is null or has no name; defaulting to STRING");
+            log.debugf("Type is null or has no name; defaulting to STRING");
             return JobParameterType.STRING;
         }
 
@@ -406,7 +405,7 @@ class JobDefinitionIndexScanner {
             }
         };
 
-        log.debug("Mapped type '{}' to JobParameterType.{}", typeName, resolved.name());
+        log.debugf("Mapped type '%s' to JobParameterType.%s", typeName, resolved.name());
         return resolved;
     }
 
@@ -418,20 +417,20 @@ class JobDefinitionIndexScanner {
 
         // Ensure we have a CLASS type
         if (type == null || type.kind() != Type.Kind.CLASS) {
-            log.debug("Type is not a CLASS, cannot extract enum values");
+            log.debugf("Type is not a CLASS, cannot extract enum values");
             return List.of();
         }
 
         // Get the class info from the index
         ClassInfo enumClassInfo = index.getClassByName(type.name());
         if (enumClassInfo == null) {
-            log.debug("Could not find class info for type: {}", type.name());
+            log.debugf("Could not find class info for type: %s", type.name());
             return List.of();
         }
 
         // Check if it's actually an enum
         if (!enumClassInfo.isEnum()) {
-            log.debug("Class {} is not an enum", type.name());
+            log.debugf("Class %s is not an enum", type.name());
             return List.of();
         }
 
@@ -444,7 +443,7 @@ class JobDefinitionIndexScanner {
             }
         }
 
-        log.debug("Extracted {} enum values from {}: {}", enumValues.size(), type.name(), enumValues);
+        log.debugf("Extracted %s enum values from %s: %s", enumValues.size(), type.name(), enumValues);
         return enumValues;
     }
 }

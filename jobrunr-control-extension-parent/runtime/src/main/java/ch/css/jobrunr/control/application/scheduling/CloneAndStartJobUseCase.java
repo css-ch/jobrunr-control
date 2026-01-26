@@ -6,8 +6,7 @@ import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -22,7 +21,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class CloneAndStartJobUseCase {
 
-    private static final Logger log = LoggerFactory.getLogger(CloneAndStartJobUseCase.class);
+    private static final Logger log = Logger.getLogger(CloneAndStartJobUseCase.class);
 
     private final JobSchedulerPort jobSchedulerPort;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
@@ -54,7 +53,7 @@ public class CloneAndStartJobUseCase {
             throw new IllegalArgumentException("Source job not found: " + cloneFromId);
         }
 
-        log.info("Cloning job {} ({})", cloneFromId, sourceJob.getJobName());
+        log.infof("Cloning job %s (%s)", cloneFromId, sourceJob.getJobName());
 
         // Get the job definition for the source job's type
         Optional<JobDefinition> jobDefOpt = jobDefinitionDiscoveryService.findJobByType(sourceJob.getJobType());
@@ -68,7 +67,7 @@ public class CloneAndStartJobUseCase {
         Map<String, Object> mergedParameters = new HashMap<>(sourceJob.getParameters());
         if (parameterOverrides != null && !parameterOverrides.isEmpty()) {
             mergedParameters.putAll(parameterOverrides);
-            log.info("Applied {} parameter override(s)", parameterOverrides.size());
+            log.infof("Applied %s parameter override(s)", parameterOverrides.size());
         }
 
         // Create a new job name indicating it's a clone
@@ -86,12 +85,12 @@ public class CloneAndStartJobUseCase {
                 null  // scheduledAt
         );
 
-        log.info("Created cloned job with ID: {}", newJobId);
+        log.infof("Created cloned job with ID: %s", newJobId);
 
         // Start the job immediately
         jobSchedulerPort.executeJobNow(newJobId, parameterOverrides);
 
-        log.info("Started cloned job {}", newJobId);
+        log.infof("Started cloned job %s", newJobId);
 
         return newJobId;
     }

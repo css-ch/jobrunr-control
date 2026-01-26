@@ -17,8 +17,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -33,7 +32,7 @@ import java.util.stream.Collectors;
 @Path("/q/jobrunr-control/scheduled")
 public class ScheduledJobsController {
 
-    private static final Logger log = LoggerFactory.getLogger(ScheduledJobsController.class);
+    private static final Logger log = Logger.getLogger(ScheduledJobsController.class);
 
     @Inject
     @io.quarkus.qute.Location("scheduled-jobs.html")
@@ -162,9 +161,9 @@ public class ScheduledJobsController {
         List<JobParameter> parameters = Collections.emptyList();
         try {
             parameters = getJobParametersUseCase.execute(jobInfo.getJobType());
-            log.info("Loaded {} parameter definitions for job type '{}' in edit mode", parameters.size(), jobInfo.getJobType());
+            log.infof("Loaded %s parameter definitions for job type '%s' in edit mode", parameters.size(), jobInfo.getJobType());
         } catch (Exception e) {
-            log.error("Error loading parameters for job type '{}': {}", jobInfo.getJobType(), e.getMessage(), e);
+            log.errorf("Error loading parameters for job type '%s': %s", jobInfo.getJobType(), e.getMessage(), e);
         }
 
         return jobForm
@@ -179,25 +178,25 @@ public class ScheduledJobsController {
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getJobParameters(@QueryParam("jobType") String jobType) {
-        log.info("getJobParameters called with jobType='{}'", jobType);
+        log.infof("getJobParameters called with jobType='%s'", jobType);
 
         if (jobType == null || jobType.isBlank()) {
-            log.warn("jobType is empty");
+            log.warnf("jobType is empty");
             return paramInputs.data("parameters", List.of())
                     .data("existingValues", null);
         }
 
         try {
             List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream().sorted(Comparator.comparing(JobParameter::name)).toList();
-            log.info("Found {} parameters for job type '{}'", parameters.size(), jobType);
+            log.infof("Found %s parameters for job type '%s'", parameters.size(), jobType);
             for (JobParameter param : parameters) {
-                log.info("  - Parameter: {} (type: {}, required: {}, defaultValue: '{}')",
+                log.infof("  - Parameter: %s (type: %s, required: %s, defaultValue: '%s')",
                         param.name(), param.type(), param.required(), param.defaultValue());
             }
             return paramInputs.data("parameters", parameters)
                     .data("existingValues", null);
         } catch (Exception e) {
-            log.error("Error getting parameters for job type '{}': {}", jobType, e.getMessage(), e);
+            log.errorf("Error getting parameters for job type '%s': %s", jobType, e.getMessage(), e);
             return paramInputs.data("parameters", List.of())
                     .data("existingValues", null);
         }
@@ -216,7 +215,7 @@ public class ScheduledJobsController {
             RoutingContext context) {
         // Validate required fields
         if (jobType == null || jobType.isBlank()) {
-            log.warn("Job type is empty");
+            log.warnf("Job type is empty");
             return Response.ok(scheduledJobsTable.data("jobs", Collections.emptyList())).build();
         }
 
@@ -248,13 +247,13 @@ public class ScheduledJobsController {
             MultivaluedMap<String, String> allFormParams,
             RoutingContext context) {
 
-        log.info("Updating job {} - jobType={}, jobName={}, triggerType={}, scheduledAt={}",
+        log.infof("Updating job %s - jobType=%s, jobName=%s, triggerType=%s, scheduledAt=%s",
                 jobId, jobType, jobName, triggerType, scheduledAt);
-        log.info("All form parameters: {}", allFormParams);
+        log.infof("All form parameters: %s", allFormParams);
 
         // Validate required fields
         if (jobType == null || jobType.isBlank()) {
-            log.warn("Job type is empty");
+            log.warnf("Job type is empty");
             return Response.ok(scheduledJobsTable.data("jobs", Collections.emptyList())).build();
         }
 
@@ -263,7 +262,7 @@ public class ScheduledJobsController {
 
         Map<String, String> paramMap = extractParameterMap(allFormParams);
 
-        log.info("Parameter map before update: {}", paramMap);
+        log.infof("Parameter map before update: %s", paramMap);
 
         // Update job
         updateJobUseCase.execute(jobId, jobType, jobName, paramMap, scheduledTime, isExternalTrigger);

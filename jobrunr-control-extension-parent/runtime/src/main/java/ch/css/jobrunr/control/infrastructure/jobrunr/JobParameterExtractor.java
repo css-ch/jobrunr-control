@@ -2,9 +2,8 @@ package ch.css.jobrunr.control.infrastructure.jobrunr;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.inject.spi.CDI;
+import org.jboss.logging.Logger;
 import org.jobrunr.jobs.lambdas.JobRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +15,7 @@ import java.util.Map;
  */
 public class JobParameterExtractor {
 
-    private static final Logger log = LoggerFactory.getLogger(JobParameterExtractor.class);
+    private static final Logger log = Logger.getLogger(JobParameterExtractor.class);
 
     private JobParameterExtractor() {
         // Utility class
@@ -51,7 +50,7 @@ public class JobParameterExtractor {
                 return parameters;
             }
         } catch (Exception e) {
-            log.warn("Error extracting job parameters for job {}", job.getId(), e);
+            log.warnf(e, "Error extracting job parameters for job %s", job.getId());
             return parameters;
         }
     }

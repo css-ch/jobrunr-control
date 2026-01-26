@@ -8,13 +8,12 @@ import ch.css.jobrunr.control.domain.JobSettings;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 import org.jobrunr.jobs.JobId;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.scheduling.JobBuilder;
 import org.jobrunr.scheduling.JobRequestId;
 import org.jobrunr.scheduling.JobRequestScheduler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,7 +30,7 @@ import static org.jobrunr.scheduling.JobBuilder.aJob;
 @ApplicationScoped
 public class JobInvoker {
 
-    private static final Logger log = LoggerFactory.getLogger(JobInvoker.class);
+    private static final Logger log = Logger.getLogger(JobInvoker.class);
 
     private final JobRequestScheduler jobScheduler;
     private final ObjectMapper objectMapper;
@@ -77,13 +76,13 @@ public class JobInvoker {
             if (jobRequest instanceof JobRequestOnFailureFeactory jobRequestOnFailureFeactory) {
                 jobRequestId.onFailure(jobRequestOnFailureFeactory.createOnFailureJobRequest(jobRequestId, jobRequest));
             }
-            log.info("Job scheduled successfully: {} (batch={}) with JobId: {}", jobDefinition.jobSettings().name(), jobDefinition.jobType(), jobRequestId);
+            log.infof("Job scheduled successfully: %s (batch=%s) with JobId: %s", jobDefinition.jobSettings().name(), jobDefinition.jobType(), jobRequestId);
             return jobRequestId;
         } catch (ClassNotFoundException e) {
-            log.error("Failed to load JobRequest class: {}", jobDefinition.jobRequestTypeName(), e);
+            log.errorf("Failed to load JobRequest class: %s", jobDefinition.jobRequestTypeName(), e);
             throw new RuntimeException("JobRequest class not found: " + jobDefinition.jobRequestTypeName(), e);
         } catch (Exception e) {
-            log.error("Failed to schedule job: {} (batch={})", jobDefinition.jobSettings().name(), jobDefinition.jobType(), e);
+            log.errorf("Failed to schedule job: %s (batch=%s)", jobDefinition.jobSettings().name(), jobDefinition.jobType(), e);
             throw new RuntimeException("Failed to schedule job: " + jobDefinition.jobSettings().name(), e);
         }
     }
@@ -125,9 +124,9 @@ public class JobInvoker {
                             (Class<? extends org.jobrunr.jobs.filters.JobFilter>)
                                     Thread.currentThread().getContextClassLoader().loadClass(filterClassName);
                     // jobBuilder.withJobFilter(filterClass); // Method may not exist in JobRunr 8.4.1
-                    log.warn("JobFilter support not yet implemented: {}", filterClassName);
+                    log.warnf("JobFilter support not yet implemented: %s", filterClassName);
                 } catch (ClassNotFoundException e) {
-                    log.warn("Could not load JobFilter class: {}", filterClassName, e);
+                    log.warnf("Could not load JobFilter class: %s", filterClassName, e);
                 }
             }
         }
@@ -140,7 +139,7 @@ public class JobInvoker {
         // Apply server tag if provided
         if (settings.runOnServerWithTag() != null && !settings.runOnServerWithTag().isEmpty()) {
             // jobBuilder.runOnServerWithTag(settings.runOnServerWithTag()); // Method may not exist in JobRunr 8.4.1
-            log.warn("Server tag support not yet implemented: {}", settings.runOnServerWithTag());
+            log.warnf("Server tag support not yet implemented: %s", settings.runOnServerWithTag());
         }
 
         // Apply mutex if provided
@@ -159,7 +158,7 @@ public class JobInvoker {
                 java.time.Duration timeout = java.time.Duration.parse(settings.processTimeOut());
                 jobBuilder.withProcessTimeOut(timeout);
             } catch (Exception e) {
-                log.warn("Invalid process timeout format: {}", settings.processTimeOut(), e);
+                log.warnf(e, "Invalid process timeout format: %s", settings.processTimeOut());
             }
         }
 
