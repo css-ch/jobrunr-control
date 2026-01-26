@@ -1,8 +1,9 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr.scheduler;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
+import ch.css.jobrunr.control.annotations.JobRequestOnFailureFeactory;
+import ch.css.jobrunr.control.annotations.JobRequestOnSuccessFactory;
 import ch.css.jobrunr.control.domain.JobDefinition;
-import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSettings;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -10,6 +11,7 @@ import jakarta.inject.Inject;
 import org.jobrunr.jobs.JobId;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.scheduling.JobBuilder;
+import org.jobrunr.scheduling.JobRequestId;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,14 +33,12 @@ public class JobInvoker {
 
     private static final Logger log = LoggerFactory.getLogger(JobInvoker.class);
 
-    private final JobRequestScheduler jobRequestScheduler;
-    private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
+    private final JobRequestScheduler jobScheduler;
     private final ObjectMapper objectMapper;
 
     @Inject
-    public JobInvoker(JobRequestScheduler jobRequestScheduler, JobDefinitionDiscoveryService jobDefinitionDiscoveryService, ObjectMapper objectMapper) {
-        this.jobRequestScheduler = jobRequestScheduler;
-        this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
+    public JobInvoker(JobRequestScheduler jobScheduler, ObjectMapper objectMapper) {
+        this.jobScheduler = jobScheduler;
         this.objectMapper = objectMapper;
     }
 
@@ -70,9 +70,15 @@ public class JobInvoker {
                     .scheduleAt(scheduledAt)
                     .withJobRequest(jobRequest);
             applyJobSettings(jobBuilder, jobDefinition.jobSettings(), List.of("jobtype:" + jobDefinition.jobType()));
-            JobId resultId = jobRequestScheduler.createOrReplace(jobBuilder);
-            log.info("Job scheduled successfully: {} (batch={}) with JobId: {}", jobDefinition.jobSettings().name(), jobDefinition.jobType(), resultId);
-            return resultId;
+            JobRequestId jobRequestId = jobScheduler.createOrReplace(jobBuilder);
+            if (jobRequest instanceof JobRequestOnSuccessFactory jobRequestOnSuccessFactory) {
+                jobRequestId.continueWith(jobRequestOnSuccessFactory.createOnSuccessJobRequest(jobRequestId, jobRequest));
+            }
+            if (jobRequest instanceof JobRequestOnFailureFeactory jobRequestOnFailureFeactory) {
+                jobRequestId.onFailure(jobRequestOnFailureFeactory.createOnFailureJobRequest(jobRequestId, jobRequest));
+            }
+            log.info("Job scheduled successfully: {} (batch={}) with JobId: {}", jobDefinition.jobSettings().name(), jobDefinition.jobType(), jobRequestId);
+            return jobRequestId;
         } catch (ClassNotFoundException e) {
             log.error("Failed to load JobRequest class: {}", jobDefinition.jobRequestTypeName(), e);
             throw new RuntimeException("JobRequest class not found: " + jobDefinition.jobRequestTypeName(), e);
