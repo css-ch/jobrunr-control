@@ -20,16 +20,26 @@ public class JobRunrScheduleAdapterMock implements JobSchedulerPort {
 
     @Override
     public UUID scheduleJob(JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt) {
+        return scheduleJob(jobDefinition, jobName, parameters, isExternalTrigger, scheduledAt, null);
+    }
+
+    @Override
+    public UUID scheduleJob(JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt, List<String> additionalLabels) {
         UUID jobId = UUID.randomUUID();
-        ScheduledJobInfo jobInfo = new ScheduledJobInfo(jobId, jobName, jobDefinition.jobType(), scheduledAt, parameters, isExternalTrigger);
+        ScheduledJobInfo jobInfo = new ScheduledJobInfo(jobId, jobName, jobDefinition.jobType(), scheduledAt, parameters, isExternalTrigger, additionalLabels != null ? additionalLabels : List.of());
         jobs.put(jobId, jobInfo);
         return jobId;
     }
 
     @Override
     public void updateJob(UUID jobId, JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt) {
+        updateJob(jobId, jobDefinition, jobName, parameters, isExternalTrigger, scheduledAt, null);
+    }
+
+    @Override
+    public void updateJob(UUID jobId, JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt, List<String> additionalLabels) {
         if (jobs.containsKey(jobId)) {
-            ScheduledJobInfo jobInfo = new ScheduledJobInfo(jobId, jobName, jobDefinition.jobType(), scheduledAt, parameters, isExternalTrigger);
+            ScheduledJobInfo jobInfo = new ScheduledJobInfo(jobId, jobName, jobDefinition.jobType(), scheduledAt, parameters, isExternalTrigger, additionalLabels != null ? additionalLabels : List.of());
             jobs.put(jobId, jobInfo);
         }
     }

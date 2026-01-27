@@ -52,8 +52,8 @@ public class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
     }
 
     private void fillBatchJobParameters() {
-        page.fill("input[name='parameters.numberOfJunks']", "10");
-        page.fill("input[name='parameters.junkSize']", "50");
+        page.fill("input[name='parameters.numberOfChunks']", "10");
+        page.fill("input[name='parameters.chunkSize']", "50");
         page.selectOption("select[name='parameters.simulateErrors']", "false");
     }
 }

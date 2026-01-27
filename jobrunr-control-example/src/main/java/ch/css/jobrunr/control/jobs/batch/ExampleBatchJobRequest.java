@@ -9,8 +9,8 @@ import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.scheduling.JobRequestId;
 
 public record ExampleBatchJobRequest(
-        @JobParameterDefinition(defaultValue = "100") Integer numberOfJunks,
-        Integer junkSize,
+        @JobParameterDefinition(defaultValue = "100") Integer numberOfChunks,
+        Integer chunkSize,
         @JobParameterDefinition(defaultValue = "true") Boolean simulateErrors) implements JobRequest, JobRequestOnSuccessFactory, JobRequestOnFailureFeactory {
     @Override
     public Class<ExampleBatchJob> getJobRequestHandler() {

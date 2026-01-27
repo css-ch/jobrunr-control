@@ -22,6 +22,19 @@ public interface JobSchedulerPort {
     UUID scheduleJob(JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt);
 
     /**
+     * Schedules a job with additional labels.
+     *
+     * @param jobDefinition     Job definition
+     * @param jobName           Job name
+     * @param parameters        Parameter map for job execution
+     * @param isExternalTrigger Whether job is externally triggered
+     * @param scheduledAt       Scheduled execution time
+     * @param additionalLabels  Additional labels for the job
+     * @return UUID of the scheduled job
+     */
+    UUID scheduleJob(JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt, List<String> additionalLabels);
+
+    /**
      * Updates a scheduled job directly (without deleting and recreating it).
      *
      * @param jobId       ID of the job to update
@@ -30,6 +43,19 @@ public interface JobSchedulerPort {
      * @param scheduledAt New scheduled execution time
      */
     void updateJob(UUID jobId, JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt);
+
+    /**
+     * Updates a scheduled job with additional labels.
+     *
+     * @param jobId             ID of the job to update
+     * @param jobDefinition     Job definition
+     * @param jobName           New job name
+     * @param parameters        New parameters
+     * @param isExternalTrigger Whether job is externally triggered
+     * @param scheduledAt       New scheduled execution time
+     * @param additionalLabels  Additional labels for the job
+     */
+    void updateJob(UUID jobId, JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt, List<String> additionalLabels);
 
     /**
      * Deletes a scheduled job.

@@ -3,14 +3,15 @@ package ch.css.jobrunr.control.adapter.ui;
 import ch.css.jobrunr.control.application.discovery.DiscoverJobsUseCase;
 import ch.css.jobrunr.control.application.discovery.GetJobParametersUseCase;
 import ch.css.jobrunr.control.application.monitoring.GetScheduledJobsUseCase;
-import ch.css.jobrunr.control.application.scheduling.*;
-import ch.css.jobrunr.control.application.validation.JobParameterValidator;
+import ch.css.jobrunr.control.application.scheduling.CreateScheduledJobUseCase;
+import ch.css.jobrunr.control.application.scheduling.DeleteScheduledJobUseCase;
+import ch.css.jobrunr.control.application.scheduling.GetScheduledJobByIdUseCase;
+import ch.css.jobrunr.control.application.scheduling.UpdateScheduledJobUseCase;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -19,44 +20,39 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * UI Controller for scheduled jobs.
+ * UI Controller for template jobs.
  * Renders type-safe Qute templates and processes HTMX requests.
+ * Template jobs are jobs with the "template" label that cannot be executed directly.
  */
-@Path("/q/jobrunr-control/scheduled")
-public class ScheduledJobsController {
+@Path("/q/jobrunr-control/templates")
+public class TemplatesController {
 
-    private static final Logger log = Logger.getLogger(ScheduledJobsController.class);
+    private static final Logger log = Logger.getLogger(TemplatesController.class);
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Templates {
-        public static native TemplateInstance scheduledJobs();
+        public static native TemplateInstance templates();
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Components {
-        public static native TemplateInstance scheduledJobsTable(List<ScheduledJobInfo> jobs,
-                                                                 Map<String, Object> pagination,
-                                                                 List<TemplateExtensions.PageItem> pageRange,
-                                                                 String search, String filter,
-                                                                 String sortBy, String sortOrder);
-
-        public static native TemplateInstance paramInputs(List<JobParameter> parameters,
-                                                          Map<String, Object> existingValues);
+        public static native TemplateInstance templatesTable(List<ScheduledJobInfo> jobs,
+                                                             Map<String, Object> pagination,
+                                                             List<TemplateExtensions.PageItem> pageRange,
+                                                             String search,
+                                                             String sortBy, String sortOrder);
     }
 
     @CheckedTemplate(basePath = "modals", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Modals {
-        public static native TemplateInstance jobForm(List<JobDefinition> jobDefinitions,
-                                                      boolean isEdit,
-                                                      ScheduledJobInfo job,
-                                                      List<JobParameter> parameters);
+        public static native TemplateInstance templateForm(List<JobDefinition> jobDefinitions,
+                                                           boolean isEdit,
+                                                           ScheduledJobInfo job,
+                                                           List<JobParameter> parameters);
     }
 
     @Inject
@@ -80,48 +76,33 @@ public class ScheduledJobsController {
     @Inject
     DeleteScheduledJobUseCase deleteJobUseCase;
 
-    @Inject
-    ExecuteJobUseCase executeJobUseCase;
-
-    @Inject
-    JobParameterValidator validator;
-
     @GET
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getScheduledJobsView() {
-        return Templates.scheduledJobs();
+    public TemplateInstance getTemplatesView() {
+        return Templates.templates();
     }
 
     @GET
     @Path("/table")
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getScheduledJobsTable(
+    public TemplateInstance getTemplatesTable(
             @QueryParam("search") String search,
-            @QueryParam("filter") @DefaultValue("all") String filter,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("10") int size,
-            @QueryParam("sortBy") @DefaultValue("scheduledAt") String sortBy,
+            @QueryParam("sortBy") @DefaultValue("jobName") String sortBy,
             @QueryParam("sortOrder") @DefaultValue("asc") String sortOrder) {
 
-        List<ScheduledJobInfo> jobs = getScheduledJobsUseCase.execute();
+        // Get all scheduled jobs and filter for templates
+        List<ScheduledJobInfo> jobs = getScheduledJobsUseCase.execute().stream()
+                .filter(this::isTemplateJob)
+                .toList();
 
-        // Filter anwenden
-        if ("external".equals(filter)) {
-            jobs = jobs.stream()
-                    .filter(ScheduledJobInfo::isExternallyTriggerable)
-                    .toList();
-        } else if ("scheduled".equals(filter)) {
-            jobs = jobs.stream()
-                    .filter(j -> !j.isExternallyTriggerable())
-                    .toList();
-        }
-
-        // Suche anwenden
+        // Apply search
         jobs = JobSearchUtils.applySearchToScheduledJobs(search, jobs);
 
-        // Sortierung anwenden
+        // Apply sorting
         Comparator<ScheduledJobInfo> comparator = getComparator(sortBy);
         if ("desc".equalsIgnoreCase(sortOrder)) {
             comparator = comparator.reversed();
@@ -130,40 +111,37 @@ public class ScheduledJobsController {
                 .sorted(comparator)
                 .collect(Collectors.toList());
 
-        // Pagination anwenden
+        // Apply pagination
         PaginationHelper.PaginationResult<ScheduledJobInfo> paginationResult = PaginationHelper.paginate(jobs, page, size);
 
-        return Components.scheduledJobsTable(
+        return Components.templatesTable(
                 paginationResult.getPageItems(),
                 paginationResult.getMetadata(),
                 paginationResult.getPageRange(),
                 search != null ? search : "",
-                filter,
                 sortBy,
                 sortOrder
         );
     }
 
-
     @GET
     @Path("/modal/new")
     @RolesAllowed({"configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getNewJobModal() {
+    public TemplateInstance getNewTemplateModal() {
         List<JobDefinition> jobDefinitions = getSortedJobDefinitions();
-
-        return Modals.jobForm(jobDefinitions, false, null, null);
+        return Modals.templateForm(jobDefinitions, false, null, null);
     }
 
     @GET
     @Path("/modal/{id}/edit")
     @RolesAllowed({"configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getEditJobModal(@PathParam("id") UUID jobId) {
+    public TemplateInstance getEditTemplateModal(@PathParam("id") UUID jobId) {
         List<JobDefinition> jobDefinitions = getSortedJobDefinitions();
 
         ScheduledJobInfo jobInfo = getScheduledJobByIdUseCase.execute(jobId)
-                .orElseThrow(() -> new NotFoundException("Job nicht gefunden: " + jobId));
+                .orElseThrow(() -> new NotFoundException("Template nicht gefunden: " + jobId));
 
         // Load parameter definitions for this job type
         List<JobParameter> parameters = Collections.emptyList();
@@ -174,7 +152,7 @@ public class ScheduledJobsController {
             log.errorf("Error loading parameters for job type '%s': %s", jobInfo.getJobType(), e.getMessage(), e);
         }
 
-        return Modals.jobForm(jobDefinitions, true, jobInfo, parameters);
+        return Modals.templateForm(jobDefinitions, true, jobInfo, parameters);
     }
 
     @GET
@@ -182,24 +160,22 @@ public class ScheduledJobsController {
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getJobParameters(@QueryParam("jobType") String jobType) {
-        log.debugf("getJobParameters called with jobType='%s'", jobType);
+        log.infof("getJobParameters called with jobType='%s'", jobType);
 
         if (jobType == null || jobType.isBlank()) {
             log.warnf("jobType is empty");
-            return Components.paramInputs(List.of(), null);
+            return ScheduledJobsController.Components.paramInputs(List.of(), null);
         }
 
         try {
-            List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream().sorted(Comparator.comparing(JobParameter::name)).toList();
-            log.debugf("Found %s parameters for job type '%s'", parameters.size(), jobType);
-            for (JobParameter param : parameters) {
-                log.debugf("  - Parameter: %s (type: %s, required: %s, defaultValue: '%s')",
-                        param.name(), param.type(), param.required(), param.defaultValue());
-            }
-            return Components.paramInputs(parameters, null);
+            List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream()
+                    .sorted(Comparator.comparing(JobParameter::name))
+                    .toList();
+            log.infof("Found %s parameters for job type '%s'", parameters.size(), jobType);
+            return ScheduledJobsController.Components.paramInputs(parameters, null);
         } catch (Exception e) {
             log.errorf("Error getting parameters for job type '%s': %s", jobType, e.getMessage(), e);
-            return Components.paramInputs(List.of(), null);
+            return ScheduledJobsController.Components.paramInputs(List.of(), null);
         }
     }
 
@@ -207,31 +183,22 @@ public class ScheduledJobsController {
     @RolesAllowed({"configurator", "admin"})
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
-    public Response createJob(
+    public Response createTemplate(
             @FormParam("jobType") String jobType,
             @FormParam("jobName") String jobName,
-            @FormParam("triggerType") String triggerType,
-            @FormParam("scheduledAt") String scheduledAt,
-            MultivaluedMap<String, String> allFormParams,
-            RoutingContext context) {
-        // Validate required fields
+            MultivaluedMap<String, String> allFormParams) {
+
         if (jobType == null || jobType.isBlank()) {
             log.warnf("Job type is empty");
-            return Response.ok(getDefaultScheduledJobsTable()).build();
+            return Response.ok(getDefaultTemplatesTable()).build();
         }
-
-        boolean isExternalTrigger = "external".equals(triggerType);
-        Instant scheduledTime = isExternalTrigger ? null : parseScheduledTime(scheduledAt);
 
         Map<String, String> paramMap = extractParameterMap(allFormParams);
 
-        // Create job
-        // jobType is the name of the job definition (e.g., fully qualified class name)
-        // jobName is the user-defined name for this job instance
-        createJobUseCase.execute(jobType, jobName, paramMap, scheduledTime, isExternalTrigger);
+        // Create template job - always external trigger, with "template" label
+        createJobUseCase.execute(jobType, jobName, paramMap, null, true, java.util.List.of("template"));
 
-        // Return updated table with header to close modal
-        return buildModalCloseResponse(getDefaultScheduledJobsTable());
+        return buildModalCloseResponse(getDefaultTemplatesTable());
     }
 
     @PUT
@@ -239,63 +206,46 @@ public class ScheduledJobsController {
     @RolesAllowed({"configurator", "admin"})
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
-    public Response updateJob(
+    public Response updateTemplate(
             @PathParam("id") UUID jobId,
             @FormParam("jobType") String jobType,
             @FormParam("jobName") String jobName,
-            @FormParam("triggerType") String triggerType,
-            @FormParam("scheduledAt") String scheduledAt,
-            MultivaluedMap<String, String> allFormParams,
-            RoutingContext context) {
+            MultivaluedMap<String, String> allFormParams) {
 
-        log.infof("Updating job %s - jobType=%s, jobName=%s, triggerType=%s, scheduledAt=%s",
-                jobId, jobType, jobName, triggerType, scheduledAt);
-        log.infof("All form parameters: %s", allFormParams);
+        log.infof("Updating template %s - jobType=%s, jobName=%s", jobId, jobType, jobName);
 
-        // Validate required fields
         if (jobType == null || jobType.isBlank()) {
             log.warnf("Job type is empty");
-            return Response.ok(getDefaultScheduledJobsTable()).build();
+            return Response.ok(getDefaultTemplatesTable()).build();
         }
-
-        boolean isExternalTrigger = "external".equals(triggerType);
-        Instant scheduledTime = isExternalTrigger ? null : parseScheduledTime(scheduledAt);
 
         Map<String, String> paramMap = extractParameterMap(allFormParams);
 
-        log.infof("Parameter map before update: %s", paramMap);
+        // Update template job - always external trigger, maintain "template" label
+        updateJobUseCase.execute(jobId, jobType, jobName, paramMap, null, true, java.util.List.of("template"));
 
-        // Update job
-        updateJobUseCase.execute(jobId, jobType, jobName, paramMap, scheduledTime, isExternalTrigger);
-
-        // Return updated table with header to close modal
-        return buildModalCloseResponse(getDefaultScheduledJobsTable());
+        return buildModalCloseResponse(getDefaultTemplatesTable());
     }
-
 
     @DELETE
     @Path("/{id}")
     @RolesAllowed({"configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance deleteJob(@PathParam("id") UUID jobId) {
+    public TemplateInstance deleteTemplate(@PathParam("id") UUID jobId) {
         deleteJobUseCase.execute(jobId);
-        return getDefaultScheduledJobsTable();
+        return getDefaultTemplatesTable();
     }
 
-    @POST
-    @Path("/{id}/execute")
-    @RolesAllowed({"admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance executeJob(@PathParam("id") UUID jobId) {
-        executeJobUseCase.execute(jobId);
-        return getDefaultScheduledJobsTable();
+    private boolean isTemplateJob(ScheduledJobInfo job) {
+        // Template jobs have the "template" label
+        return job.isTemplate();
     }
 
     private Comparator<ScheduledJobInfo> getComparator(String sortBy) {
         return switch (sortBy) {
             case "jobName" -> Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
             case "jobType" -> Comparator.comparing(ScheduledJobInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
-            default -> Comparator.comparing(ScheduledJobInfo::getScheduledAt);
+            default -> Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
         };
     }
 
@@ -305,14 +255,6 @@ public class ScheduledJobsController {
                 .toList();
     }
 
-    private Instant parseScheduledTime(String scheduledAt) {
-        if (scheduledAt == null || scheduledAt.isBlank()) {
-            return null;
-        }
-        LocalDateTime ldt = LocalDateTime.parse(scheduledAt);
-        return ldt.atZone(ZoneId.systemDefault()).toInstant();
-    }
-
     private Map<String, String> extractParameterMap(MultivaluedMap<String, String> allFormParams) {
         return allFormParams.keySet().stream()
                 .collect(HashMap::new,
@@ -320,8 +262,8 @@ public class ScheduledJobsController {
                         HashMap::putAll);
     }
 
-    private TemplateInstance getDefaultScheduledJobsTable() {
-        return getScheduledJobsTable(null, "all", 0, 10, "scheduledAt", "asc");
+    private TemplateInstance getDefaultTemplatesTable() {
+        return getTemplatesTable(null, 0, 10, "jobName", "asc");
     }
 
     private Response buildModalCloseResponse(TemplateInstance table) {
@@ -329,5 +271,4 @@ public class ScheduledJobsController {
                 .header("HX-Trigger", "closeModal")
                 .build();
     }
-
 }

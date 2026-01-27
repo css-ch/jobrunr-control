@@ -3,9 +3,9 @@ package ch.css.jobrunr.control.adapter.rest.dto;
 import java.util.UUID;
 
 /**
- * Response DTO for triggering a job.
+ * Response DTO for starting a job.
  */
-public record TriggerJobResponse(
+public record StartJobResponse(
         UUID jobId,
         String message
 ) {

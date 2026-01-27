@@ -2,7 +2,7 @@ package ch.css.jobrunr.control.jobs.batch;
 
 import org.jobrunr.jobs.lambdas.JobRequest;
 
-public record ExampleBatchJobItemProcessorRequest(int junkId, int junkSize,
+public record ExampleBatchJobItemProcessorRequest(int chunkId, int chunkSize,
                                                   Boolean simulateErrors) implements JobRequest {
 
     @Override
@@ -15,6 +15,6 @@ public record ExampleBatchJobItemProcessorRequest(int junkId, int junkSize,
      */
     @Override
     public String toString() {
-        return Integer.toString(junkId);
+        return Integer.toString(chunkId);
     }
 }

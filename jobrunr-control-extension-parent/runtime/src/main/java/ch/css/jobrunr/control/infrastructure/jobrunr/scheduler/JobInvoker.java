@@ -16,6 +16,7 @@ import org.jobrunr.scheduling.JobRequestId;
 import org.jobrunr.scheduling.JobRequestScheduler;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -45,14 +46,15 @@ public class JobInvoker {
      * Schedules a job with dynamic parameters using JobRequestScheduler.
      * Uses Jackson ObjectMapper to create JobRequest instances from parameter maps.
      *
-     * @param jobId         Optional JobId (null for new JobId)
-     * @param jobName       Name of the job
-     * @param jobDefinition Job definition containing metadata
-     * @param parameters    Job parameters
-     * @param scheduledAt   Time of execution
+     * @param jobId            Optional JobId (null for new JobId)
+     * @param jobName          Name of the job
+     * @param jobDefinition    Job definition containing metadata
+     * @param parameters       Job parameters
+     * @param scheduledAt      Time of execution
+     * @param additionalLabels Additional labels to add to the job
      * @return JobId
      */
-    public JobId scheduleJob(UUID jobId, String jobName, JobDefinition jobDefinition, Map<String, Object> parameters, Instant scheduledAt) {
+    public JobId scheduleJob(UUID jobId, String jobName, JobDefinition jobDefinition, Map<String, Object> parameters, Instant scheduledAt, List<String> additionalLabels) {
         try {
             // Load the JobRequest class
             String className = jobDefinition.jobRequestTypeName();
@@ -68,7 +70,15 @@ public class JobInvoker {
                     .withName(jobName)
                     .scheduleAt(scheduledAt)
                     .withJobRequest(jobRequest);
-            applyJobSettings(jobBuilder, jobDefinition.jobSettings(), List.of("jobtype:" + jobDefinition.jobType()));
+
+            // Combine default labels with additional labels
+            List<String> allLabels = new ArrayList<>();
+            allLabels.add("jobtype:" + jobDefinition.jobType());
+            if (additionalLabels != null && !additionalLabels.isEmpty()) {
+                allLabels.addAll(additionalLabels);
+            }
+
+            applyJobSettings(jobBuilder, jobDefinition.jobSettings(), allLabels);
             JobRequestId jobRequestId = jobScheduler.createOrReplace(jobBuilder);
             if (jobRequest instanceof JobRequestOnSuccessFactory jobRequestOnSuccessFactory) {
                 jobRequestId.continueWith(jobRequestOnSuccessFactory.createOnSuccessJobRequest(jobRequestId, jobRequest));
@@ -85,6 +95,13 @@ public class JobInvoker {
             log.errorf("Failed to schedule job: %s (batch=%s)", jobDefinition.jobSettings().name(), jobDefinition.jobType(), e);
             throw new RuntimeException("Failed to schedule job: " + jobDefinition.jobSettings().name(), e);
         }
+    }
+
+    /**
+     * Schedules a job without additional labels (backward compatibility).
+     */
+    public JobId scheduleJob(UUID jobId, String jobName, JobDefinition jobDefinition, Map<String, Object> parameters, Instant scheduledAt) {
+        return scheduleJob(jobId, jobName, jobDefinition, parameters, scheduledAt, null);
     }
 
     /**

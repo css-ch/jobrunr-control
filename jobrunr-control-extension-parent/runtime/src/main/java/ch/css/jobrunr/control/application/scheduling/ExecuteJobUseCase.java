@@ -11,12 +11,12 @@ import java.util.UUID;
  * Clones the job parameters and executes the job right away.
  */
 @ApplicationScoped
-public class ExecuteJobImmediatelyUseCase {
+public class ExecuteJobUseCase {
 
     private final JobSchedulerPort jobSchedulerPort;
 
     @Inject
-    public ExecuteJobImmediatelyUseCase(JobSchedulerPort jobSchedulerPort) {
+    public ExecuteJobUseCase(JobSchedulerPort jobSchedulerPort) {
         this.jobSchedulerPort = jobSchedulerPort;
     }
 

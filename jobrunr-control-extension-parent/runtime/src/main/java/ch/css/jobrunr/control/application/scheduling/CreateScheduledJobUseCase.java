@@ -46,6 +46,23 @@ public class CreateScheduledJobUseCase {
      */
     public UUID execute(String jobType, String jobName, Map<String, String> parameters,
                         Instant scheduledAt, boolean isExternalTrigger) {
+        return execute(jobType, jobName, parameters, scheduledAt, isExternalTrigger, null);
+    }
+
+    /**
+     * Creates a new scheduled job with additional labels.
+     *
+     * @param jobType           Name of the job definition (e.g., fully qualified class name)
+     * @param jobName           User-defined name for this job instance
+     * @param parameters        Parameter map for job execution
+     * @param scheduledAt       Scheduled execution time (null for external trigger)
+     * @param isExternalTrigger Whether the job should be externally triggered
+     * @param additionalLabels  Additional labels to add to the job
+     * @return UUID of the scheduled job
+     * @throws JobNotFoundException when the job is not found
+     */
+    public UUID execute(String jobType, String jobName, Map<String, String> parameters,
+                        Instant scheduledAt, boolean isExternalTrigger, java.util.List<String> additionalLabels) {
 
         // Load job definition
         Optional<JobDefinition> jobDefOpt = jobDefinitionDiscoveryService.findJobByType(jobType);
@@ -59,7 +76,7 @@ public class CreateScheduledJobUseCase {
         Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
 
         // Schedule job
-        return jobSchedulerPort.scheduleJob(jobDefinition, jobName, convertedParameters, isExternalTrigger, scheduledAt);
+        return jobSchedulerPort.scheduleJob(jobDefinition, jobName, convertedParameters, isExternalTrigger, scheduledAt, additionalLabels);
     }
 
     /**

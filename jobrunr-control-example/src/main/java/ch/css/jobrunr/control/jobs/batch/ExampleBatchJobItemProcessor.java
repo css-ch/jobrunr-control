@@ -14,10 +14,10 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
 
     @Override
     @Transactional
-    @Job(name = "Processing example batch junkId: %0", retries = 0)
+    @Job(name = "Processing example batch chunkId: %0", retries = 0)
     public void run(ExampleBatchJobItemProcessorRequest request) throws Exception {
-        jobContext().logger().info(String.format("Processing junkId: %s", request.junkId()));
-        for (int i = 0; i < request.junkSize(); i++) {
+        jobContext().logger().info(String.format("Processing chunkId: %s", request.chunkId()));
+        for (int i = 0; i < request.chunkSize(); i++) {
             jobContext().logger().info(String.format("\tProcessing item in junk: %s", i));
             try {
                 Thread.sleep(100);
@@ -25,9 +25,9 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
                 Thread.currentThread().interrupt();
             }
             if (request.simulateErrors()) {
-                if (random.nextDouble() < (0.02 / request.junkSize())) {
-                    jobContext().logger().error("Simulated error processing item: " + request.junkId());
-                    throw new Exception("Simulated error processing item: " + request.junkId());
+                if (random.nextDouble() < (0.02 / request.chunkSize())) {
+                    jobContext().logger().error("Simulated error processing item: " + request.chunkId());
+                    throw new Exception("Simulated error processing item: " + request.chunkId());
                 }
             }
         }

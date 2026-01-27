@@ -15,15 +15,22 @@ public class ScheduledJobInfo {
     private final Instant scheduledAt;
     private final Map<String, Object> parameters;
     private final boolean isExternallyTriggerable;
+    private final List<String> labels;
 
     public ScheduledJobInfo(UUID jobId, String jobName, String jobType, Instant scheduledAt,
                             Map<String, Object> parameters, boolean isExternallyTriggerable) {
+        this(jobId, jobName, jobType, scheduledAt, parameters, isExternallyTriggerable, Collections.emptyList());
+    }
+
+    public ScheduledJobInfo(UUID jobId, String jobName, String jobType, Instant scheduledAt,
+                            Map<String, Object> parameters, boolean isExternallyTriggerable, List<String> labels) {
         this.jobId = Objects.requireNonNull(jobId, "Job ID must not be null");
         this.jobName = Objects.requireNonNull(jobName, "Job Name must not be null");
         this.jobType = Objects.requireNonNull(jobType, "Job Type must not be null");
         this.scheduledAt = Objects.requireNonNull(scheduledAt, "Scheduled at must not be null");
         this.parameters = parameters != null ? new HashMap<>(parameters) : new HashMap<>();
         this.isExternallyTriggerable = isExternallyTriggerable;
+        this.labels = labels != null ? new ArrayList<>(labels) : new ArrayList<>();
     }
 
     public int getParameterCount() {
@@ -54,6 +61,14 @@ public class ScheduledJobInfo {
         return isExternallyTriggerable;
     }
 
+    public List<String> getLabels() {
+        return Collections.unmodifiableList(labels);
+    }
+
+    public boolean isTemplate() {
+        return labels.contains("template");
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -64,12 +79,13 @@ public class ScheduledJobInfo {
                 Objects.equals(jobName, that.jobName) &&
                 Objects.equals(jobType, that.jobType) &&
                 Objects.equals(scheduledAt, that.scheduledAt) &&
-                Objects.equals(parameters, that.parameters);
+                Objects.equals(parameters, that.parameters) &&
+                Objects.equals(labels, that.labels);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(jobId, jobName, jobType, scheduledAt, parameters, isExternallyTriggerable);
+        return Objects.hash(jobId, jobName, jobType, scheduledAt, parameters, isExternallyTriggerable, labels);
     }
 
     @Override
@@ -81,6 +97,7 @@ public class ScheduledJobInfo {
                 ", scheduledAt=" + scheduledAt +
                 ", parameters=" + parameters +
                 ", isExternallyTriggerable=" + isExternallyTriggerable +
+                ", labels=" + labels +
                 '}';
     }
 }

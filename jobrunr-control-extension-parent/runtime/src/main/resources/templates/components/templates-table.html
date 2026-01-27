@@ -1,0 +1,199 @@
+<div id="jobs-table">
+    {#if pagination.isEmpty}
+        <div class="alert alert-info" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-info-circle"></i> Keine Templates vorhanden</h5>
+            <p class="mb-0">Erstellen Sie ein neues Template über den Button oben.</p>
+        </div>
+    {#else}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                <tr>
+                    <th class="sortable"
+                        style="cursor: pointer;"
+                        hx-get="/q/jobrunr-control/templates/table?sortBy=jobName&sortOrder={#if sortBy == 'jobName'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}"
+                        hx-target="#jobs-table"
+                        hx-swap="outerHTML">
+                        Job-Name
+                        {#if sortBy == 'jobName'}
+                            {#if sortOrder == 'asc'}
+                                <i class="bi bi-sort-alpha-down"></i>
+                            {#else}
+                                <i class="bi bi-sort-alpha-up-alt"></i>
+                            {/if}
+                        {#else}
+                            <i class="bi bi-arrow-down-up text-muted"></i>
+                        {/if}
+                    </th>
+                    <th class="sortable"
+                        style="cursor: pointer;"
+                        hx-get="/q/jobrunr-control/templates/table?sortBy=jobType&sortOrder={#if sortBy == 'jobType'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}"
+                        hx-target="#jobs-table"
+                        hx-swap="outerHTML">
+                        Job-Typ
+                        {#if sortBy == 'jobType'}
+                            {#if sortOrder == 'asc'}
+                                <i class="bi bi-sort-alpha-down"></i>
+                            {#else}
+                                <i class="bi bi-sort-alpha-up-alt"></i>
+                            {/if}
+                        {#else}
+                            <i class="bi bi-arrow-down-up text-muted"></i>
+                        {/if}
+                    </th>
+                    <th>Status</th>
+                    <th>Parameter</th>
+                    <th style="width: 150px;">Aktionen</th>
+                </tr>
+                </thead>
+                <tbody>
+                {#for job in jobs}
+                    <tr>
+                        <td><strong><a href="{dashboard.jobUrl(job.jobId)}"
+                                       target="_blank">{job.jobName}</a></strong></td>
+                        <td><a href="{dashboard.jobsByLabelUrl(job.jobType)}" target="_blank"><code
+                                        class="text-muted small">{job.jobType}</code></a></td>
+                        <td>
+                            <span class="badge bg-info text-dark">
+                                <i class="bi bi-file-earmark-text"></i> Template
+                            </span>
+                        </td>
+                        <td>
+                            {#include components/parameter-list.html parameters=job.parameters jobId=job.jobId /}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-secondary"
+                                        onclick="copyToClipboard('{job.jobId}', event)"
+                                        title="Job-ID in Zwischenablage kopieren">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                                {#if security:hasOneOfRole('configurator', 'admin')}
+                                <button class="btn btn-outline-primary"
+                                        onclick="editJob('{job.jobId}')"
+                                        title="Bearbeiten">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-outline-danger"
+                                        hx-delete="/q/jobrunr-control/templates/{job.jobId}"
+                                        hx-confirm="Template '{job.jobName}' wirklich löschen?"
+                                        hx-target="#jobs-table"
+                                        hx-swap="outerHTML"
+                                        title="Löschen">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {/if}
+                            </div>
+                        </td>
+                    </tr>
+                {/for}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted small">
+                Zeige {pagination.startItem} - {pagination.endItem} von {pagination.totalElements} Templates
+            </div>
+
+            <nav aria-label="Template Pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {#if !pagination.hasPrevious}disabled{/if}">
+                         <button class="page-link"
+                                {#if pagination.hasPrevious}
+                                hx-get="/q/jobrunr-control/templates/table?page=0&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}"
+                                hx-target="#jobs-table"
+                                hx-swap="outerHTML"
+                                {#else}
+                                disabled
+                                {/if}
+                                aria-label="Erste Seite">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </button>
+                    </li>
+                    <li class="page-item {#if !pagination.hasPrevious}disabled{/if}">
+                        <button class="page-link"
+                                {#if pagination.hasPrevious}
+                                hx-get="/q/jobrunr-control/templates/table?page={pagination.previousPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}"
+                                hx-target="#jobs-table"
+                                hx-swap="outerHTML"
+                                {#else}
+                                disabled
+                                {/if}
+                                aria-label="Vorherige Seite">
+                            <span aria-hidden="true">&laquo;</span>
+                        </button>
+                    </li>
+
+                    {#for pageItem in pageRange}
+                        <li class="page-item {#if pageItem.index == pagination.page}active{/if}">
+                            <button class="page-link"
+                                    hx-get="/q/jobrunr-control/templates/table?page={pageItem.index}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}"
+                                    hx-target="#jobs-table"
+                                    hx-swap="outerHTML">
+                                {pageItem.label}
+                            </button>
+                        </li>
+                    {/for}
+
+                    <li class="page-item {#if !pagination.hasNext}disabled{/if}">
+                        <button class="page-link"
+                                {#if pagination.hasNext}
+                                hx-get="/q/jobrunr-control/templates/table?page={pagination.nextPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}"
+                                hx-target="#jobs-table"
+                                hx-swap="outerHTML"
+                                {#else}
+                                disabled
+                                {/if}
+                                aria-label="Nächste Seite">
+                            <span aria-hidden="true">&raquo;</span>
+                        </button>
+                    </li>
+                    <li class="page-item {#if !pagination.hasNext}disabled{/if}">
+                        <button class="page-link"
+                                {#if pagination.hasNext}
+                                hx-get="/q/jobrunr-control/templates/table?page={pagination.lastPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}"
+                                hx-target="#jobs-table"
+                                hx-swap="outerHTML"
+                                {#else}
+                                disabled
+                                {/if}
+                                aria-label="Letzte Seite">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+
+            <div>
+                <select class="form-select form-select-sm"
+                        style="width: auto;"
+                        hx-get="/q/jobrunr-control/templates/table"
+                        hx-trigger="change"
+                        hx-vals='js:{"page": 0, "sortBy": "{sortBy}", "sortOrder": "{sortOrder}", "search": "{search}", "size": event.target.value}'
+                        hx-target="#jobs-table"
+                        hx-swap="outerHTML"
+                        name="pageSize">
+                    <option value="5" {#if pagination.size == 5}selected{/if}>5 pro Seite</option>
+                    <option value="10" {#if pagination.size == 10}selected{/if}>10 pro Seite</option>
+                    <option value="25" {#if pagination.size == 25}selected{/if}>25 pro Seite</option>
+                    <option value="50" {#if pagination.size == 50}selected{/if}>50 pro Seite</option>
+                </select>
+            </div>
+        </div>
+
+        <script>
+            function editJob(jobId) {
+                const modal = new bootstrap.Modal(document.getElementById('jobModal'));
+                const content = document.getElementById('modal-content');
+                document.getElementById('jobModalLabel').textContent = 'Template bearbeiten';
+                // Verwende htmx.trigger anstelle von htmx.ajax um Qute-Parser-Konflikte zu vermeiden
+                content.setAttribute('hx-get', '/q/jobrunr-control/templates/modal/' + jobId + '/edit');
+                htmx.process(content);
+                htmx.trigger(content, 'load');
+                modal.show();
+            }
+        </script>
+    {/if}
+</div>

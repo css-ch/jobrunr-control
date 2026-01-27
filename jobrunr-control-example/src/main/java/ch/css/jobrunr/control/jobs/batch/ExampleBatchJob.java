@@ -14,11 +14,11 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
     @ConfigurableJob(isBatch = true, labels = {"Example", "Batch"}, deleteOnSuccess = "PT5M!PT10H")
     @Override
     public void run(ExampleBatchJobRequest request) throws Exception {
-        jobContext().logger().info(String.format("Preparing batch job with numberOfJunks: %d, junkSize: %d, simulateErrors: %b",
-                request.numberOfJunks(), request.junkSize(), request.simulateErrors()));
+        jobContext().logger().info(String.format("Preparing batch job with numberOfChunks: %d, chunkSize: %d, simulateErrors: %b",
+                request.numberOfChunks(), request.chunkSize(), request.simulateErrors()));
         // Load all items to be processed based on request parameters
-        List<ExampleBatchJobItemProcessorRequest> items = IntStream.rangeClosed(1, request.numberOfJunks())
-                .mapToObj(junkId -> new ExampleBatchJobItemProcessorRequest(junkId, request.junkSize(), request.simulateErrors()))
+        List<ExampleBatchJobItemProcessorRequest> items = IntStream.rangeClosed(1, request.numberOfChunks())
+                .mapToObj(junkId -> new ExampleBatchJobItemProcessorRequest(junkId, request.chunkSize(), request.simulateErrors()))
                 .toList();
 
         // Simulate preparation delay

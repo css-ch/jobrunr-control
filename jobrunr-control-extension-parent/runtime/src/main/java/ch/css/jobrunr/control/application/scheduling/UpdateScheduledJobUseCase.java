@@ -55,6 +55,24 @@ public class UpdateScheduledJobUseCase {
      */
     public UUID execute(UUID jobId, String jobType, String jobName, Map<String, String> parameters,
                         Instant scheduledAt, boolean isExternalTrigger) {
+        return execute(jobId, jobType, jobName, parameters, scheduledAt, isExternalTrigger, null);
+    }
+
+    /**
+     * Updates a scheduled job with additional labels.
+     *
+     * @param jobId             ID of the job to update
+     * @param jobType           Type of the job (full class name)
+     * @param jobName           Name of the job
+     * @param parameters        New parameter map
+     * @param scheduledAt       New time of the scheduled execution
+     * @param isExternalTrigger Whether the job should be triggered externally
+     * @param additionalLabels  Additional labels to add to the job
+     * @return UUID of the updated job (same ID as input)
+     * @throws JobNotFoundException if the job is not found
+     */
+    public UUID execute(UUID jobId, String jobType, String jobName, Map<String, String> parameters,
+                        Instant scheduledAt, boolean isExternalTrigger, java.util.List<String> additionalLabels) {
 
         // Load job definition
         Optional<JobDefinition> jobDefOpt = jobDefinitionDiscoveryService.findJobByType(jobType);
@@ -78,7 +96,7 @@ public class UpdateScheduledJobUseCase {
         }
 
         // Update job directly (more efficient method)
-        jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, convertedParameter, isExternalTrigger, effectiveScheduledAt);
+        jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, convertedParameter, isExternalTrigger, effectiveScheduledAt, additionalLabels);
 
         // Return the original job ID
         return jobId;

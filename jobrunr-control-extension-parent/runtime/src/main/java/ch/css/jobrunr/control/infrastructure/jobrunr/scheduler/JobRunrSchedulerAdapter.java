@@ -46,15 +46,25 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
 
     @Override
     public UUID scheduleJob(JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt) {
-        return createOrUpdateJob(null, jobDefinition, jobName, parameters, isExternalTrigger, scheduledAt);
+        return scheduleJob(jobDefinition, jobName, parameters, isExternalTrigger, scheduledAt, null);
+    }
+
+    @Override
+    public UUID scheduleJob(JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt, List<String> additionalLabels) {
+        return createOrUpdateJob(null, jobDefinition, jobName, parameters, isExternalTrigger, scheduledAt, additionalLabels);
     }
 
     @Override
     public void updateJob(UUID jobId, JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt) {
-        createOrUpdateJob(jobId, jobDefinition, jobName, parameters, isExternalTrigger, scheduledAt);
+        updateJob(jobId, jobDefinition, jobName, parameters, isExternalTrigger, scheduledAt, null);
     }
 
-    private UUID createOrUpdateJob(UUID jobId, JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt) {
+    @Override
+    public void updateJob(UUID jobId, JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt, List<String> additionalLabels) {
+        createOrUpdateJob(jobId, jobDefinition, jobName, parameters, isExternalTrigger, scheduledAt, additionalLabels);
+    }
+
+    private UUID createOrUpdateJob(UUID jobId, JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt, List<String> additionalLabels) {
         try {
             if (isExternalTrigger) {
                 // Set scheduled date to 31.12.2999 for externally triggerable jobs
@@ -66,7 +76,8 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
                     jobName,
                     jobDefinition,
                     parameters,
-                    scheduledAt
+                    scheduledAt,
+                    additionalLabels
             );
 
             // Set job name via StorageProvider
@@ -172,13 +183,17 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
         // Check if externally triggerable
         boolean isExternallyTriggerable = isExternallyTriggerable(scheduledAt);
 
+        // Extract labels
+        List<String> labels = new ArrayList<>(job.getLabels());
+
         return new ScheduledJobInfo(
                 jobId,
                 jobName,
                 jobType,
                 scheduledAt,
                 parameters,
-                isExternallyTriggerable
+                isExternallyTriggerable,
+                labels
         );
     }
 

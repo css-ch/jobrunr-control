@@ -1,0 +1,69 @@
+<form id="templateForm"
+        {#if isEdit}
+            hx-put="/q/jobrunr-control/templates/{job.jobId}"
+        {#else}
+            hx-post="/q/jobrunr-control/templates"
+        {/if}
+      hx-target="#jobs-table"
+      hx-swap="outerHTML">
+
+    <div id="form-alerts"></div>
+
+    <div class="mb-3">
+        <label for="jobType" class="form-label">Job-Typ auswählen</label>
+        <select name="jobType"
+                id="jobType"
+                class="form-select"
+                required
+                {#if isEdit}disabled{/if}
+                hx-get="/q/jobrunr-control/templates/modal/parameters"
+                hx-target="#parameters-container"
+                hx-swap="innerHTML">
+            <option value="">-- Job-Typ auswählen --</option>
+            {#for jobDef in jobDefinitions}
+                <option value="{jobDef.jobType()}"
+                        {#if isEdit && job.jobType == jobDef.jobType()}selected{/if}>{jobDef.jobType()}</option>
+            {/for}
+        </select>
+        {#if isEdit}
+            <input type="hidden" name="jobType" value="{job.jobType}">
+        {/if}
+        <div class="form-text">Der Typ bestimmt, welche Job-Klasse ausgeführt wird.</div>
+    </div>
+
+    <div class="mb-3">
+        <label for="jobName" class="form-label">Template-Name</label>
+        <input type="text"
+               name="jobName"
+               id="jobName"
+               class="form-control"
+               placeholder="z.B. Monatsbericht Template"
+               {#if isEdit}value="{job.jobName}"{/if}
+               required>
+        <div class="form-text">Ein beschreibender Name für dieses Template.</div>
+    </div>
+
+    <div id="parameters-container" class="mb-3">
+        {#if isEdit}
+                {#include components/param-inputs.html parameters = parameters existingValues = job.parameters /}
+        {#else}
+            <div class="alert alert-secondary" role="alert">
+                <small>Wählen Sie einen Job aus, um die Parameter zu sehen.</small>
+            </div>
+        {/if}
+    </div>
+
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle"></i> <strong>Hinweis:</strong> Templates können nicht direkt ausgeführt werden. Sie
+        dienen als Vorlage für externe Trigger.
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Abbrechen
+        </button>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> {#if isEdit}Template aktualisieren{#else}Template erstellen{/if}
+        </button>
+    </div>
+</form>

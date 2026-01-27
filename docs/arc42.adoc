@@ -9,7 +9,8 @@
 
 === Requirements Overview
 
-JobRunr Control is a **Quarkus extension** that provides a web-based dashboard and REST API for managing and monitoring jobs in JobRunr Pro. It extends the standard JobRunr Pro capabilities with advanced scheduling, parameter configuration, and external trigger features.
+JobRunr Control is a **Quarkus extension** that provides a web-based dashboard and REST API for managing and monitoring jobs in JobRunr Pro.
+It extends the standard JobRunr Pro capabilities with advanced scheduling, parameter configuration, and external trigger features.
 
 .Key Capabilities
 * Dynamic job scheduling with type-safe parameter configuration
@@ -23,9 +24,11 @@ JobRunr Control is a **Quarkus extension** that provides a web-based dashboard a
 [IMPORTANT]
 ====
 .Critical Architectural Decisions
-. **JobRunr Pro Only**: This extension is designed exclusively for JobRunr Pro. The community edition of JobRunr is not supported.
+. **JobRunr Pro Only**: This extension is designed exclusively for JobRunr Pro.
+The community edition of JobRunr is not supported.
 . **Quarkus Only**: Built as a Quarkus extension; other frameworks (Spring Boot, Micronaut) are not supported.
-. **JobRequest Pattern Only**: Strictly supports the `JobRequest` / `JobRequestHandler` pattern. Lambda-based jobs are not supported for configurable jobs.
+. **JobRequest Pattern Only**: Strictly supports the `JobRequest` / `JobRequestHandler` pattern.
+Lambda-based jobs are not supported for configurable jobs.
 . **Native Mode Not Tested**: The extension has not been tested for Quarkus native mode compilation.
 ====
 
@@ -56,7 +59,8 @@ JobRunr Control is a **Quarkus extension** that provides a web-based dashboard a
 
 === AD-1: Hexagonal Architecture (Clean Architecture)
 
-The extension is built using **Hexagonal Architecture** (also known as Clean Architecture or Ports & Adapters). The codebase is modularized into distinct layers:
+The extension is built using **Hexagonal Architecture** (also known as Clean Architecture or Ports & Adapters).
+The codebase is modularized into distinct layers:
 
 [plantuml,hexagonal-layers,svg]
 ----
@@ -64,7 +68,7 @@ The extension is built using **Hexagonal Architecture** (also known as Clean Arc
 !include <C4/C4_Container>
 
 rectangle "Adapter Layer" as adapter {
-    rectangle "REST API\n(ExternalTriggerResource)" as rest
+    rectangle "REST API\n(JobControlResource)" as rest
     rectangle "Web UI\n(Controllers + Qute)" as ui
 }
 
@@ -113,7 +117,8 @@ ch.css.jobrunr.control/
 
 === AD-2: No Separate Persistence
 
-The extension relies entirely on **JobRunr's persistence layer**. There is no separate database or storage mechanism for job definitions or schedules.
+The extension relies entirely on **JobRunr's persistence layer**.
+There is no separate database or storage mechanism for job definitions or schedules.
 
 .Rationale
 * Job definitions are discovered at **build time** using Quarkus build steps

@@ -16,18 +16,19 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Use Case: Clones a scheduled job and starts it immediately with optional parameter overrides.
+ * Use Case: Executes a template job by cloning it and starting the clone immediately.
+ * Template jobs cannot be executed directly and must be cloned first.
  */
 @ApplicationScoped
-public class CloneAndStartJobUseCase {
+public class ExecuteTemplateUseCase {
 
-    private static final Logger log = Logger.getLogger(CloneAndStartJobUseCase.class);
+    private static final Logger log = Logger.getLogger(ExecuteTemplateUseCase.class);
 
     private final JobSchedulerPort jobSchedulerPort;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
 
     @Inject
-    public CloneAndStartJobUseCase(
+    public ExecuteTemplateUseCase(
             JobSchedulerPort jobSchedulerPort,
             JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
         this.jobSchedulerPort = jobSchedulerPort;
@@ -35,27 +36,28 @@ public class CloneAndStartJobUseCase {
     }
 
     /**
-     * Clones an existing job and starts it immediately.
+     * Executes a template job by cloning it and starting the clone immediately with optional parameter overrides.
      *
-     * @param cloneFromId        ID of the job to clone
+     * @param templateId         ID of the template job to execute
+     * @param postfix            Optional postfix for the cloned job name (defaults to current date in yyyyMMdd format)
      * @param parameterOverrides Optional parameters to override in the cloned job
      * @return UUID of the newly created and started job
-     * @throws IllegalArgumentException if the source job is not found
+     * @throws IllegalArgumentException if the template job is not found
      */
-    public UUID execute(UUID cloneFromId, String suffix, Map<String, Object> parameterOverrides) {
-        if (cloneFromId == null) {
-            throw new IllegalArgumentException("cloneFromId must not be null");
+    public UUID execute(UUID templateId, String postfix, Map<String, Object> parameterOverrides) {
+        if (templateId == null) {
+            throw new IllegalArgumentException("templateId must not be null");
         }
 
-        // Get the source job
-        ScheduledJobInfo sourceJob = jobSchedulerPort.getScheduledJobById(cloneFromId);
+        // Get the template job
+        ScheduledJobInfo sourceJob = jobSchedulerPort.getScheduledJobById(templateId);
         if (sourceJob == null) {
-            throw new IllegalArgumentException("Source job not found: " + cloneFromId);
+            throw new IllegalArgumentException("Template job not found: " + templateId);
         }
 
-        log.infof("Cloning job %s (%s)", cloneFromId, sourceJob.getJobName());
+        log.infof("Executing template job %s (%s) by cloning", templateId, sourceJob.getJobName());
 
-        // Get the job definition for the source job's type
+        // Get the job definition for the template job's type
         Optional<JobDefinition> jobDefOpt = jobDefinitionDiscoveryService.findJobByType(sourceJob.getJobType());
         if (jobDefOpt.isEmpty()) {
             throw new IllegalArgumentException("Job definition not found for type: " + sourceJob.getJobType());
@@ -63,18 +65,18 @@ public class CloneAndStartJobUseCase {
 
         JobDefinition jobDefinition = jobDefOpt.get();
 
-        // Merge parameters: start with source parameters, then apply overrides
+        // Merge parameters: start with template parameters, then apply overrides
         Map<String, Object> mergedParameters = new HashMap<>(sourceJob.getParameters());
         if (parameterOverrides != null && !parameterOverrides.isEmpty()) {
             mergedParameters.putAll(parameterOverrides);
             log.infof("Applied %s parameter override(s)", parameterOverrides.size());
         }
 
-        // Create a new job name indicating it's a clone
-        if (suffix == null || suffix.isBlank()) {
-            suffix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        // Create a new job name for the clone
+        if (postfix == null || postfix.isBlank()) {
+            postfix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         }
-        String newJobName = sourceJob.getJobName() + "-" + suffix;
+        String newJobName = sourceJob.getJobName() + "-" + postfix;
 
         // Schedule the new job (as externally triggerable so we can start it immediately)
         UUID newJobId = jobSchedulerPort.scheduleJob(
