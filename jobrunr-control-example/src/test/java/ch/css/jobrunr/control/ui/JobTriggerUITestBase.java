@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Base class for JobRunr Control UI tests using Playwright.
  * Provides common navigation and interaction methods for job management tests.
+ * Use @WithPlaywright(browser = WithPlaywright.Browser.CHROMIUM, headless = false, slowMo = 1000) for debugging.
  */
 @WithPlaywright
 public abstract class JobTriggerUITestBase {
