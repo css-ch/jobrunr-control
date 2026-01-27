@@ -8,15 +8,16 @@ import java.util.UUID;
 
 /**
  * Use Case: Executes a scheduled job immediately.
- * Clones the job parameters and executes the job right away.
+ * This use case is for executing regular scheduled jobs (not template jobs).
+ * Template jobs must be executed using ExecuteTemplateUseCase instead.
  */
 @ApplicationScoped
-public class ExecuteJobUseCase {
+public class ExecuteScheduledJobUseCase {
 
     private final JobSchedulerPort jobSchedulerPort;
 
     @Inject
-    public ExecuteJobUseCase(JobSchedulerPort jobSchedulerPort) {
+    public ExecuteScheduledJobUseCase(JobSchedulerPort jobSchedulerPort) {
         this.jobSchedulerPort = jobSchedulerPort;
     }
 

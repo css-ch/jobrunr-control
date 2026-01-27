@@ -81,7 +81,7 @@ public class ScheduledJobsController {
     DeleteScheduledJobUseCase deleteJobUseCase;
 
     @Inject
-    ExecuteJobUseCase executeJobUseCase;
+    ExecuteScheduledJobUseCase executeScheduledJobUseCase;
 
     @Inject
     JobParameterValidator validator;
@@ -106,6 +106,11 @@ public class ScheduledJobsController {
             @QueryParam("sortOrder") @DefaultValue("asc") String sortOrder) {
 
         List<ScheduledJobInfo> jobs = getScheduledJobsUseCase.execute();
+
+        // Exclude template jobs from scheduled jobs view
+        jobs = jobs.stream()
+                .filter(job -> !job.isTemplate())
+                .toList();
 
         // Filter anwenden
         if ("external".equals(filter)) {
@@ -287,7 +292,7 @@ public class ScheduledJobsController {
     @RolesAllowed({"admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance executeJob(@PathParam("id") UUID jobId) {
-        executeJobUseCase.execute(jobId);
+        executeScheduledJobUseCase.execute(jobId);
         return getDefaultScheduledJobsTable();
     }
 

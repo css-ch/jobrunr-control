@@ -7,7 +7,8 @@
 
 == Introduction
 
-This guide explains how to implement jobs that integrate with the JobRunr Control dashboard. You will learn how to create configurable jobs, define parameters, implement batch jobs, and use lifecycle callbacks.
+This guide explains how to implement jobs that integrate with the JobRunr Control dashboard.
+You will learn how to create configurable jobs, define parameters, implement batch jobs, and use lifecycle callbacks.
 
 === Prerequisites
 
@@ -78,7 +79,8 @@ public class MyJobHandler implements JobRequestHandler<MyJobRequest> {
 
 [IMPORTANT]
 ====
-Only jobs marked with `@ConfigurableJob` annotation are discovered by the dashboard. Jobs without this annotation will not appear in the UI.
+Only jobs marked with `@ConfigurableJob` annotation are discovered by the dashboard.
+Jobs without this annotation will not appear in the UI.
 ====
 
 === How Discovery Works
@@ -335,7 +337,8 @@ public record MyJobRequest(
 
 === Required vs Optional Parameters
 
-By default, all parameters are **required**. A parameter becomes optional when:
+By default, all parameters are **required**.
+A parameter becomes optional when:
 
 * It has a `defaultValue` specified in `@JobParameterDefinition`
 
@@ -534,9 +537,266 @@ public record MyBatchJobRequest(Integer batchSize)
 |Cleanup timing for failed jobs
 |===
 
+== Template Jobs
+
+Template jobs are reusable job configurations managed separately from regular scheduled jobs.
+They serve as blueprints that can be cloned and executed multiple times with varying parameters.
+
+=== Understanding Templates
+
+From a developer's perspective, templates are:
+
+* **Regular configurable jobs** - They use the same `@ConfigurableJob` annotation
+* **Never executed directly** - Marked with "template" label in the dashboard
+* **Cloneable blueprints** - Each execution creates a new job instance
+* **Managed separately** - Have dedicated UI and use cases
+
+=== When to Design for Templates
+
+Design a job as a template when:
+
+* It will be executed repeatedly with varying parameters
+* External systems need to trigger it on-demand
+* Each execution should be tracked independently
+* The job represents a reusable workflow pattern
+
+=== Template-Ready Job Design
+
+There's no special code required for templates.
+Any configurable job can be used as a template:
+
+[source,java]
+----
+public record CustomerReportRequest(
+    @JobParameterDefinition(defaultValue = "STANDARD")
+    ReportType reportType,
+
+    @JobParameterDefinition(defaultValue = "2024-01-01")
+    LocalDate startDate,
+
+    @JobParameterDefinition(defaultValue = "2024-12-31")
+    LocalDate endDate
+) implements JobRequest {
+    @Override
+    public Class<CustomerReportHandler> getJobRequestHandler() {
+        return CustomerReportHandler.class;
+    }
+}
+
+@ApplicationScoped
+public class CustomerReportHandler implements JobRequestHandler<CustomerReportRequest> {
+
+    @ConfigurableJob(
+        name = "Customer Report Generator",
+        labels = {"Reports", "Customer"}
+    )
+    @Override
+    public void run(CustomerReportRequest request) {
+        var logger = jobContext().logger();
+        logger.info("Generating %s report from %s to %s",
+            request.reportType(),
+            request.startDate(),
+            request.endDate());
+
+        // Implementation
+        generateReport(request);
+    }
+}
+----
+
+=== Creating Templates Programmatically
+
+While templates are typically created through the UI, you can create them programmatically using the template use cases:
+
+[source,java]
+----
+@Inject
+CreateTemplateUseCase createTemplateUseCase;
+
+// Create a template
+UUID templateId = createTemplateUseCase.execute(
+    "CustomerReportHandler",  // Job type
+    "Daily-Customer-Report",  // Template name
+    Map.of(                   // Default parameters
+        "reportType", "STANDARD",
+        "startDate", "2024-01-01",
+        "endDate", "2024-12-31"
+    )
+);
+----
+
+=== Executing Templates Programmatically
+
+Use the `ExecuteTemplateUseCase` to clone and execute a template:
+
+[source,java]
+----
+@Inject
+ExecuteTemplateUseCase executeTemplateUseCase;
+
+// Execute template with overrides
+UUID newJobId = executeTemplateUseCase.execute(
+    templateId,              // Template to clone
+    "20240127-special",     // Postfix for job name
+    Map.of(                 // Parameter overrides
+        "reportType", "DETAILED",
+        "startDate", "2024-01-27"
+    )
+);
+
+// Result: New job named "Daily-Customer-Report-20240127-special" is created and executed
+----
+
+=== Template Best Practices for Developers
+
+==== Use Meaningful Default Values
+
+Templates rely heavily on defaults.
+Make them useful:
+
+[source,java]
+----
+public record DataImportRequest(
+    // Good: Specific, common value
+    @JobParameterDefinition(defaultValue = "1000")
+    Integer batchSize,
+
+    // Good: Today's date is often the right choice
+    @JobParameterDefinition(defaultValue = "#{T(java.time.LocalDate).now()}")
+    LocalDate processDate,
+
+    // Good: Safe default for production
+    @JobParameterDefinition(defaultValue = "false")
+    Boolean dryRun
+) implements JobRequest { ... }
+----
+
+==== Document Expected Overrides
+
+Add clear documentation about which parameters should be overridden:
+
+[source,java]
+----
+/**
+ * Template for customer data import.
+ * <p>
+ * Typical override pattern:
+ * - customerId: REQUIRED - specify customer to import
+ * - fullSync: Optional - set true for complete refresh
+ * - batchSize: Usually keep default (1000)
+ */
+public record CustomerImportRequest(
+    @JobParameterDefinition
+    String customerId,
+
+    @JobParameterDefinition(defaultValue = "false")
+    Boolean fullSync,
+
+    @JobParameterDefinition(defaultValue = "1000")
+    Integer batchSize
+) implements JobRequest { ... }
+----
+
+==== Consider Template Naming Patterns
+
+Design job names that work well with postfix:
+
+[source,java]
+----
+// Good template names (work well with date postfix):
+// "Daily-Report" → "Daily-Report-20240127"
+// "Customer-Import" → "Customer-Import-customer-123"
+// "Weekly-Cleanup" → "Weekly-Cleanup-2024-W04"
+
+@ConfigurableJob(
+    name = "Daily Sales Report",  // Base name
+    labels = {"Reports", "Daily"}
+)
+----
+
+==== Design for Idempotency
+
+Templates are often re-executed.
+Make jobs idempotent:
+
+[source,java]
+----
+@Override
+public void run(CustomerImportRequest request) {
+    var logger = jobContext().logger();
+
+    // Check if already processed
+    if (importRepository.exists(request.customerId(), request.processDate())) {
+        logger.warn("Import already processed for customer %s on %s",
+            request.customerId(), request.processDate());
+        return;
+    }
+
+    // Process import
+    processImport(request);
+
+    // Mark as processed
+    importRepository.markProcessed(request.customerId(), request.processDate());
+}
+----
+
+=== Template Architecture
+
+Templates are managed through dedicated use cases in the `ch.css.jobrunr.control.application.template` package:
+
+[cols="1,3"]
+|===
+|Use Case |Purpose
+
+|`GetTemplatesUseCase`
+|Retrieve all template jobs
+
+|`GetTemplateByIdUseCase`
+|Retrieve a specific template
+
+|`CreateTemplateUseCase`
+|Create a new template
+
+|`UpdateTemplateUseCase`
+|Update an existing template
+
+|`DeleteTemplateUseCase`
+|Delete a template
+
+|`ExecuteTemplateUseCase`
+|Clone and execute a template
+|===
+
+=== Template vs Regular Job
+
+[cols="1,2,2"]
+|===
+|Aspect |Template Job |Regular Scheduled Job
+
+|**Creation**
+|Created through Templates UI
+|Created through Scheduled Jobs UI
+
+|**Execution**
+|Cloned then executed
+|Executed directly
+
+|**Reusability**
+|High - each execution is independent
+|Low - single job instance
+
+|**Labels**
+|Always has "template" label
+|Custom labels
+
+|**Use Case**
+|Recurring pattern with variations
+|Specific one-time or scheduled task
+|===
+
 == REST API Usage
 
-=== Starting a Job
+=== Starting a Scheduled Job
 
 [source,bash]
 ----
@@ -550,6 +810,7 @@ Content-Type: application/json
 ----
 
 Response:
+
 [source,json]
 ----
 {
@@ -558,7 +819,45 @@ Response:
 }
 ----
 
-=== Cloning and Starting a Job
+=== Executing a Template
+
+[source,bash]
+----
+POST /q/jobrunr-control/api/templates/{templateId}/start
+Content-Type: application/json
+
+{
+  "postfix": "20240127-customer-123",
+  "parameters": {
+    "customerId": "123",
+    "reportType": "DETAILED"
+  }
+}
+----
+
+Response:
+
+[source,json]
+----
+{
+  "jobId": "660e8400-e29b-41d4-a716-446655440001",
+  "message": "Template job started successfully"
+}
+----
+
+[NOTE]
+====
+The returned `jobId` is the ID of the newly created job, not the template.
+The template remains unchanged and can be executed again.
+====
+
+=== Cloning and Starting a Job (Deprecated)
+
+[NOTE]
+====
+This endpoint is deprecated.
+Use templates instead for better organization and management.
+====
 
 [source,bash]
 ----
@@ -574,15 +873,6 @@ Content-Type: application/json
 }
 ----
 
-Response:
-[source,json]
-----
-{
-  "jobId": "660e8400-e29b-41d4-a716-446655440001",
-  "message": "Job cloned and started successfully"
-}
-----
-
 === Getting Job Status
 
 [source,bash]
@@ -591,6 +881,7 @@ GET /q/jobrunr-control/api/jobs/{jobId}
 ----
 
 Response:
+
 [source,json]
 ----
 {

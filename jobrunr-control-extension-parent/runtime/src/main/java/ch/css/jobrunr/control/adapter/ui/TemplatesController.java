@@ -2,11 +2,7 @@ package ch.css.jobrunr.control.adapter.ui;
 
 import ch.css.jobrunr.control.application.discovery.DiscoverJobsUseCase;
 import ch.css.jobrunr.control.application.discovery.GetJobParametersUseCase;
-import ch.css.jobrunr.control.application.monitoring.GetScheduledJobsUseCase;
-import ch.css.jobrunr.control.application.scheduling.CreateScheduledJobUseCase;
-import ch.css.jobrunr.control.application.scheduling.DeleteScheduledJobUseCase;
-import ch.css.jobrunr.control.application.scheduling.GetScheduledJobByIdUseCase;
-import ch.css.jobrunr.control.application.scheduling.UpdateScheduledJobUseCase;
+import ch.css.jobrunr.control.application.template.*;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
@@ -62,19 +58,19 @@ public class TemplatesController {
     GetJobParametersUseCase getJobParametersUseCase;
 
     @Inject
-    GetScheduledJobsUseCase getScheduledJobsUseCase;
+    GetTemplatesUseCase getTemplatesUseCase;
 
     @Inject
-    GetScheduledJobByIdUseCase getScheduledJobByIdUseCase;
+    GetTemplateByIdUseCase getTemplateByIdUseCase;
 
     @Inject
-    CreateScheduledJobUseCase createJobUseCase;
+    CreateTemplateUseCase createTemplateUseCase;
 
     @Inject
-    UpdateScheduledJobUseCase updateJobUseCase;
+    UpdateTemplateUseCase updateTemplateUseCase;
 
     @Inject
-    DeleteScheduledJobUseCase deleteJobUseCase;
+    DeleteTemplateUseCase deleteTemplateUseCase;
 
     @GET
     @RolesAllowed({"viewer", "configurator", "admin"})
@@ -94,10 +90,8 @@ public class TemplatesController {
             @QueryParam("sortBy") @DefaultValue("jobName") String sortBy,
             @QueryParam("sortOrder") @DefaultValue("asc") String sortOrder) {
 
-        // Get all scheduled jobs and filter for templates
-        List<ScheduledJobInfo> jobs = getScheduledJobsUseCase.execute().stream()
-                .filter(this::isTemplateJob)
-                .toList();
+        // Get all template jobs
+        List<ScheduledJobInfo> jobs = getTemplatesUseCase.execute();
 
         // Apply search
         jobs = JobSearchUtils.applySearchToScheduledJobs(search, jobs);
@@ -140,7 +134,7 @@ public class TemplatesController {
     public TemplateInstance getEditTemplateModal(@PathParam("id") UUID jobId) {
         List<JobDefinition> jobDefinitions = getSortedJobDefinitions();
 
-        ScheduledJobInfo jobInfo = getScheduledJobByIdUseCase.execute(jobId)
+        ScheduledJobInfo jobInfo = getTemplateByIdUseCase.execute(jobId)
                 .orElseThrow(() -> new NotFoundException("Template nicht gefunden: " + jobId));
 
         // Load parameter definitions for this job type
@@ -195,8 +189,8 @@ public class TemplatesController {
 
         Map<String, String> paramMap = extractParameterMap(allFormParams);
 
-        // Create template job - always external trigger, with "template" label
-        createJobUseCase.execute(jobType, jobName, paramMap, null, true, java.util.List.of("template"));
+        // Create template job
+        createTemplateUseCase.execute(jobType, jobName, paramMap);
 
         return buildModalCloseResponse(getDefaultTemplatesTable());
     }
@@ -221,8 +215,8 @@ public class TemplatesController {
 
         Map<String, String> paramMap = extractParameterMap(allFormParams);
 
-        // Update template job - always external trigger, maintain "template" label
-        updateJobUseCase.execute(jobId, jobType, jobName, paramMap, null, true, java.util.List.of("template"));
+        // Update template job
+        updateTemplateUseCase.execute(jobId, jobType, jobName, paramMap);
 
         return buildModalCloseResponse(getDefaultTemplatesTable());
     }
@@ -232,14 +226,10 @@ public class TemplatesController {
     @RolesAllowed({"configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance deleteTemplate(@PathParam("id") UUID jobId) {
-        deleteJobUseCase.execute(jobId);
+        deleteTemplateUseCase.execute(jobId);
         return getDefaultTemplatesTable();
     }
 
-    private boolean isTemplateJob(ScheduledJobInfo job) {
-        // Template jobs have the "template" label
-        return job.isTemplate();
-    }
 
     private Comparator<ScheduledJobInfo> getComparator(String sortBy) {
         return switch (sortBy) {

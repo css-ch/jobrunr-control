@@ -5,8 +5,8 @@ import ch.css.jobrunr.control.adapter.rest.dto.JobStatusResponse;
 import ch.css.jobrunr.control.adapter.rest.dto.StartJobResponse;
 import ch.css.jobrunr.control.adapter.rest.dto.StartTemplateRequestDTO;
 import ch.css.jobrunr.control.application.monitoring.GetJobExecutionByIdUseCase;
-import ch.css.jobrunr.control.application.scheduling.ExecuteJobUseCase;
-import ch.css.jobrunr.control.application.scheduling.ExecuteTemplateUseCase;
+import ch.css.jobrunr.control.application.scheduling.ExecuteScheduledJobUseCase;
+import ch.css.jobrunr.control.application.template.ExecuteTemplateUseCase;
 import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import jakarta.annotation.security.PermitAll;
@@ -44,16 +44,16 @@ public class JobControlResource {
     private static final Logger log = Logger.getLogger(JobControlResource.class);
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
-    private final ExecuteJobUseCase executeJobUseCase;
+    private final ExecuteScheduledJobUseCase executeScheduledJobUseCase;
     private final GetJobExecutionByIdUseCase getJobExecutionByIdUseCase;
     private final ExecuteTemplateUseCase executeTemplateUseCase;
 
     @Inject
     public JobControlResource(
-            ExecuteJobUseCase executeJobUseCase,
+            ExecuteScheduledJobUseCase executeScheduledJobUseCase,
             GetJobExecutionByIdUseCase getJobExecutionByIdUseCase,
             ExecuteTemplateUseCase executeTemplateUseCase) {
-        this.executeJobUseCase = executeJobUseCase;
+        this.executeScheduledJobUseCase = executeScheduledJobUseCase;
         this.getJobExecutionByIdUseCase = getJobExecutionByIdUseCase;
         this.executeTemplateUseCase = executeTemplateUseCase;
     }
@@ -108,7 +108,7 @@ public class JobControlResource {
                 parameters != null ? parameters.size() : 0);
 
         try {
-            executeJobUseCase.execute(jobId, parameters);
+            executeScheduledJobUseCase.execute(jobId, parameters);
 
             StartJobResponse response = new StartJobResponse(
                     jobId,

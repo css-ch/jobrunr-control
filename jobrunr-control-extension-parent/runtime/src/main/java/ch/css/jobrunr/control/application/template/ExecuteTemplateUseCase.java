@@ -1,4 +1,4 @@
-package ch.css.jobrunr.control.application.scheduling;
+package ch.css.jobrunr.control.application.template;
 
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
