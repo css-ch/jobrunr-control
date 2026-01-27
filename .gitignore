@@ -34,4 +34,6 @@ jacoco.exec
 
 # Local dev
 *.local
-/src/main/resources/jobrunr-pro.license
+
+# JobRunr Pro license (ignore in any directory)
+**/jobrunr-pro.license

@@ -47,7 +47,7 @@ quarkus.jobrunr.dashboard.context-path=/dashboard
 Start your Quarkus application and navigate to:
 
 - **Control Dashboard**: `http://localhost:8080/q/jobrunr-control`
-- **External API**: `http://localhost:8080/q/jobrunr-control/api/jobs`
+- **External API**: `http://localhost:8080/swagger-ui/`
 
 ## Documentation
 
@@ -94,15 +94,14 @@ Three roles control access to different features:
 ### Run in Development Mode
 
 ```bash
-./start-postgres.sh
-./mvnw quarkus:dev
+./mvnw -f jobrunr-control-example/pom.xml quarkus:dev
 ```
 
 ### Access Points
 
 - Quarkus Application: http://localhost:8080
 - JobRunr Control: http://localhost:8080/q/jobrunr-control
-- JobRunr Dashboard: http://localhost:8000
+- JobRunr Dashboard: http://localhost:8080/q/jobrunr/dashboard
 
 ## License
 
