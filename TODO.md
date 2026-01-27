@@ -1,8 +1,3 @@
-# TODO List
-
-* [ ] Format date and datetime in the parameters correctly
-* [x] Using typesafe qute templates
-
 # Completion
 
 * [ ] Clean up code

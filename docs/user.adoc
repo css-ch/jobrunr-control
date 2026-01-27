@@ -7,7 +7,8 @@
 
 == Introduction
 
-This guide explains how to use the JobRunr Control dashboard to schedule, configure, and monitor jobs. The dashboard provides a user-friendly interface for managing background jobs without requiring direct code changes.
+This guide explains how to use the JobRunr Control dashboard to schedule, configure, and monitor jobs.
+The dashboard provides a user-friendly interface for managing background jobs without requiring direct code changes.
 
 === Accessing the Dashboard
 
@@ -138,7 +139,8 @@ Requires **configurator** or **admin** role.
 
 [IMPORTANT]
 ====
-Editing a job creates a new version. The previous scheduled state is replaced.
+Editing a job creates a new version.
+The previous scheduled state is replaced.
 ====
 
 === Deleting a Job
@@ -154,7 +156,8 @@ Requires **configurator** or **admin** role.
 
 [WARNING]
 ====
-Deleted jobs cannot be recovered. Jobs in progress are not affected.
+Deleted jobs cannot be recovered.
+Jobs in progress are not affected.
 ====
 
 == Parameter Configuration
@@ -221,6 +224,59 @@ Select "External Trigger" to create a job that waits for an API call:
 * The job remains in scheduled state until triggered via REST API
 * Useful for integration with external systems
 * Can be triggered multiple times (creates new executions)
+
+=== Using Jobs as Templates
+
+Externally triggerable jobs can serve as templates for creating and executing jobs on demand:
+
+==== Template Pattern
+
+. Create a job with "External Trigger" as the trigger type
+. Configure the job with default parameters
+. The job remains in the scheduled state and serves as a template
+. External systems can clone and execute this template with custom parameters
+
+==== Clone and Execute
+
+When an external system triggers a job template:
+
+* A copy of the template job is created
+* Parameters can be optionally overridden for the specific execution
+* A custom suffix can be added to the job name for identification
+* The cloned job is immediately executed
+* The original template remains unchanged and can be reused
+
+.Example Use Cases
+[cols="1,3"]
+|===
+|Scenario |Description
+
+|**Daily Reports**
+|Template with report type and date range, triggered daily with current date
+
+|**Data Imports**
+|Template with source and target configuration, triggered with specific file paths
+
+|**Batch Processing**
+|Template with processing parameters, triggered with different batch IDs
+
+|**Customer Operations**
+|Template for customer-specific tasks, triggered with customer ID overrides
+|===
+
+==== Benefits of the Template Pattern
+
+* **Reusability**: Define job configuration once, use multiple times
+* **Consistency**: All executions use the same base configuration
+* **Flexibility**: Override parameters for specific execution needs
+* **Traceability**: Each execution has a unique name and can be tracked separately
+* **No Code Changes**: External systems can trigger jobs without code deployments
+
+[NOTE]
+====
+The template job itself is never executed.
+It only serves as a blueprint for creating new job instances.
+====
 
 == Monitoring Jobs
 

@@ -50,6 +50,17 @@ public class ParameterValueFormatter {
             return localDateTime.format(SWISS_DATETIME_FORMATTER);
         }
 
+        if (value instanceof String str) {
+            try {
+                return LocalDateTime.parse(str).format(SWISS_DATETIME_FORMATTER);
+            } catch (Exception ignored) {
+            }
+            try {
+                return LocalDate.parse(str).format(SWISS_DATE_FORMATTER);
+            } catch (Exception ignored) {
+            }
+        }
+
         if (value instanceof Instant instant) {
             return instant.atZone(SWISS_ZONE).format(SWISS_DATETIME_FORMATTER);
         }
