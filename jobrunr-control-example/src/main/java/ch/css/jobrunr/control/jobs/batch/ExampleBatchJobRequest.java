@@ -17,6 +17,9 @@ public record ExampleBatchJobRequest(
         return ExampleBatchJob.class;
     }
 
+    /**
+     * Example of creating a new JobRequest to be executed on success of the batch job
+     */
     @Override
     public JobRequest createOnSuccessJobRequest(JobRequestId jobRequestId, JobRequest jobRequest) {
         // Simply return the original job request for batch processing
@@ -25,12 +28,13 @@ public record ExampleBatchJobRequest(
         );
     }
 
+    /**
+     * Example of creating a new JobRequest to be executed on success of the batch job
+     */
     @Override
     public JobRequest createOnFailureJobRequest(JobRequestId jobRequestId, JobRequest jobRequest) {
         return new ExampleBatchFailureRequest(
                 jobRequest
         );
     }
-
-
 }

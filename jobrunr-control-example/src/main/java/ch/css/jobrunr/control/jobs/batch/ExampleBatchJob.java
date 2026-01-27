@@ -28,7 +28,10 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
             Thread.currentThread().interrupt();
         }
 
+        // Extra metadata for the batch job (visible in the JobRunr Control UI)
         jobContext().saveMetadata("hello", "ExampleBatchJob#run");
+
+
         // Enqueue background jobs for each item
         BackgroundJobRequest.enqueue(items.stream());
     }
