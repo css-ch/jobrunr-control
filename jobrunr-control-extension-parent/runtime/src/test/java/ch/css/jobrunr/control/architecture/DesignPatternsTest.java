@@ -52,6 +52,8 @@ class DesignPatternsTest {
                 .and().areNotEnums()
                 .and().doNotHaveSimpleName("ValidationException")
                 .and().doNotHaveSimpleName("JobParameterValidator")
+                .and().haveSimpleNameNotEndingWith("Helper")
+
                 .should().haveSimpleNameEndingWith("UseCase")
                 .because("Use cases follow the naming convention per arc42 documentation");
 

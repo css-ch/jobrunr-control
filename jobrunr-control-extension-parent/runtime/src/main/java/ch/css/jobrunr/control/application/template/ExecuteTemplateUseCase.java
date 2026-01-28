@@ -1,18 +1,11 @@
 package ch.css.jobrunr.control.application.template;
 
-import ch.css.jobrunr.control.domain.JobDefinition;
-import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
-import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -25,14 +18,14 @@ public class ExecuteTemplateUseCase {
     private static final Logger log = Logger.getLogger(ExecuteTemplateUseCase.class);
 
     private final JobSchedulerPort jobSchedulerPort;
-    private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
+    private final TemplateCloneHelper templateCloneHelper;
 
     @Inject
     public ExecuteTemplateUseCase(
             JobSchedulerPort jobSchedulerPort,
-            JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
+            TemplateCloneHelper templateCloneHelper) {
         this.jobSchedulerPort = jobSchedulerPort;
-        this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
+        this.templateCloneHelper = templateCloneHelper;
     }
 
     /**
@@ -45,49 +38,13 @@ public class ExecuteTemplateUseCase {
      * @throws IllegalArgumentException if the template job is not found
      */
     public UUID execute(UUID templateId, String postfix, Map<String, Object> parameterOverrides) {
-        if (templateId == null) {
-            throw new IllegalArgumentException("templateId must not be null");
-        }
-
-        // Get the template job
-        ScheduledJobInfo sourceJob = jobSchedulerPort.getScheduledJobById(templateId);
-        if (sourceJob == null) {
-            throw new IllegalArgumentException("Template job not found: " + templateId);
-        }
-
-        log.infof("Executing template job %s (%s) by cloning", templateId, sourceJob.getJobName());
-
-        // Get the job definition for the template job's type
-        Optional<JobDefinition> jobDefOpt = jobDefinitionDiscoveryService.findJobByType(sourceJob.getJobType());
-        if (jobDefOpt.isEmpty()) {
-            throw new IllegalArgumentException("Job definition not found for type: " + sourceJob.getJobType());
-        }
-
-        JobDefinition jobDefinition = jobDefOpt.get();
-
-        // Merge parameters: start with template parameters, then apply overrides
-        Map<String, Object> mergedParameters = new HashMap<>(sourceJob.getParameters());
-        if (parameterOverrides != null && !parameterOverrides.isEmpty()) {
-            mergedParameters.putAll(parameterOverrides);
-            log.infof("Applied %s parameter override(s)", parameterOverrides.size());
-        }
-
-        // Create a new job name for the clone
-        if (postfix == null || postfix.isBlank()) {
-            postfix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        }
-        String newJobName = sourceJob.getJobName() + "-" + postfix;
-
-        // Schedule the new job (as externally triggerable so we can start it immediately)
-        UUID newJobId = jobSchedulerPort.scheduleJob(
-                jobDefinition,
-                newJobName,
-                mergedParameters,
-                true, // isExternalTrigger
-                null  // scheduledAt
+        // Clone the template job (without "template" label, as this is an executable job)
+        UUID newJobId = templateCloneHelper.cloneTemplate(
+                templateId,
+                postfix,
+                parameterOverrides,
+                null  // No additional labels - this is not a template, it's an executable job
         );
-
-        log.infof("Created cloned job with ID: %s", newJobId);
 
         // Start the job immediately
         jobSchedulerPort.executeJobNow(newJobId, parameterOverrides);

@@ -72,6 +72,9 @@ public class TemplatesController {
     @Inject
     DeleteTemplateUseCase deleteTemplateUseCase;
 
+    @Inject
+    CloneTemplateUseCase cloneTemplateUseCase;
+
     @GET
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
@@ -227,6 +230,15 @@ public class TemplatesController {
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance deleteTemplate(@PathParam("id") UUID jobId) {
         deleteTemplateUseCase.execute(jobId);
+        return getDefaultTemplatesTable();
+    }
+
+    @POST
+    @Path("/{id}/clone")
+    @RolesAllowed({"configurator", "admin"})
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance cloneTemplate(@PathParam("id") UUID jobId) {
+        cloneTemplateUseCase.execute(jobId, null);
         return getDefaultTemplatesTable();
     }
 

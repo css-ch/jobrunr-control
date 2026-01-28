@@ -147,6 +147,7 @@ class CleanArchitectureTest {
                 .should().haveSimpleNameEndingWith("UseCase")
                 .orShould().haveSimpleNameEndingWith("Validator")
                 .orShould().haveSimpleNameEndingWith("Exception")
+                .orShould().haveSimpleNameEndingWith("Helper")
                 .because("Application layer follows use case driven design pattern");
 
         rule.check(importedClasses);

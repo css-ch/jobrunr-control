@@ -74,6 +74,14 @@
                                         title="Bearbeiten">
                                     <i class="bi bi-pencil"></i>
                                 </button>
+                                <button class="btn btn-outline-info"
+                                        hx-post="/q/jobrunr-control/templates/{job.jobId}/clone"
+                                        hx-confirm="Template '{job.jobName}' wirklich klonen?"
+                                        hx-target="#jobs-table"
+                                        hx-swap="outerHTML"
+                                        title="Klonen">
+                                    <i class="bi bi-copy"></i>
+                                </button>
                                 <button class="btn btn-outline-danger"
                                         hx-delete="/q/jobrunr-control/templates/{job.jobId}"
                                         hx-confirm="Template '{job.jobName}' wirklich löschen?"
