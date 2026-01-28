@@ -10,6 +10,7 @@ public enum JobParameterType {
     BOOLEAN,
     DATE,
     DATETIME,
-    ENUM
+    ENUM,
+    MULTI_ENUM
 }
 

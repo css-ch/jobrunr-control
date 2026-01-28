@@ -361,6 +361,16 @@ class JobDefinitionIndexScanner {
             return JobParameterType.STRING;
         }
 
+        // Check for EnumSet<T> (parameterized type)
+        if (type.kind() == Type.Kind.PARAMETERIZED_TYPE) {
+            ParameterizedType paramType = type.asParameterizedType();
+            String paramTypeName = paramType.name().toString();
+            if ("java.util.EnumSet".equals(paramTypeName)) {
+                log.debugf("Detected EnumSet type, mapping to MULTI_ENUM");
+                return JobParameterType.MULTI_ENUM;
+            }
+        }
+
         // Normalize kind and name handling for primitives and class types
         String typeName = type.name().toString();
 
@@ -405,27 +415,38 @@ class JobDefinitionIndexScanner {
     }
 
     private static List<String> getEnumValuesIfApplicable(Type type, JobParameterType parameterType, IndexView index) {
-        // Only process if the parameter type is ENUM
-        if (parameterType != JobParameterType.ENUM) {
+        // Only process if the parameter type is ENUM or MULTI_ENUM
+        if (parameterType != JobParameterType.ENUM && parameterType != JobParameterType.MULTI_ENUM) {
             return List.of();
         }
 
+        Type enumType = type;
+
+        // For MULTI_ENUM, extract the type parameter from EnumSet<T>
+        if (parameterType == JobParameterType.MULTI_ENUM && type.kind() == Type.Kind.PARAMETERIZED_TYPE) {
+            ParameterizedType paramType = type.asParameterizedType();
+            if (!paramType.arguments().isEmpty()) {
+                enumType = paramType.arguments().getFirst();
+                log.debugf("Extracted enum type from EnumSet: %s", enumType.name());
+            }
+        }
+
         // Ensure we have a CLASS type
-        if (type == null || type.kind() != Type.Kind.CLASS) {
+        if (enumType == null || enumType.kind() != Type.Kind.CLASS) {
             log.debugf("Type is not a CLASS, cannot extract enum values");
             return List.of();
         }
 
         // Get the class info from the index
-        ClassInfo enumClassInfo = index.getClassByName(type.name());
+        ClassInfo enumClassInfo = index.getClassByName(enumType.name());
         if (enumClassInfo == null) {
-            log.debugf("Could not find class info for type: %s", type.name());
+            log.debugf("Could not find class info for type: %s", enumType.name());
             return List.of();
         }
 
         // Check if it's actually an enum
         if (!enumClassInfo.isEnum()) {
-            log.debugf("Class %s is not an enum", type.name());
+            log.debugf("Class %s is not an enum", enumType.name());
             return List.of();
         }
 
@@ -438,7 +459,7 @@ class JobDefinitionIndexScanner {
             }
         }
 
-        log.debugf("Extracted %s enum values from %s: %s", enumValues.size(), type.name(), enumValues);
+        log.debugf("Extracted %s enum values from %s: %s", enumValues.size(), enumType.name(), enumValues);
         return enumValues;
     }
 }

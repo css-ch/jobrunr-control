@@ -82,6 +82,7 @@ public class JobParameterValidator {
                 case DATE -> convertToDate(name, value);
                 case DATETIME -> convertToDateTime(name, value);
                 case ENUM -> convertToString(value);
+                case MULTI_ENUM -> convertToStringList(value);
             };
         } catch (ValidationException e) {
             throw e;
@@ -93,6 +94,23 @@ public class JobParameterValidator {
 
     private String convertToString(Object value) {
         return value.toString();
+    }
+
+    private List<String> convertToStringList(Object value) {
+        if (value instanceof List<?> list) {
+            @SuppressWarnings("unchecked")
+            List<String> stringList = (List<String>) list;
+            return stringList;
+        }
+        String strValue = value.toString();
+        if (strValue.isBlank()) {
+            return List.of();
+        }
+        // Split by comma and trim whitespace
+        return java.util.stream.Stream.of(strValue.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 
     private Integer convertToInteger(String name, Object value) {

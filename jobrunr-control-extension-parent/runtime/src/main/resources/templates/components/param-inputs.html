@@ -129,6 +129,30 @@
                             {/for}
                         </select>
 
+                    {#else if param.type().name() == 'MULTI_ENUM'}
+                        <select name="parameters.{param.name()}"
+                                id="param-{param.name()}"
+                                class="form-select"
+                                multiple
+                                size="5"
+                                {#if param.required()}required{/if}>
+                            {#for enumValue in param.enumValues()}
+                                <option value="{enumValue}"
+                                {#if existingValues}
+                                    {#if existingValues.get(param.name())}
+                                            {#if existingValues.get(param.name()).toString().contains(enumValue)}selected{/if}
+                                    {#else}
+                                            {#if param.defaultValue() && param.defaultValue().contains(enumValue)}selected{/if}
+                                    {/if}
+                                {#else}
+                                        {#if param.defaultValue() && param.defaultValue().contains(enumValue)}selected{/if}
+                                        {/if}>
+                                    {enumValue}
+                                </option>
+                            {/for}
+                        </select>
+                        <small class="form-text text-muted">Mehrfachauswahl möglich (Strg/Cmd + Klick)</small>
+
                     {#else if param.type().name() == 'DATETIME'}
                         <input type="datetime-local"
                                name="parameters.{param.name()}"

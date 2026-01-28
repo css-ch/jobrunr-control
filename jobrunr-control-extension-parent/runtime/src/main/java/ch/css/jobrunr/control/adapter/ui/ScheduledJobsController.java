@@ -321,7 +321,16 @@ public class ScheduledJobsController {
     private Map<String, String> extractParameterMap(MultivaluedMap<String, String> allFormParams) {
         return allFormParams.keySet().stream()
                 .collect(HashMap::new,
-                        (map, key) -> map.put(key, allFormParams.getFirst(key)),
+                        (map, key) -> {
+                            List<String> values = allFormParams.get(key);
+                            if (values != null && values.size() > 1) {
+                                // Multiple values (e.g., from multiselect) - join with comma
+                                map.put(key, String.join(",", values));
+                            } else {
+                                // Single value
+                                map.put(key, allFormParams.getFirst(key));
+                            }
+                        },
                         HashMap::putAll);
     }
 

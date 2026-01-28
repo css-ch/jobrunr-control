@@ -7,7 +7,7 @@ import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
 /**
  * Job mit verschiedenen Parameter-Typen.
- * Demonstriert String, Integer, Boolean, Date und Enum Parameter.
+ * Demonstriert String, Integer, Boolean, Date, Enum und Multi-Enum Parameter.
  */
 @ApplicationScoped
 public class ParameterDemoJob implements JobRequestHandler<ParameterDemoJobRequest> {
@@ -22,6 +22,7 @@ public class ParameterDemoJob implements JobRequestHandler<ParameterDemoJobReque
         log.info(String.format("Date parameter: %s", request.dateParameter()));
         log.info(String.format("DateTime parameter: %s", request.dateTimeParameter()));
         log.info(String.format("Enum parameter: %s", request.enumParameter()));
+        log.info(String.format("Multi-Enum parameter: %s", request.multiEnumParameter()));
     }
 }
 

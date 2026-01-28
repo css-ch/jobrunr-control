@@ -67,5 +67,8 @@ public class JobTriggerForParameterDemoJobUITest extends JobTriggerUITestBase {
         page.fill("input[name='parameters.dateTimeParameter']", dateTimeValue);
 
         page.selectOption("select[name='parameters.enumParameter']", "OPTION_A");
+
+        // Select multiple options for multiEnumParameter
+        page.selectOption("select[name='parameters.multiEnumParameter']", new String[]{"OPTION_A", "OPTION_C"});
     }
 }
