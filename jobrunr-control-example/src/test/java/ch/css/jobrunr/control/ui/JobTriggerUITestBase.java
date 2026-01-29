@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Use @WithPlaywright(browser = WithPlaywright.Browser.CHROMIUM, headless = false, slowMo = 1000) for debugging.
  */
 @WithPlaywright
+//@WithPlaywright(browser = WithPlaywright.Browser.CHROMIUM, headless = false, slowMo = 1000)
 public abstract class JobTriggerUITestBase {
 
     @InjectPlaywright
@@ -67,7 +68,7 @@ public abstract class JobTriggerUITestBase {
     }
 
     protected void selectJobType(String jobType) {
-        page.selectOption("select[name='jobType']", jobType);
+        page.selectOption("select[name='jobType'][hx-target='#parameters-container']", jobType);
         page.waitForFunction("!document.querySelector('#parameters-container').textContent.includes('Wählen Sie einen Job aus')");
     }
 
@@ -148,5 +149,50 @@ public abstract class JobTriggerUITestBase {
         String rowHtml = historyRow.innerHTML();
         assertTrue(rowHtml.contains(expectedJobType) || rowHtml.contains(jobName),
                 "Job name should be visible in history");
+    }
+
+    // Template-specific methods
+
+    protected void navigateToTemplatesPage() {
+        page.navigate(baseUrl + "q/jobrunr-control/templates");
+        page.waitForSelector("h1:has-text('Template Jobs')");
+    }
+
+    protected void openTemplateCreationDialog() {
+        page.click("button:has-text('Neues Template erstellen')");
+        page.waitForSelector("#jobModal.show", new Page.WaitForSelectorOptions()
+                .setState(com.microsoft.playwright.options.WaitForSelectorState.VISIBLE));
+        page.waitForSelector("#modal-content .spinner-border", new Page.WaitForSelectorOptions()
+                .setState(com.microsoft.playwright.options.WaitForSelectorState.HIDDEN));
+    }
+
+    protected void selectTemplateJobType(String jobType) {
+        page.selectOption("select[name='jobType'][hx-target='#parameters-container']", jobType);
+        page.waitForFunction("!document.querySelector('#parameters-container').textContent.includes('Wählen Sie einen Job aus')");
+    }
+
+    protected void fillTemplateName(String templateName) {
+        page.fill("input[name='jobName']", templateName);
+    }
+
+    protected void submitTemplateCreationForm() {
+        page.click("button[type='submit']:has-text('Template erstellen')");
+        page.waitForSelector("#jobModal.show", new Page.WaitForSelectorOptions()
+                .setState(com.microsoft.playwright.options.WaitForSelectorState.HIDDEN));
+    }
+
+    protected UUID extractTemplateIdFromTemplatesTable(String templateName) {
+        Locator templateLink = page.locator("strong a:has-text('" + templateName + "')").first();
+        templateLink.waitFor(new Locator.WaitForOptions().setTimeout(5000));
+        assertTrue(templateLink.isVisible(), "Template link should appear in the templates table");
+
+        String href = templateLink.getAttribute("href");
+        assertNotNull(href, "Template link href should be present");
+        System.out.println("Template link href: " + href);
+
+        String[] hrefParts = href.split("/");
+        String templateIdString = hrefParts[hrefParts.length - 1];
+        assertNotNull(templateIdString, "Template ID should be extractable from href");
+        return UUID.fromString(templateIdString);
     }
 }

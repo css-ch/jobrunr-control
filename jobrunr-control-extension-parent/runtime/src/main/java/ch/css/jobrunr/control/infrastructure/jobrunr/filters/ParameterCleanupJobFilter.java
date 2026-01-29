@@ -1,8 +1,8 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr.filters;
 
 import ch.css.jobrunr.control.domain.ParameterStoragePort;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.filters.ApplyStateFilter;
@@ -18,7 +18,7 @@ import java.util.UUID;
  * This filter intercepts job state changes and deletes the associated parameter set
  * when a job transitions to DELETED state.
  */
-@Singleton
+@ApplicationScoped
 public class ParameterCleanupJobFilter implements ApplyStateFilter {
 
     private static final Logger log = Logger.getLogger(ParameterCleanupJobFilter.class);

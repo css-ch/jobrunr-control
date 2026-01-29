@@ -33,7 +33,7 @@ public class TemplatesController {
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Templates {
-        public static native TemplateInstance templates();
+        public static native TemplateInstance templates(List<String> availableJobTypes);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -42,6 +42,7 @@ public class TemplatesController {
                                                              Map<String, Object> pagination,
                                                              List<TemplateExtensions.PageItem> pageRange,
                                                              String search,
+                                                             String jobType,
                                                              String sortBy, String sortOrder);
     }
 
@@ -84,7 +85,8 @@ public class TemplatesController {
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getTemplatesView() {
-        return Templates.templates();
+        List<String> availableJobTypes = getAvailableJobTypes();
+        return Templates.templates(availableJobTypes);
     }
 
     @GET
@@ -93,6 +95,7 @@ public class TemplatesController {
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getTemplatesTable(
             @QueryParam("search") String search,
+            @QueryParam("jobType") String jobType,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("10") int size,
             @QueryParam("sortBy") @DefaultValue("jobName") String sortBy,
@@ -100,6 +103,13 @@ public class TemplatesController {
 
         // Get all template jobs
         List<ScheduledJobInfo> jobs = getTemplatesUseCase.execute();
+
+        // Filter by job type if specified
+        if (jobType != null && !jobType.isBlank() && !"all".equals(jobType)) {
+            jobs = jobs.stream()
+                    .filter(job -> jobType.equals(job.getJobType()))
+                    .toList();
+        }
 
         // Apply search
         jobs = JobSearchUtils.applySearchToScheduledJobs(search, jobs);
@@ -126,6 +136,7 @@ public class TemplatesController {
                 paginationResult.getMetadata(),
                 paginationResult.getPageRange(),
                 search != null ? search : "",
+                jobType != null ? jobType : "all",
                 sortBy,
                 sortOrder
         );
@@ -291,6 +302,14 @@ public class TemplatesController {
                 .toList();
     }
 
+    private List<String> getAvailableJobTypes() {
+        // Get all available job types from job definitions
+        return discoverJobsUseCase.execute().stream()
+                .map(JobDefinition::jobType)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
     private Map<String, String> extractParameterMap(MultivaluedMap<String, String> allFormParams) {
         return allFormParams.keySet().stream()
                 .collect(HashMap::new,
@@ -308,7 +327,7 @@ public class TemplatesController {
     }
 
     private TemplateInstance getDefaultTemplatesTable() {
-        return getTemplatesTable(null, 0, 10, "jobName", "asc");
+        return getTemplatesTable(null, null, 0, 10, "jobName", "asc");
     }
 
     private Response buildModalCloseResponse(TemplateInstance table) {

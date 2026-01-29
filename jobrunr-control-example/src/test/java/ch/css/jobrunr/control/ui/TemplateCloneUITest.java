@@ -196,29 +196,7 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
         assertTrue(totalTemplatesVisible >= 3, "Should have at least 3 templates (original + 2 clones)");
     }
 
-    // Template-specific helper methods
-
-    protected void navigateToTemplatesPage() {
-        page.navigate(baseUrl + "q/jobrunr-control/templates");
-        page.waitForSelector("h1:has-text('Template Jobs')");
-    }
-
-    protected void openTemplateCreationDialog() {
-        page.click("button:has-text('Neues Template erstellen')");
-        page.waitForSelector("#jobModal.show", new Page.WaitForSelectorOptions()
-                .setState(com.microsoft.playwright.options.WaitForSelectorState.VISIBLE));
-        page.waitForSelector("#modal-content .spinner-border", new Page.WaitForSelectorOptions()
-                .setState(com.microsoft.playwright.options.WaitForSelectorState.HIDDEN));
-    }
-
-    protected void selectTemplateJobType(String jobType) {
-        page.selectOption("select[name='jobType']", jobType);
-        page.waitForFunction("!document.querySelector('#parameters-container').textContent.includes('Wählen Sie einen Job aus')");
-    }
-
-    protected void fillTemplateName(String templateName) {
-        page.fill("input[name='jobName']", templateName);
-    }
+    // Template-specific parameters filling (specific to this test)
 
     protected void fillTemplateParameters() {
         page.fill("input[name='parameters.stringParameter']", "Template Test String");
@@ -232,26 +210,5 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
         page.fill("input[name='parameters.dateTimeParameter']", dateTimeValue);
 
         page.selectOption("select[name='parameters.enumParameter']", "OPTION_A");
-    }
-
-    protected void submitTemplateCreationForm() {
-        page.click("button[type='submit']:has-text('Template erstellen')");
-        page.waitForSelector("#jobModal.show", new Page.WaitForSelectorOptions()
-                .setState(com.microsoft.playwright.options.WaitForSelectorState.HIDDEN));
-    }
-
-    protected UUID extractTemplateIdFromTemplatesTable(String templateName) {
-        Locator templateLink = page.locator("strong a:has-text('" + templateName + "')").first();
-        templateLink.waitFor(new Locator.WaitForOptions().setTimeout(5000));
-        assertTrue(templateLink.isVisible(), "Template link should appear in the templates table");
-
-        String href = templateLink.getAttribute("href");
-        assertNotNull(href, "Template link href should be present");
-        System.out.println("Template link href: " + href);
-
-        String[] hrefParts = href.split("/");
-        String templateIdString = hrefParts[hrefParts.length - 1];
-        assertNotNull(templateIdString, "Template ID should be extractable from href");
-        return UUID.fromString(templateIdString);
     }
 }

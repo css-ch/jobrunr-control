@@ -6,7 +6,7 @@
             <div class="card">
                 <div class="card-body">
                     <div class="row g-2">
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <input type="search"
                                    class="form-control"
                                    name="search"
@@ -15,18 +15,31 @@
                                    hx-trigger="keyup changed delay:300ms"
                                    hx-target="#jobs-table"
                                    hx-vals='{"page": "0", "size": "10", "sortBy": "scheduledAt", "sortOrder": "asc"}'
-                                   hx-include="[name='filter']">
+                                   hx-include="[name='filter'], [name='jobType']">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <select name="filter"
                                     class="form-select"
                                     hx-get="/q/jobrunr-control/scheduled/table"
                                     hx-target="#jobs-table"
                                     hx-vals='{"page": "0", "size": "10", "sortBy": "scheduledAt", "sortOrder": "asc"}'
-                                    hx-include="[name='search']">
+                                    hx-include="[name='search'], [name='jobType']">
                                 <option value="all">Alle Jobs</option>
-                                <option value="external">Nur externe Trigger</option>
+                                <option value="external">Nur externe</option>
                                 <option value="scheduled">Nur geplante</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select name="jobType"
+                                    class="form-select"
+                                    hx-get="/q/jobrunr-control/scheduled/table"
+                                    hx-target="#jobs-table"
+                                    hx-vals='{"page": "0", "size": "10", "sortBy": "scheduledAt", "sortOrder": "asc"}'
+                                    hx-include="[name='search'], [name='filter']">
+                                <option value="all">Alle Typen</option>
+                                {#for jobType in availableJobTypes}
+                                    <option value="{jobType}">{jobType}</option>
+                                {/for}
                             </select>
                         </div>
                         <div class="col-md-4 text-end">

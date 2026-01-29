@@ -7,6 +7,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import java.util.List;
+
 /**
  * Main Dashboard Controller.
  * Root path redirects to scheduled jobs using type-safe Qute templates.
@@ -19,6 +21,6 @@ public class DashboardController {
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance index() {
         // Redirect to scheduler overview - use the template from ScheduledJobsController
-        return ScheduledJobsController.Templates.scheduledJobs();
+        return ScheduledJobsController.Templates.scheduledJobs(List.of());
     }
 }

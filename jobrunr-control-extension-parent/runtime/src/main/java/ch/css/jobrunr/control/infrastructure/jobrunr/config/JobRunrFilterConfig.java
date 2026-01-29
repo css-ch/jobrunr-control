@@ -3,7 +3,6 @@ package ch.css.jobrunr.control.infrastructure.jobrunr.config;
 import ch.css.jobrunr.control.infrastructure.jobrunr.filters.ParameterCleanupJobFilter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
-import jakarta.inject.Singleton;
 import org.jobrunr.jobs.filters.ApplyStateFilter;
 
 /**
@@ -18,7 +17,7 @@ public class JobRunrFilterConfig {
      * This filter automatically cleans up external parameter sets when jobs are deleted.
      */
     @Produces
-    @Singleton
+    @ApplicationScoped
     public ApplyStateFilter parameterCleanupFilter(ParameterCleanupJobFilter filter) {
         return filter;
     }

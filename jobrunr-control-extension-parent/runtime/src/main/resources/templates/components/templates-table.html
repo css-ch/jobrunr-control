@@ -11,7 +11,7 @@
                 <tr>
                     <th class="sortable"
                         style="cursor: pointer;"
-                        hx-get="/q/jobrunr-control/templates/table?sortBy=jobName&sortOrder={#if sortBy == 'jobName'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}"
+                        hx-get="/q/jobrunr-control/templates/table?sortBy=jobName&sortOrder={#if sortBy == 'jobName'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&jobType={jobType}"
                         hx-target="#jobs-table"
                         hx-swap="outerHTML">
                         Job-Name
@@ -27,7 +27,7 @@
                     </th>
                     <th class="sortable"
                         style="cursor: pointer;"
-                        hx-get="/q/jobrunr-control/templates/table?sortBy=jobType&sortOrder={#if sortBy == 'jobType'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}"
+                        hx-get="/q/jobrunr-control/templates/table?sortBy=jobType&sortOrder={#if sortBy == 'jobType'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&jobType={jobType}"
                         hx-target="#jobs-table"
                         hx-swap="outerHTML">
                         Job-Typ
@@ -110,7 +110,7 @@
                     <li class="page-item {#if !pagination.hasPrevious}disabled{/if}">
                          <button class="page-link"
                                 {#if pagination.hasPrevious}
-                                hx-get="/q/jobrunr-control/templates/table?page=0&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}"
+                                hx-get="/q/jobrunr-control/templates/table?page=0&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
                                 hx-target="#jobs-table"
                                 hx-swap="outerHTML"
                                 {#else}
@@ -123,7 +123,7 @@
                     <li class="page-item {#if !pagination.hasPrevious}disabled{/if}">
                         <button class="page-link"
                                 {#if pagination.hasPrevious}
-                                hx-get="/q/jobrunr-control/templates/table?page={pagination.previousPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}"
+                                hx-get="/q/jobrunr-control/templates/table?page={pagination.previousPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
                                 hx-target="#jobs-table"
                                 hx-swap="outerHTML"
                                 {#else}
@@ -137,7 +137,7 @@
                     {#for pageItem in pageRange}
                         <li class="page-item {#if pageItem.index == pagination.page}active{/if}">
                             <button class="page-link"
-                                    hx-get="/q/jobrunr-control/templates/table?page={pageItem.index}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}"
+                                    hx-get="/q/jobrunr-control/templates/table?page={pageItem.index}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
                                     hx-target="#jobs-table"
                                     hx-swap="outerHTML">
                                 {pageItem.label}
@@ -148,7 +148,7 @@
                     <li class="page-item {#if !pagination.hasNext}disabled{/if}">
                         <button class="page-link"
                                 {#if pagination.hasNext}
-                                hx-get="/q/jobrunr-control/templates/table?page={pagination.nextPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}"
+                                hx-get="/q/jobrunr-control/templates/table?page={pagination.nextPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
                                 hx-target="#jobs-table"
                                 hx-swap="outerHTML"
                                 {#else}
@@ -161,7 +161,7 @@
                     <li class="page-item {#if !pagination.hasNext}disabled{/if}">
                         <button class="page-link"
                                 {#if pagination.hasNext}
-                                hx-get="/q/jobrunr-control/templates/table?page={pagination.lastPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}"
+                                hx-get="/q/jobrunr-control/templates/table?page={pagination.lastPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
                                 hx-target="#jobs-table"
                                 hx-swap="outerHTML"
                                 {#else}
@@ -179,7 +179,7 @@
                         style="width: auto;"
                         hx-get="/q/jobrunr-control/templates/table"
                         hx-trigger="change"
-                        hx-vals='js:{"page": 0, "sortBy": "{sortBy}", "sortOrder": "{sortOrder}", "search": "{search}", "size": event.target.value}'
+                        hx-vals='js:{"page": 0, "sortBy": "{sortBy}", "sortOrder": "{sortOrder}", "search": "{search}", "jobType": "{jobType}", "size": event.target.value}'
                         hx-target="#jobs-table"
                         hx-swap="outerHTML"
                         name="pageSize">

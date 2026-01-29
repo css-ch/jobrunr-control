@@ -6,7 +6,7 @@
             <div class="card">
                 <div class="card-body">
                     <div class="row g-2">
-                        <div class="col-md-8">
+                        <div class="col-md-5">
                             <input type="search"
                                    class="form-control"
                                    name="search"
@@ -14,7 +14,21 @@
                                    hx-get="/q/jobrunr-control/templates/table"
                                    hx-trigger="keyup changed delay:300ms"
                                    hx-target="#jobs-table"
-                                   hx-vals='{"page": "0", "size": "10", "sortBy": "jobName", "sortOrder": "asc"}'>
+                                   hx-vals='{"page": "0", "size": "10", "sortBy": "jobName", "sortOrder": "asc"}'
+                                   hx-include="[name='jobType']">
+                        </div>
+                        <div class="col-md-3">
+                            <select name="jobType"
+                                    class="form-select"
+                                    hx-get="/q/jobrunr-control/templates/table"
+                                    hx-target="#jobs-table"
+                                    hx-vals='{"page": "0", "size": "10", "sortBy": "jobName", "sortOrder": "asc"}'
+                                    hx-include="[name='search']">
+                                <option value="all">Alle Job-Typen</option>
+                                {#for jobType in availableJobTypes}
+                                    <option value="{jobType}">{jobType}</option>
+                                {/for}
+                            </select>
                         </div>
                         <div class="col-md-4 text-end">
                             {#if security:hasOneOfRole('configurator', 'admin')}

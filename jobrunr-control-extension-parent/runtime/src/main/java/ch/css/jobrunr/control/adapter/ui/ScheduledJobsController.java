@@ -38,7 +38,7 @@ public class ScheduledJobsController {
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Templates {
-        public static native TemplateInstance scheduledJobs();
+        public static native TemplateInstance scheduledJobs(List<String> availableJobTypes);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -46,7 +46,7 @@ public class ScheduledJobsController {
         public static native TemplateInstance scheduledJobsTable(List<ScheduledJobInfoView> jobs,
                                                                  Map<String, Object> pagination,
                                                                  List<TemplateExtensions.PageItem> pageRange,
-                                                                 String search, String filter,
+                                                                 String search, String filter, String jobType,
                                                                  String sortBy, String sortOrder);
 
         public static native TemplateInstance paramInputs(List<JobParameter> parameters,
@@ -95,7 +95,8 @@ public class ScheduledJobsController {
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getScheduledJobsView() {
-        return Templates.scheduledJobs();
+        List<String> availableJobTypes = getAvailableJobTypes();
+        return Templates.scheduledJobs(availableJobTypes);
     }
 
     @GET
@@ -105,6 +106,7 @@ public class ScheduledJobsController {
     public TemplateInstance getScheduledJobsTable(
             @QueryParam("search") String search,
             @QueryParam("filter") @DefaultValue("all") String filter,
+            @QueryParam("jobType") String jobType,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("10") int size,
             @QueryParam("sortBy") @DefaultValue("scheduledAt") String sortBy,
@@ -117,7 +119,7 @@ public class ScheduledJobsController {
                 .filter(job -> !job.isTemplate())
                 .toList();
 
-        // Filter anwenden
+        // Filter by trigger type
         if ("external".equals(filter)) {
             jobs = jobs.stream()
                     .filter(ScheduledJobInfo::isExternallyTriggerable)
@@ -128,6 +130,12 @@ public class ScheduledJobsController {
                     .toList();
         }
 
+        // Filter by job type if specified
+        if (jobType != null && !jobType.isBlank() && !"all".equals(jobType)) {
+            jobs = jobs.stream()
+                    .filter(job -> jobType.equals(job.getJobType()))
+                    .toList();
+        }
         // Suche anwenden
         jobs = JobSearchUtils.applySearchToScheduledJobs(search, jobs);
 
@@ -154,6 +162,7 @@ public class ScheduledJobsController {
                 paginationResult.getPageRange(),
                 search != null ? search : "",
                 filter,
+                jobType != null ? jobType : "all",
                 sortBy,
                 sortOrder
         );
@@ -344,6 +353,14 @@ public class ScheduledJobsController {
                 .toList();
     }
 
+    private List<String> getAvailableJobTypes() {
+        // Get all available job types from job definitions
+        return discoverJobsUseCase.execute().stream()
+                .map(JobDefinition::jobType)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
     private Instant parseScheduledTime(String scheduledAt) {
         if (scheduledAt == null || scheduledAt.isBlank()) {
             return null;
@@ -369,7 +386,7 @@ public class ScheduledJobsController {
     }
 
     private TemplateInstance getDefaultScheduledJobsTable() {
-        return getScheduledJobsTable(null, "all", 0, 10, "scheduledAt", "asc");
+        return getScheduledJobsTable(null, "all", null, 0, 10, "scheduledAt", "asc");
     }
 
     private Response buildModalCloseResponse(TemplateInstance table) {
