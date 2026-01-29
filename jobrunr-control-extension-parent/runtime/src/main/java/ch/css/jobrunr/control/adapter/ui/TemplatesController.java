@@ -216,7 +216,7 @@ public class TemplatesController {
             }
 
             Map<String, String> paramMap = extractParameterMap(allFormParams);
-q
+
             // Create template job
             createTemplateUseCase.execute(jobType, jobName, paramMap);
 
