@@ -1,6 +1,5 @@
 package ch.css.jobrunr.control.application.template;
 
-import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
@@ -56,27 +55,23 @@ public class TemplateCloneHelper {
             throw new IllegalArgumentException("Template job not found: " + templateId);
         }
 
-        log.infof("Cloning template job %s (%s)", templateId, sourceJob.getJobName());
-
-        // Get the job definition for the template job's type
-        JobDefinition jobDefinition = jobDefinitionDiscoveryService.findJobByType(sourceJob.getJobType())
-                .orElseThrow(() -> new IllegalArgumentException("Job definition not found for type: " + sourceJob.getJobType()));
+        log.infof("Cloning template job %s (%s)", templateId, sourceJob.jobName());
 
         // Merge parameters: start with template parameters, then apply overrides
-        Map<String, Object> mergedParameters = new HashMap<>(sourceJob.getParameters());
+        Map<String, Object> mergedParameters = new HashMap<>(sourceJob.parameters());
         if (parameterOverrides != null && !parameterOverrides.isEmpty()) {
             mergedParameters.putAll(parameterOverrides);
             log.infof("Applied %s parameter override(s)", parameterOverrides.size());
         }
 
         // Create a new name for the clone
-        String newJobName = generateJobName(sourceJob.getJobName(), postfix);
+        String newJobName = generateJobName(sourceJob.jobName(), postfix);
 
         // Schedule the new job
         UUID newJobId;
         if (additionalLabels != null && !additionalLabels.isEmpty()) {
             newJobId = jobSchedulerPort.scheduleJob(
-                    jobDefinition,
+                    sourceJob.jobDefinition(),
                     newJobName,
                     mergedParameters,
                     true,              // isExternalTrigger
@@ -85,7 +80,7 @@ public class TemplateCloneHelper {
             );
         } else {
             newJobId = jobSchedulerPort.scheduleJob(
-                    jobDefinition,
+                    sourceJob.jobDefinition(),
                     newJobName,
                     mergedParameters,
                     true,              // isExternalTrigger

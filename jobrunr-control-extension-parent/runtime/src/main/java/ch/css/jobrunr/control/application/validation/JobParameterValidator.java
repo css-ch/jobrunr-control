@@ -77,6 +77,7 @@ public class JobParameterValidator {
         try {
             return switch (type) {
                 case STRING -> convertToString(value);
+                case MULTILINE -> convertToString(value);
                 case INTEGER -> convertToInteger(name, value);
                 case BOOLEAN -> convertToBoolean(name, value);
                 case DATE -> convertToDate(name, value);

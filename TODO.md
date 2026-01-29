@@ -1,8 +1,12 @@
 # Completion
 
+* [ ] Delete external job parameters
+* [ ] Extend search
+* [ ] Add a search list box for searching template jobs be type
 * [ ] Clean up code
 * [ ] Create unit and integration tests
 * [ ] Write user documentation
+* [ ] Delete external job parameters
 
 # Create Demo Project
 

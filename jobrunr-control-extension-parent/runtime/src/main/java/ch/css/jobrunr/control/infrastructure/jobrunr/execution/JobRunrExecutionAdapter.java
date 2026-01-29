@@ -1,19 +1,16 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr.execution;
 
 import ch.css.jobrunr.control.domain.*;
+import ch.css.jobrunr.control.infrastructure.jobrunr.ConfigurableJobSearchAdapter;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobParameterExtractor;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.BatchJob;
-import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.states.*;
-import org.jobrunr.storage.JobSearchRequest;
 import org.jobrunr.storage.StorageProvider;
-import org.jobrunr.storage.navigation.AmountRequest;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,128 +25,31 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
     private static final Logger log = Logger.getLogger(JobRunrExecutionAdapter.class);
 
     private final StorageProvider storageProvider;
-    private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
+    private final ConfigurableJobSearchAdapter configurableJobSearchAdapter;
 
     @Inject
     public JobRunrExecutionAdapter(
             StorageProvider storageProvider,
-            JobDefinitionDiscoveryService jobDefinitionDiscoveryService
+            JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
+            ConfigurableJobSearchAdapter configurableJobSearchAdapter
     ) {
         this.storageProvider = storageProvider;
-        this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
+        this.configurableJobSearchAdapter = configurableJobSearchAdapter;
     }
 
     @Override
     public List<JobExecutionInfo> getJobExecutions() {
-        List<JobExecutionInfo> jobExecutionInfos = new ArrayList<>();
-        try {
-            // Define states to query
-            StateName[] statesToQuery = {
-                    StateName.ENQUEUED,
-                    StateName.AWAITING,
-                    StateName.PROCESSING,
-                    StateName.PROCESSED,
-                    StateName.SUCCEEDED,
-                    StateName.FAILED
-            };
-
-            AmountRequest amountRequest = new AmountRequest("updatedAt:DESC", 1000);
-
-            for (StateName state : statesToQuery) {
-                for (JobDefinition jobDefinition : jobDefinitionDiscoveryService.getAllJobDefinitions()) {
-                    try {
-                        JobSearchRequest searchRequest;
-                        if (jobDefinition.isBatchJob()) {
-                            searchRequest = createSearchRequestForStateAndJobTypeForBatch(state, jobDefinition.jobType());
-                        } else {
-                            searchRequest = createSearchRequestForStateAndJobType(state, jobDefinition.jobType());
-                        }
-
-                        List<Job> jobList = storageProvider.getJobList(searchRequest, amountRequest);
-                        for (Job job : jobList) {
-                            JobExecutionInfo jobExecutionInfo = mapToJobExecutionInfo(jobDefinition.jobType(), job);
-                            if (!isChildJobOfBatch(job, jobDefinition)) { // Check is necessary because JobRunr copies labels to child jobs
-                                jobExecutionInfos.add(jobExecutionInfo);
-                            }
-                        }
-                    } catch (Exception e) {
-                        log.warnf("Fehler beim Abrufen von Jobs im Status %s und Typ %s: %s", state, jobDefinition.jobType(), e.getMessage());
-                    }
-                }
-            }
-            return jobExecutionInfos;
-        } catch (Exception e) {
-            log.errorf("Fehler beim Abrufen der Job-Ausführungen", e);
-            throw new JobExecutionException("Fehler beim Abrufen der Job-Ausführungen", e);
-        }
-    }
-
-    private boolean isChildJobOfBatch(Job job, JobDefinition jobDefinition) {
-        return jobDefinition.isBatchJob() && getParentJob(job) != null;
-    }
-
-    private UUID getParentJob(Job job) {
-        return job.getJobStatesOfType(EnqueuedState.class).findFirst().map(AbstractInitialJobState::getParentJobId).orElse(null);
-    }
-
-    private static JobSearchRequest createSearchRequestForStateAndJobType(StateName state, String jobType) {
-        return new JobSearchRequest(
-                state, // state
-                null,          // priority
-                null,          // jobId
-                null,          // jobIdGreaterThan
-                null,          // jobIds
-                null,          // jobName
-                null,          // jobSignature
-                null,          // jobExceptionType
-                null,          // jobFingerprint
-                "jobtype:" + jobType,          // label
-                null,          // serverTag
-                null,          // mutex
-                null,          // recurringJobId
-                null,          // recurringJobIds
-                null,          // awaitingOn
-                null,          // parentId
-                null,          // rateLimiter
-                null,          // onlyBatchJobs
-                null,          // createdAtFrom
-                null,          // createdAtTo
-                null,          // updatedAtFrom
-                null,          // updatedAtTo
-                null,          // scheduledAtFrom
-                null,          // scheduledAtTo
-                null           // deleteAtTo
+        List<StateName> relavantStates = List.of(
+                StateName.ENQUEUED,
+                StateName.AWAITING,
+                StateName.PROCESSING,
+                StateName.PROCESSED,
+                StateName.SUCCEEDED,
+                StateName.FAILED
         );
-    }
-
-    private static JobSearchRequest createSearchRequestForStateAndJobTypeForBatch(StateName state, String jobType) {
-        return new JobSearchRequest(
-                state, // state
-                null,          // priority
-                null,          // jobId
-                null,          // jobIdGreaterThan
-                null,          // jobIds
-                null,          // jobName
-                null,          // jobSignature
-                null,          // jobExceptionType
-                null,          // jobFingerprint
-                "jobtype:" + jobType,          // label
-                null,          // serverTag
-                null,          // mutex
-                null,          // recurringJobId
-                null,          // recurringJobIds
-                null,          // awaitingOn
-                null,          // parentId
-                null,          // rateLimiter
-                true,          // onlyBatchJobs
-                null,          // createdAtFrom
-                null,          // createdAtTo
-                null,          // updatedAtFrom
-                null,          // updatedAtTo
-                null,          // scheduledAtFrom
-                null,          // scheduledAtTo
-                null           // deleteAtTo
-        );
+        return configurableJobSearchAdapter.getConfigurableJob(relavantStates)
+                .stream().map(j -> mapToJobExecutionInfo(j.jobDefinition().jobType(), j.job()))
+                .toList();
     }
 
     @Override

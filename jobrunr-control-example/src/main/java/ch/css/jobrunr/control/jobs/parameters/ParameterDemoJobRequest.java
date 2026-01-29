@@ -10,6 +10,8 @@ import java.util.EnumSet;
 public record ParameterDemoJobRequest(
         @JobParameterDefinition(defaultValue = "Default String")
         String stringParameter,
+        @JobParameterDefinition(type = "MULTILINE", defaultValue = "Line 1\nLine 2\nLine 3")
+        String multilineParameter,
         @JobParameterDefinition(defaultValue = "42")
         Integer integerParameter,
         @JobParameterDefinition(defaultValue = "true")

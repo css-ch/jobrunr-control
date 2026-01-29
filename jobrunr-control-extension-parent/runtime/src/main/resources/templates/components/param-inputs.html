@@ -39,6 +39,14 @@
                                 {/if}
                                placeholder="Text eingeben">
 
+                    {#else if param.type().name() == 'MULTILINE'}
+                        <textarea name="parameters.{param.name()}"
+                                  id="param-{param.name()}"
+                                  class="form-control"
+                                  rows="5"
+                                  {#if param.required()}required{/if}
+                                  placeholder="Mehrzeiliger Text eingeben">{#if existingValues}{#if existingValues.get(param.name())}{existingValues.get(param.name())}{#else}{#if param.defaultValue()}{param.defaultValue()}{/if}{/if}{#else}{#if param.defaultValue()}{param.defaultValue()}{/if}{/if}</textarea>
+
                     {#else if param.type().name() == 'INTEGER'}
                         <input type="number"
                                name="parameters.{param.name()}"

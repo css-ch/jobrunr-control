@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.domain;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,6 +10,20 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ScheduledJobInfoTest {
+
+    private static JobDefinition createTestJobDefinition(String jobType) {
+        return new JobDefinition(
+                jobType,
+                false,
+                "test.JobRequest",
+                "test.JobHandler",
+                List.of(),
+                false,
+                new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
+                false,
+                null
+        );
+    }
 
     @Test
     void shouldDetectExternalParameters() {
@@ -19,7 +34,7 @@ class ScheduledJobInfoTest {
         ScheduledJobInfo jobInfo = new ScheduledJobInfo(
                 jobId,
                 "Test Job",
-                "TestJobType",
+                createTestJobDefinition("TestJobType"),
                 java.time.Instant.now(),
                 params,
                 false
@@ -39,7 +54,7 @@ class ScheduledJobInfoTest {
         ScheduledJobInfo jobInfo = new ScheduledJobInfo(
                 jobId,
                 "Test Job",
-                "TestJobType",
+                createTestJobDefinition("TestJobType"),
                 java.time.Instant.now(),
                 params,
                 false
@@ -57,7 +72,7 @@ class ScheduledJobInfoTest {
         ScheduledJobInfo jobInfo = new ScheduledJobInfo(
                 jobId,
                 "Test Job",
-                "TestJobType",
+                createTestJobDefinition("TestJobType"),
                 java.time.Instant.now(),
                 Map.of(),
                 false

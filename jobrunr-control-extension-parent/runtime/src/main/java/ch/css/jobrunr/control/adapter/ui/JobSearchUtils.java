@@ -42,9 +42,9 @@ public final class JobSearchUtils {
 
         final String searchLower = search.toLowerCase();
         return jobs.stream()
-                .filter(j -> j.getJobName().toLowerCase().contains(searchLower) ||
-                        j.getJobType().toLowerCase().contains(searchLower) ||
-                        matchesParameters(search, j.getParameters()))
+                .filter(j -> j.jobName().toLowerCase().contains(searchLower) ||
+                        j.jobDefinition().jobType().toLowerCase().contains(searchLower) ||
+                        matchesParameters(search, j.parameters()))
                 .toList();
     }
 

@@ -6,36 +6,46 @@ import java.util.*;
 /**
  * Represents a scheduled job with metadata.
  * Contains job ID, name (user-defined), type (SimpleClassName), schedule, and parameters.
+ *
+ * @param jobId                   the unique job identifier
+ * @param jobName                 user-defined name of the job instance
+ * @param jobDefinition           the definition of the job
+ * @param scheduledAt             when the job is scheduled to run
+ * @param parameters              job parameters (immutable copy)
+ * @param isExternallyTriggerable whether the job is externally triggerable
+ * @param labels                  job labels (immutable copy)
  */
-public class ScheduledJobInfo {
+public record ScheduledJobInfo(
+        UUID jobId,
+        String jobName,
+        JobDefinition jobDefinition,
+        Instant scheduledAt,
+        Map<String, Object> parameters,
+        boolean isExternallyTriggerable,
+        List<String> labels
+) {
 
-    private final UUID jobId;
-    private final String jobName; // User-defined name of the job instance
-    private final String jobType; // SimpleClassName of the job class
-    private final Instant scheduledAt;
-    private final Map<String, Object> parameters;
-    private final boolean isExternallyTriggerable;
-    private final List<String> labels;
+    /**
+     * Compact constructor with validation and defensive copies.
+     */
+    public ScheduledJobInfo {
+        Objects.requireNonNull(jobId, "Job ID must not be null");
+        jobName = Objects.requireNonNull(jobName, "Job Name must not be null");
+        Objects.requireNonNull(jobDefinition, "Job definition must not be null");
+        Objects.requireNonNull(scheduledAt, "Scheduled at must not be null");
+        parameters = parameters != null ? Map.copyOf(parameters) : Map.of();
+        labels = labels != null ? List.copyOf(labels) : List.of();
+    }
 
-    public ScheduledJobInfo(UUID jobId, String jobName, String jobType, Instant scheduledAt,
+    /**
+     * Convenience constructor without labels.
+     */
+    public ScheduledJobInfo(UUID jobId, String jobName, JobDefinition jobDefinition, Instant scheduledAt,
                             Map<String, Object> parameters, boolean isExternallyTriggerable) {
-        this(jobId, jobName, jobType, scheduledAt, parameters, isExternallyTriggerable, Collections.emptyList());
+        this(jobId, jobName, jobDefinition, scheduledAt, parameters, isExternallyTriggerable, List.of());
     }
 
-    public ScheduledJobInfo(UUID jobId, String jobName, String jobType, Instant scheduledAt,
-                            Map<String, Object> parameters, boolean isExternallyTriggerable, List<String> labels) {
-        this.jobId = Objects.requireNonNull(jobId, "Job ID must not be null");
-        this.jobName = Objects.requireNonNull(jobName, "Job Name must not be null");
-        this.jobType = Objects.requireNonNull(jobType, "Job Type must not be null");
-        this.scheduledAt = Objects.requireNonNull(scheduledAt, "Scheduled at must not be null");
-        this.parameters = parameters != null ? new HashMap<>(parameters) : new HashMap<>();
-        this.isExternallyTriggerable = isExternallyTriggerable;
-        this.labels = labels != null ? new ArrayList<>(labels) : new ArrayList<>();
-    }
-
-    public int getParameterCount() {
-        return parameters.size();
-    }
+    // JavaBean-style getters for compatibility with existing code
 
     public UUID getJobId() {
         return jobId;
@@ -45,8 +55,16 @@ public class ScheduledJobInfo {
         return jobName;
     }
 
+    public JobDefinition getJobDefinition() {
+        return jobDefinition;
+    }
+
+    /**
+     * Returns the job type (simple class name).
+     * Delegates to jobDefinition.jobType().
+     */
     public String getJobType() {
-        return jobType;
+        return jobDefinition.jobType();
     }
 
     public Instant getScheduledAt() {
@@ -54,17 +72,18 @@ public class ScheduledJobInfo {
     }
 
     public Map<String, Object> getParameters() {
-        return Collections.unmodifiableMap(parameters);
-    }
-
-    public boolean isExternallyTriggerable() {
-        return isExternallyTriggerable;
+        return parameters;
     }
 
     public List<String> getLabels() {
-        return Collections.unmodifiableList(labels);
+        return labels;
     }
 
+    /**
+     * Checks if this job is a template job.
+     *
+     * @return true if this job has the "template" label
+     */
     public boolean isTemplate() {
         return labels.contains("template");
     }
@@ -89,38 +108,6 @@ public class ScheduledJobInfo {
             return Optional.of(UUID.fromString(str));
         }
         return Optional.empty();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ScheduledJobInfo that = (ScheduledJobInfo) o;
-        return isExternallyTriggerable == that.isExternallyTriggerable &&
-                Objects.equals(jobId, that.jobId) &&
-                Objects.equals(jobName, that.jobName) &&
-                Objects.equals(jobType, that.jobType) &&
-                Objects.equals(scheduledAt, that.scheduledAt) &&
-                Objects.equals(parameters, that.parameters) &&
-                Objects.equals(labels, that.labels);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(jobId, jobName, jobType, scheduledAt, parameters, isExternallyTriggerable, labels);
-    }
-
-    @Override
-    public String toString() {
-        return "ScheduledJobInfo{" +
-                "jobId=" + jobId +
-                ", jobName='" + jobName + '\'' +
-                ", jobType='" + jobType + '\'' +
-                ", scheduledAt=" + scheduledAt +
-                ", parameters=" + parameters +
-                ", isExternallyTriggerable=" + isExternallyTriggerable +
-                ", labels=" + labels +
-                '}';
     }
 }
 

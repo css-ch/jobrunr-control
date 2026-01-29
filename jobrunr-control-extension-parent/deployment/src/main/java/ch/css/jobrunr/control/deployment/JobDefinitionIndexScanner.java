@@ -441,6 +441,7 @@ class JobDefinitionIndexScanner {
     private static JobParameterType mapStringToParameterType(String typeString, IndexView index) {
         return switch (typeString) {
             case "java.lang.String" -> JobParameterType.STRING;
+            case "MULTILINE" -> JobParameterType.MULTILINE;
             case "java.lang.Integer", "int" -> JobParameterType.INTEGER;
             case "java.lang.Long", "long" -> JobParameterType.INTEGER;
             case "java.lang.Boolean", "boolean" -> JobParameterType.BOOLEAN;
@@ -461,7 +462,7 @@ class JobDefinitionIndexScanner {
 
                 throw new IllegalStateException(
                         "Unsupported parameter type: " + typeString + ". " +
-                                "Supported types: String, Integer, Long, Boolean, LocalDate, LocalDateTime, Enum, EnumSet<Enum>");
+                                "Supported types: String, MULTILINE, Integer, Long, Boolean, LocalDate, LocalDateTime, Enum, EnumSet<Enum>");
             }
         };
     }
@@ -517,6 +518,7 @@ class JobDefinitionIndexScanner {
         String name = componentName;
         String defaultValue = null;
         boolean required = true;
+        JobParameterType parameterType = null;
 
         if (jobParamAnnotation != null) {
             // Extract name if specified
@@ -531,10 +533,20 @@ class JobDefinitionIndexScanner {
                 defaultValue = defaultValueAnnotation.asString();
                 required = false;
             }
+
+            // Check for explicit type override (e.g., "MULTILINE")
+            AnnotationValue typeValue = jobParamAnnotation.value("type");
+            if (typeValue != null && !typeValue.asString().isEmpty()) {
+                String typeString = typeValue.asString();
+                parameterType = mapStringToParameterType(typeString, index);
+                log.debugf("Using explicit type '%s' for inline parameter '%s'", typeString, name);
+            }
         }
 
-        // Map Java type to JobParameterType
-        JobParameterType parameterType = mapToJobParameterType(componentType);
+        // If no explicit type, map Java type to JobParameterType
+        if (parameterType == null) {
+            parameterType = mapToJobParameterType(componentType);
+        }
 
         List<String> enumValues = getEnumValuesIfApplicable(componentType, parameterType, index);
         // Create and return domain JobParameterDefinition via small factory helper

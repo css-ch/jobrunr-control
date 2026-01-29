@@ -5,7 +5,8 @@
             hx-post="/q/jobrunr-control/scheduled"
         {/if}
       hx-target="#jobs-table"
-      hx-swap="outerHTML">
+      hx-swap="outerHTML"
+      hx-disabled-elt="#jobFormSubmitBtn">
 
     <div id="form-alerts"></div>
 
@@ -94,7 +95,7 @@
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
             Abbrechen
         </button>
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" id="jobFormSubmitBtn" class="btn btn-primary">
             <i class="bi bi-check-circle"></i> {#if isEdit}Job aktualisieren{#else}Job erstellen{/if}
         </button>
     </div>

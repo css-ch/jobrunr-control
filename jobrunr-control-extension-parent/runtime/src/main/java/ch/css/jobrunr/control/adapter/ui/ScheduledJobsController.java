@@ -187,7 +187,7 @@ public class ScheduledJobsController {
         ScheduledJobInfo jobInfoWithResolvedParams = new ScheduledJobInfo(
                 jobInfo.getJobId(),
                 jobInfo.getJobName(),
-                jobInfo.getJobType(),
+                jobInfo.getJobDefinition(),
                 jobInfo.getScheduledAt(),
                 resolvedParameters,
                 jobInfo.isExternallyTriggerable(),

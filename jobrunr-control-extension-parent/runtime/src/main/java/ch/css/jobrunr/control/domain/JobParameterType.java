@@ -6,6 +6,7 @@ package ch.css.jobrunr.control.domain;
  */
 public enum JobParameterType {
     STRING,
+    MULTILINE,
     INTEGER,
     BOOLEAN,
     DATE,

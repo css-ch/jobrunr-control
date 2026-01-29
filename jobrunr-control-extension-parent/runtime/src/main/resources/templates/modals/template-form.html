@@ -5,7 +5,8 @@
             hx-post="/q/jobrunr-control/templates"
         {/if}
       hx-target="#jobs-table"
-      hx-swap="outerHTML">
+      hx-swap="outerHTML"
+      hx-disabled-elt="#templateFormSubmitBtn">
 
     <div id="form-alerts"></div>
 
@@ -62,7 +63,7 @@
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
             Abbrechen
         </button>
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" id="templateFormSubmitBtn" class="btn btn-primary">
             <i class="bi bi-check-circle"></i> {#if isEdit}Template aktualisieren{#else}Template erstellen{/if}
         </button>
     </div>
