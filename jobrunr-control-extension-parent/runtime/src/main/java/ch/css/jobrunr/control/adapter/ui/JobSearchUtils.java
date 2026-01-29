@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Utility class for searching jobs by name, type, and parameters.
+ * Utility class for searching jobs by name, type, parameters, and metadata.
  */
 public final class JobSearchUtils {
 
@@ -16,7 +16,7 @@ public final class JobSearchUtils {
 
     /**
      * Applies search filter to a list of job executions.
-     * Searches in job name, job type, and parameters (if search contains "=").
+     * Searches in job name, job type, parameters (if search contains "="), and metadata (if search contains "=").
      */
     public static List<JobExecutionInfo> applySearchToExecutions(String search, List<JobExecutionInfo> executions) {
         if (search == null || search.isBlank()) {
@@ -27,7 +27,8 @@ public final class JobSearchUtils {
         return executions.stream()
                 .filter(e -> e.getJobName().toLowerCase().contains(searchLower) ||
                         e.getJobType().toLowerCase().contains(searchLower) ||
-                        matchesParameters(search, e.getParameters()))
+                        matchesParameters(search, e.getParameters()) ||
+                        matchesMetadata(search, e.getMetadata()))
                 .toList();
     }
 
@@ -60,6 +61,23 @@ public final class JobSearchUtils {
                 String value = parts[1].trim();
                 Object paramValue = parameters.get(key);
                 return paramValue != null && paramValue.toString().equalsIgnoreCase(value);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks if the search string matches any metadata in the map.
+     * If search contains "=", treats it as key=value and checks for exact match.
+     */
+    private static boolean matchesMetadata(String search, Map<String, Object> metadata) {
+        if (search.contains("=")) {
+            String[] parts = search.split("=", 2);
+            if (parts.length == 2) {
+                String key = parts[0].trim();
+                String value = parts[1].trim();
+                Object metadataValue = metadata.get(key);
+                return metadataValue != null && metadataValue.toString().equalsIgnoreCase(value);
             }
         }
         return false;

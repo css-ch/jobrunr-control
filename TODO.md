@@ -2,7 +2,7 @@
 
 * [x] Delete external job parameters (implemented with JobRunr Filter + scheduled cleanup)
 * [x] Add a search list box for searching template jobs by type
-* [ ] Extend search
+* [x] Extend search
 * [ ] Clean up code
 * [ ] Create unit and integration tests
 * [ ] Write user documentation
