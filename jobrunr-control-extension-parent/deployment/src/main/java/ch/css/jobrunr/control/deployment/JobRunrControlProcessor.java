@@ -47,6 +47,7 @@ public class JobRunrControlProcessor {
         boolean hasOpenApi = capabilities.isPresent(Capability.SMALLRYE_OPENAPI);
         recorder.registerOpenApiAvailability(hasOpenApi);
     }
+
 }
 
 

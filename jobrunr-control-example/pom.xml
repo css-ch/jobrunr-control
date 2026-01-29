@@ -35,6 +35,11 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-agroal</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-hibernate-orm</artifactId>
+        </dependency>
+
 
         <!-- Monitoring -->
         <dependency>

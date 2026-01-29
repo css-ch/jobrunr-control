@@ -61,6 +61,10 @@
             <artifactId>quarkus-smallrye-openapi-deployment</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-hibernate-orm-deployment</artifactId>
+        </dependency>
 
         <!-- Test Dependencies -->
         <dependency>

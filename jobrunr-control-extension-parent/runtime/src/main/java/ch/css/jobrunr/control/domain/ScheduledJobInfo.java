@@ -69,6 +69,28 @@ public class ScheduledJobInfo {
         return labels.contains("template");
     }
 
+    /**
+     * Checks if this job uses external parameter storage.
+     *
+     * @return true if parameters are stored externally
+     */
+    public boolean hasExternalParameters() {
+        return parameters.containsKey("__parameterSetId");
+    }
+
+    /**
+     * Gets the parameter set ID if using external storage.
+     *
+     * @return the parameter set ID, or empty if inline storage
+     */
+    public Optional<UUID> getParameterSetId() {
+        Object value = parameters.get("__parameterSetId");
+        if (value instanceof String str) {
+            return Optional.of(UUID.fromString(str));
+        }
+        return Optional.empty();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

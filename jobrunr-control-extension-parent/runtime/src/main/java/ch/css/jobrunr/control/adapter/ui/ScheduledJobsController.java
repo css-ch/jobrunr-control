@@ -3,11 +3,13 @@ package ch.css.jobrunr.control.adapter.ui;
 import ch.css.jobrunr.control.application.discovery.DiscoverJobsUseCase;
 import ch.css.jobrunr.control.application.discovery.GetJobParametersUseCase;
 import ch.css.jobrunr.control.application.monitoring.GetScheduledJobsUseCase;
+import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.application.scheduling.*;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.domain.ScheduledJobInfoView;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.vertx.ext.web.RoutingContext;
@@ -41,7 +43,7 @@ public class ScheduledJobsController {
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Components {
-        public static native TemplateInstance scheduledJobsTable(List<ScheduledJobInfo> jobs,
+        public static native TemplateInstance scheduledJobsTable(List<ScheduledJobInfoView> jobs,
                                                                  Map<String, Object> pagination,
                                                                  List<TemplateExtensions.PageItem> pageRange,
                                                                  String search, String filter,
@@ -64,6 +66,9 @@ public class ScheduledJobsController {
 
     @Inject
     GetJobParametersUseCase getJobParametersUseCase;
+
+    @Inject
+    ResolveParametersUseCase resolveParametersUseCase;
 
     @Inject
     GetScheduledJobsUseCase getScheduledJobsUseCase;
@@ -138,8 +143,13 @@ public class ScheduledJobsController {
         // Pagination anwenden
         PaginationHelper.PaginationResult<ScheduledJobInfo> paginationResult = PaginationHelper.paginate(jobs, page, size);
 
+        // Convert to view models with resolved parameters
+        List<ScheduledJobInfoView> jobViews = paginationResult.getPageItems().stream()
+                .map(this::toView)
+                .collect(Collectors.toList());
+
         return Components.scheduledJobsTable(
-                paginationResult.getPageItems(),
+                jobViews,
                 paginationResult.getMetadata(),
                 paginationResult.getPageRange(),
                 search != null ? search : "",
@@ -170,6 +180,20 @@ public class ScheduledJobsController {
         ScheduledJobInfo jobInfo = getScheduledJobByIdUseCase.execute(jobId)
                 .orElseThrow(() -> new NotFoundException("Job nicht gefunden: " + jobId));
 
+        // Resolve parameters (expand external parameter sets)
+        Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(jobInfo.getParameters());
+
+        // Create a new ScheduledJobInfo with resolved parameters for the form
+        ScheduledJobInfo jobInfoWithResolvedParams = new ScheduledJobInfo(
+                jobInfo.getJobId(),
+                jobInfo.getJobName(),
+                jobInfo.getJobType(),
+                jobInfo.getScheduledAt(),
+                resolvedParameters,
+                jobInfo.isExternallyTriggerable(),
+                jobInfo.getLabels()
+        );
+
         // Load parameter definitions for this job type
         List<JobParameter> parameters = Collections.emptyList();
         try {
@@ -179,7 +203,7 @@ public class ScheduledJobsController {
             log.errorf("Error loading parameters for job type '%s': %s", jobInfo.getJobType(), e.getMessage(), e);
         }
 
-        return Modals.jobForm(jobDefinitions, true, jobInfo, parameters);
+        return Modals.jobForm(jobDefinitions, true, jobInfoWithResolvedParams, parameters);
     }
 
     @GET
@@ -196,9 +220,9 @@ public class ScheduledJobsController {
 
         try {
             List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream().sorted(Comparator.comparing(JobParameter::name)).toList();
-            log.debugf("Found %s parameters for job type '%s'", parameters.size(), jobType);
+            log.infof("Found %s parameters for job type '%s'", parameters.size(), jobType);
             for (JobParameter param : parameters) {
-                log.debugf("  - Parameter: %s (type: %s, required: %s, defaultValue: '%s')",
+                log.infof("  - Parameter: %s (type: %s, required: %s, defaultValue: '%s')",
                         param.name(), param.type(), param.required(), param.defaultValue());
             }
             return Components.paramInputs(parameters, null);
@@ -342,6 +366,16 @@ public class ScheduledJobsController {
         return Response.ok(table)
                 .header("HX-Trigger", "closeModal")
                 .build();
+    }
+
+    /**
+     * Converts ScheduledJobInfo to ScheduledJobInfoView with resolved parameters.
+     * If the job uses external parameter storage, the parameters are loaded from the parameter set.
+     */
+    private ScheduledJobInfoView toView(ScheduledJobInfo jobInfo) {
+        boolean usesExternal = resolveParametersUseCase.usesExternalStorage(jobInfo.getParameters());
+        Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(jobInfo.getParameters());
+        return ScheduledJobInfoView.from(jobInfo, resolvedParameters, usesExternal);
     }
 
 }

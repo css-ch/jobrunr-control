@@ -2,8 +2,10 @@ package ch.css.jobrunr.control.adapter.ui;
 
 import ch.css.jobrunr.control.application.monitoring.GetBatchProgressUseCase;
 import ch.css.jobrunr.control.application.monitoring.GetJobExecutionHistoryUseCase;
+import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
+import ch.css.jobrunr.control.domain.JobExecutionInfoView;
 import ch.css.jobrunr.control.domain.JobStatus;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
@@ -39,6 +41,9 @@ public class JobExecutionsController {
 
     @Inject
     GetJobExecutionHistoryUseCase getHistoryUseCase;
+
+    @Inject
+    ResolveParametersUseCase resolveParametersUseCase;
 
     @Inject
     GetBatchProgressUseCase getBatchProgressUseCase;
@@ -121,5 +126,15 @@ public class JobExecutionsController {
             default -> Comparator.comparing(JobExecutionInfo::getStartedAt,
                     Comparator.nullsLast(Comparator.naturalOrder()));
         };
+    }
+
+    /**
+     * Converts JobExecutionInfo to JobExecutionInfoView with resolved parameters.
+     * If the job uses external parameter storage, the parameters are loaded from the parameter set.
+     */
+    private JobExecutionInfoView toView(JobExecutionInfo executionInfo) {
+        boolean usesExternal = resolveParametersUseCase.usesExternalStorage(executionInfo.getParameters());
+        Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(executionInfo.getParameters());
+        return JobExecutionInfoView.from(executionInfo, resolvedParameters, usesExternal);
     }
 }

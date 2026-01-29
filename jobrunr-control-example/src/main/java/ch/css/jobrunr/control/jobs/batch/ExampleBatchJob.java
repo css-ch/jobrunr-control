@@ -11,7 +11,7 @@ import java.util.stream.IntStream;
 @ApplicationScoped
 public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest> {
 
-    @ConfigurableJob(isBatch = true, labels = {"Example", "Batch"}, deleteOnSuccess = "PT5M!PT10H")
+    @ConfigurableJob(isBatch = true, labels = {"Example", "Batch"})
     @Override
     public void run(ExampleBatchJobRequest request) throws Exception {
         jobContext().logger().info(String.format("Preparing batch job with numberOfChunks: %d, chunkSize: %d, simulateErrors: %b",

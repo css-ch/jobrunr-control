@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.deployment;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
 import ch.css.jobrunr.control.annotations.JobParameterDefinition;
+import ch.css.jobrunr.control.annotations.JobParameterSet;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterType;
@@ -25,6 +26,7 @@ class JobDefinitionIndexScanner {
 
     private static final DotName JOB_REQUEST_HANDLER = DotName.createSimple(JobRequestHandler.class.getName());
     private static final DotName JOB_REQUEST = DotName.createSimple(JobRequest.class.getName());
+    private static final DotName JOB_PARAMETER_SET = DotName.createSimple(JobParameterSet.class.getName());
 
     private JobDefinitionIndexScanner() {
         // Helper
@@ -53,22 +55,25 @@ class JobDefinitionIndexScanner {
                         boolean isBatchJob = getBatchJobFlag(runMethod);
 
                         // Analyze the record parameters
-                        List<JobParameter> parameters = analyzeRecordParameters(requestClassInfo, index);
+                        AnalyzedParameters analyzedParams = analyzeRecordParameters(requestClassInfo, index);
 
                         // Extract JobSettings from annotation
                         JobSettings jobSettings = extractJobSettings(runMethod);
 
                         // Extract field names from parameters
-                        log.infof("Discovered job: %s (batch=%s) with %s parameters", jobType, isBatchJob, parameters.size());
+                        log.infof("Discovered job: %s (batch=%s, externalParams=%s) with %s parameters",
+                                jobType, isBatchJob, analyzedParams.usesExternalParameters(), analyzedParams.parameters().size());
 
                         jobDefinitions.add(new JobDefinition(
                                 jobType,
                                 isBatchJob,
                                 requestClassInfo.name().toString(),
                                 classInfo.name().toString(), // handlerClassName
-                                parameters,
+                                analyzedParams.parameters(),
                                 isRecord(requestClassInfo),
-                                jobSettings
+                                jobSettings,
+                                analyzedParams.usesExternalParameters(),
+                                analyzedParams.parameterSetFieldName()
                         ));
                     } else {
                         log.debugf("Request class %s is not a valid record JobRequest or does not implement JobRequest", jobRequestType.name());
@@ -303,16 +308,237 @@ class JobDefinitionIndexScanner {
         return result;
     }
 
-    private static List<JobParameter> analyzeRecordParameters(ClassInfo recordClass, IndexView index) {
-        List<JobParameter> parameters = new ArrayList<>();
+    /**
+     * Helper record to return analysis results including external parameter metadata.
+     */
+    record AnalyzedParameters(
+            List<JobParameter> parameters,
+            boolean usesExternalParameters,
+            String parameterSetFieldName
+    ) {
+    }
 
-        // For records, the fields represent the record components
-        for (FieldInfo field : recordClass.fields()) {
-            JobParameter parameter = analyzeField(field, index);
-            parameters.add(parameter);
+    private static AnalyzedParameters analyzeRecordParameters(ClassInfo recordClass, IndexView index) {
+        List<JobParameter> parameters = new ArrayList<>();
+        RecordComponentInfo parameterSetComponent = null;
+
+        // Step 1: Scan record components for @JobParameterSet annotation
+        // For records, annotations on parameters are stored on record components, not fields
+        List<RecordComponentInfo> components = recordClass.recordComponents();
+        for (RecordComponentInfo component : components) {
+            if (component.hasAnnotation(JOB_PARAMETER_SET)) {
+                // Validation: Only one @JobParameterSet allowed
+                if (parameterSetComponent != null) {
+                    throw new IllegalStateException(
+                            "JobRequest " + recordClass.name() +
+                                    " has multiple @JobParameterSet annotations on components '" +
+                                    parameterSetComponent.name() + "' and '" + component.name() + "'. Only one is allowed.");
+                }
+
+                // Validation: Must be String type
+                if (!component.type().name().toString().equals("java.lang.String")) {
+                    throw new IllegalStateException(
+                            "JobRequest " + recordClass.name() +
+                                    " component '" + component.name() + "' has @JobParameterSet but is not of type String. " +
+                                    "Found: " + component.type().name());
+                }
+
+                parameterSetComponent = component;
+            }
         }
 
-        return parameters;
+        // Step 2: Extract parameters based on strategy
+        if (parameterSetComponent != null) {
+            // EXTERNAL PARAMETERS: Extract from @JobParameterSet annotation
+            AnnotationInstance annotation = parameterSetComponent.annotation(JOB_PARAMETER_SET);
+            AnnotationValue valueArray = annotation.value();
+
+            if (valueArray == null || valueArray.asNestedArray().length == 0) {
+                throw new IllegalStateException(
+                        "JobRequest " + recordClass.name() +
+                                " @JobParameterSet on component '" + parameterSetComponent.name() +
+                                "' must define at least one parameter");
+            }
+
+            AnnotationInstance[] definitions = valueArray.asNestedArray();
+
+            for (AnnotationInstance defAnnotation : definitions) {
+                parameters.add(extractParameterFromDefinition(defAnnotation, recordClass.name().toString(), index));
+            }
+
+            log.infof("Analyzed %s external parameters from @JobParameterSet on component '%s' for job '%s'",
+                    parameters.size(), parameterSetComponent.name(), recordClass.simpleName());
+            for (JobParameter param : parameters) {
+                log.infof("   - External parameter: %s (type=%s, required=%s, default='%s')",
+                        param.name(), param.type(), param.required(), param.defaultValue());
+            }
+
+            return new AnalyzedParameters(
+                    parameters,
+                    true, // usesExternalParameters
+                    parameterSetComponent.name()
+            );
+
+        } else {
+            // INLINE PARAMETERS: Existing logic - scan all record components
+            for (RecordComponentInfo component : components) {
+                JobParameter parameter = analyzeRecordComponent(component, index);
+                parameters.add(parameter);
+            }
+
+            log.debugf("Analyzed %s inline parameters from record components", parameters.size());
+
+            return new AnalyzedParameters(
+                    parameters,
+                    false, // usesExternalParameters
+                    null   // no parameter set field
+            );
+        }
+    }
+
+    /**
+     * Extracts a JobParameter from a @JobParameterDefinition within @JobParameterSet.
+     * For external parameters, the 'type' attribute is required.
+     */
+    private static JobParameter extractParameterFromDefinition(
+            AnnotationInstance defAnnotation, String jobRequestName, IndexView index) {
+
+        String name = getAnnotationValue(defAnnotation, "name", "");
+        String defaultValue = getAnnotationValue(defAnnotation, "defaultValue", JobParameterDefinition.NO_DEFAULT_VALUE);
+        String typeString = getAnnotationValue(defAnnotation, "type", "");
+
+        if (name.isEmpty()) {
+            throw new IllegalStateException(
+                    "Parameter definition in @JobParameterSet of JobRequest " + jobRequestName +
+                            " must have a non-empty 'name' attribute");
+        }
+
+        if (typeString.isEmpty()) {
+            throw new IllegalStateException(
+                    "Parameter '" + name + "' in @JobParameterSet of JobRequest " + jobRequestName +
+                            " must have a 'type' attribute specifying the fully qualified type name");
+        }
+
+        // Determine type
+        JobParameterType parameterType = mapStringToParameterType(typeString, index);
+        List<String> enumValues = List.of();
+
+        // If enum, extract values
+        if (parameterType == JobParameterType.ENUM || parameterType == JobParameterType.MULTI_ENUM) {
+            enumValues = extractEnumValuesFromTypeString(typeString, parameterType, index);
+        }
+
+        boolean required = defaultValue.equals(JobParameterDefinition.NO_DEFAULT_VALUE);
+
+        log.debugf("Extracted external parameter: name=%s, type=%s, required=%s", name, parameterType, required);
+
+        return createDomainJobParameter(name, parameterType, required, defaultValue, enumValues);
+    }
+
+    /**
+     * Maps a type string (from @JobParameterDefinition.type) to JobParameterType.
+     */
+    private static JobParameterType mapStringToParameterType(String typeString, IndexView index) {
+        return switch (typeString) {
+            case "java.lang.String" -> JobParameterType.STRING;
+            case "java.lang.Integer", "int" -> JobParameterType.INTEGER;
+            case "java.lang.Long", "long" -> JobParameterType.INTEGER;
+            case "java.lang.Boolean", "boolean" -> JobParameterType.BOOLEAN;
+            case "java.time.LocalDate" -> JobParameterType.DATE;
+            case "java.time.LocalDateTime" -> JobParameterType.DATETIME;
+            default -> {
+                // Check if EnumSet<T>
+                if (typeString.startsWith("java.util.EnumSet<") && typeString.endsWith(">")) {
+                    yield JobParameterType.MULTI_ENUM;
+                }
+
+                // Check if it's an enum class
+                DotName typeDotName = DotName.createSimple(typeString);
+                ClassInfo classInfo = index.getClassByName(typeDotName);
+                if (classInfo != null && classInfo.isEnum()) {
+                    yield JobParameterType.ENUM;
+                }
+
+                throw new IllegalStateException(
+                        "Unsupported parameter type: " + typeString + ". " +
+                                "Supported types: String, Integer, Long, Boolean, LocalDate, LocalDateTime, Enum, EnumSet<Enum>");
+            }
+        };
+    }
+
+    /**
+     * Extracts enum values from a type string.
+     * Handles both "com.example.MyEnum" and "java.util.EnumSet<com.example.MyEnum>".
+     */
+    private static List<String> extractEnumValuesFromTypeString(String typeString, JobParameterType parameterType, IndexView index) {
+        String enumClassName = typeString;
+
+        // For EnumSet, extract the inner type
+        if (parameterType == JobParameterType.MULTI_ENUM && typeString.startsWith("java.util.EnumSet<") && typeString.endsWith(">")) {
+            enumClassName = typeString.substring("java.util.EnumSet<".length(), typeString.length() - 1);
+        }
+
+        DotName enumDotName = DotName.createSimple(enumClassName);
+        ClassInfo enumClassInfo = index.getClassByName(enumDotName);
+
+        if (enumClassInfo == null) {
+            log.warnf("Could not find enum class in index: %s", enumClassName);
+            return List.of();
+        }
+
+        if (!enumClassInfo.isEnum()) {
+            log.warnf("Class %s is not an enum", enumClassName);
+            return List.of();
+        }
+
+        // Extract enum constant names
+        List<String> enumValues = new ArrayList<>();
+        for (FieldInfo field : enumClassInfo.fields()) {
+            if (field.isEnumConstant()) {
+                enumValues.add(field.name());
+            }
+        }
+
+        log.debugf("Extracted %s enum values from %s: %s", enumValues.size(), enumClassName, enumValues);
+        return enumValues;
+    }
+
+    /**
+     * Analyzes a record component for inline parameter jobs.
+     * This is used for jobs that don't use @JobParameterSet.
+     */
+    private static JobParameter analyzeRecordComponent(RecordComponentInfo component, IndexView index) {
+        String componentName = component.name();
+        Type componentType = component.type();
+
+        // Check for @JobParameterDefinition annotation
+        AnnotationInstance jobParamAnnotation = component.annotation(JobParameterDefinition.class);
+
+        String name = componentName;
+        String defaultValue = null;
+        boolean required = true;
+
+        if (jobParamAnnotation != null) {
+            // Extract name if specified
+            AnnotationValue nameValue = jobParamAnnotation.value("name");
+            if (nameValue != null && !nameValue.asString().isEmpty()) {
+                name = nameValue.asString();
+            }
+
+            // Extract default value if specified
+            AnnotationValue defaultValueAnnotation = jobParamAnnotation.value("defaultValue");
+            if (defaultValueAnnotation != null && !defaultValueAnnotation.asString().equals(JobParameterDefinition.NO_DEFAULT_VALUE)) {
+                defaultValue = defaultValueAnnotation.asString();
+                required = false;
+            }
+        }
+
+        // Map Java type to JobParameterType
+        JobParameterType parameterType = mapToJobParameterType(componentType);
+
+        List<String> enumValues = getEnumValuesIfApplicable(componentType, parameterType, index);
+        // Create and return domain JobParameterDefinition via small factory helper
+        return createDomainJobParameter(name, parameterType, required, defaultValue, enumValues);
     }
 
     private static JobParameter analyzeField(FieldInfo field, IndexView index) {

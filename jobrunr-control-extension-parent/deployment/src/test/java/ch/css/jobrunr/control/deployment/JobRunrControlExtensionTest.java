@@ -22,6 +22,8 @@ public class JobRunrControlExtensionTest {
                             "quarkus.jobrunr.background-job-server.enabled=false\n" +
                                     "quarkus.jobrunr.job-scheduler.enabled=false\n" +
                                     "quarkus.jobrunr.dashboard.enabled=false\n" +
+                                    // Disable Hibernate ORM to avoid entity discovery issues
+                                    "quarkus.hibernate-orm.enabled=false\n" +
                                     // Exclude classes that depend on JobRunr runtime beans
                                     "quarkus.arc.exclude-types=" +
                                     "ch.css.jobrunr.control.infrastructure.**," +

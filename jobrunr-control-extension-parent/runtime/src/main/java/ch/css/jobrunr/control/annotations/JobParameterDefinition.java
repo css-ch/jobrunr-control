@@ -34,4 +34,13 @@ public @interface JobParameterDefinition {
      * - LocalDateTime: ISO-8601 (e.g., "2023-12-31T23:59:59")
      */
     String defaultValue() default NO_DEFAULT_VALUE;
+
+    /**
+     * Optional type specification for external parameters.
+     * When used within {@literal @}JobParameterSet, this defines the parameter type.
+     * Format: fully qualified class name (e.g., "java.lang.String", "java.time.LocalDate")
+     * For EnumSet: "java.util.EnumSet&lt;com.example.MyEnum&gt;"
+     * If not specified, type is inferred from record component (inline parameters only).
+     */
+    String type() default "";
 }
