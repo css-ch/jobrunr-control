@@ -1,12 +1,11 @@
 # Completion
 
-* [ ] Delete external job parameters
-* [ ] Extend search
+* [ ] Delete external job parameters (implemented with JobRunr Filter + scheduled cleanup)
 * [ ] Add a search list box for searching template jobs be type
+* [ ] Extend search
 * [ ] Clean up code
 * [ ] Create unit and integration tests
 * [ ] Write user documentation
-* [ ] Delete external job parameters
 
 # Create Demo Project
 
