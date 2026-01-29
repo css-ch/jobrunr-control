@@ -1,7 +1,7 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr.scheduler;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
-import ch.css.jobrunr.control.annotations.JobRequestOnFailureFeactory;
+import ch.css.jobrunr.control.annotations.JobRequestOnFailureFactory;
 import ch.css.jobrunr.control.annotations.JobRequestOnSuccessFactory;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobSettings;
@@ -83,8 +83,8 @@ public class JobInvoker {
             if (jobRequest instanceof JobRequestOnSuccessFactory jobRequestOnSuccessFactory) {
                 jobRequestId.continueWith(jobRequestOnSuccessFactory.createOnSuccessJobRequest(jobRequestId, jobRequest));
             }
-            if (jobRequest instanceof JobRequestOnFailureFeactory jobRequestOnFailureFeactory) {
-                jobRequestId.onFailure(jobRequestOnFailureFeactory.createOnFailureJobRequest(jobRequestId, jobRequest));
+            if (jobRequest instanceof JobRequestOnFailureFactory jobRequestOnFailureFactory) {
+                jobRequestId.onFailure(jobRequestOnFailureFactory.createOnFailureJobRequest(jobRequestId, jobRequest));
             }
             log.infof("Job scheduled successfully: %s (batch=%s) with JobId: %s", jobDefinition.jobSettings().name(), jobDefinition.jobType(), jobRequestId);
             return jobRequestId;

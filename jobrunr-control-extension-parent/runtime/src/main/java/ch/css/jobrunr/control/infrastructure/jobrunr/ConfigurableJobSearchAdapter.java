@@ -64,14 +64,14 @@ public class ConfigurableJobSearchAdapter {
                             }
                         }
                     } catch (Exception e) {
-                        log.warnf("Fehler beim Abrufen von Jobs im Status %s und Typ %s: %s", state, jobDefinition.jobType(), e.getMessage());
+                        log.warnf("Error retrieving jobs in state %s with type %s: %s", state, jobDefinition.jobType(), e.getMessage());
                     }
                 }
             }
             return configurableJob;
         } catch (Exception e) {
-            log.errorf("Fehler beim Abrufen der Job-Ausführungen", e);
-            throw new JobRunrExecutionAdapter.JobExecutionException("Fehler beim Abrufen der Job-Ausführungen", e);
+            log.errorf("Error retrieving job executions", e);
+            throw new JobRunrExecutionAdapter.JobExecutionException("Error retrieving job executions", e);
         }
     }
 

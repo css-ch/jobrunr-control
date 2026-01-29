@@ -1,7 +1,10 @@
 package ch.css.jobrunr.control.application.scheduling;
 
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
-import ch.css.jobrunr.control.domain.*;
+import ch.css.jobrunr.control.domain.JobDefinition;
+import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
+import ch.css.jobrunr.control.domain.JobSchedulerPort;
+import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -24,18 +27,18 @@ public class CreateScheduledJobUseCase {
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
     private final JobSchedulerPort jobSchedulerPort;
     private final JobParameterValidator validator;
-    private final ParameterStorageService parameterStorageService;
+    private final ParameterStorageHelper parameterStorageHelper;
 
     @Inject
     public CreateScheduledJobUseCase(
             JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
             JobSchedulerPort jobSchedulerPort,
             JobParameterValidator validator,
-            ParameterStorageService parameterStorageService) {
+            ParameterStorageHelper parameterStorageHelper) {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobSchedulerPort = jobSchedulerPort;
         this.validator = validator;
-        this.parameterStorageService = parameterStorageService;
+        this.parameterStorageHelper = parameterStorageHelper;
     }
 
     /**
@@ -81,43 +84,12 @@ public class CreateScheduledJobUseCase {
         // Validate and convert parameters
         Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
 
-        Map<String, Object> jobParameters;
-
-        // NEW LOGIC: Check if job uses external parameters (@JobParameterSet annotation)
-        if (jobDefinition.usesExternalParameters()) {
-            // Validate external storage is available
-            if (!parameterStorageService.isExternalStorageAvailable()) {
-                throw new IllegalStateException(
-                        "Job '" + jobType + "' requires external parameter storage (@JobParameterSet), " +
-                                "but external storage is not configured. " +
-                                "Enable Hibernate ORM: quarkus.hibernate-orm.enabled=true");
-            }
-
-            // Store parameters externally
-            UUID parameterSetId = UUID.randomUUID();
-            ParameterSet parameterSet = ParameterSet.create(parameterSetId, jobType, convertedParameters);
-            parameterStorageService.store(parameterSet);
-
-            // Create job parameters with ONLY the parameter set ID in the annotated field
-            jobParameters = Map.of(jobDefinition.parameterSetFieldName(), parameterSetId.toString());
-
-            log.infof("Stored parameters externally with ID: %s for job: %s", parameterSetId, jobName);
-        } else {
-            // INLINE: Use converted parameters directly
-            jobParameters = convertedParameters;
-        }
+        // Prepare job parameters (handles inline vs external storage)
+        Map<String, Object> jobParameters = parameterStorageHelper.prepareJobParameters(
+                jobDefinition, jobType, jobName, convertedParameters);
 
         // Schedule job
         return jobSchedulerPort.scheduleJob(jobDefinition, jobName, jobParameters, isExternalTrigger, scheduledAt, additionalLabels);
-    }
-
-    /**
-     * Exception for jobs not found.
-     */
-    public static class JobNotFoundException extends RuntimeException {
-        public JobNotFoundException(String message) {
-            super(message);
-        }
     }
 }
 

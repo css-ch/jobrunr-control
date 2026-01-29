@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.application.discovery;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobParameter;
+import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -37,15 +38,6 @@ public class GetJobParametersUseCase {
         }
 
         return jobDefinition.get().parameters();
-    }
-
-    /**
-     * Exception for jobs not found.
-     */
-    public static class JobNotFoundException extends RuntimeException {
-        public JobNotFoundException(String message) {
-            super(message);
-        }
     }
 }
 

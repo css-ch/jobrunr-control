@@ -3,10 +3,6 @@ package ch.css.jobrunr.control.ui;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.*;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,7 +21,7 @@ public class JobTriggerForParameterDemoJobUITest extends JobTriggerUITestBase {
         openJobCreationDialog();
         selectJobType("ParameterDemoJob");
         fillJobName("Test Job - External Trigger");
-        fillJobParameters();
+        fillParameterDemoJobParametersWithDefaults();
         enableExternalTrigger();
         submitJobCreationForm();
 
@@ -53,22 +49,5 @@ public class JobTriggerForParameterDemoJobUITest extends JobTriggerUITestBase {
         navigateToHistory();
         searchForJob("Test Job - External Trigger");
         verifyJobInHistory("Test Job - External Trigger", "Parameter Demo Job");
-    }
-
-    private void fillJobParameters() {
-        page.fill("input[name='parameters.stringParameter']", "Test String Value");
-        page.fill("input[name='parameters.integerParameter']", "123");
-        page.selectOption("select[name='parameters.booleanParameter']", "false");
-
-        String dateValue = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        page.fill("input[name='parameters.dateParameter']", dateValue);
-
-        String dateTimeValue = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
-        page.fill("input[name='parameters.dateTimeParameter']", dateTimeValue);
-
-        page.selectOption("select[name='parameters.enumParameter']", "OPTION_A");
-
-        // Select multiple options for multiEnumParameter
-        page.selectOption("select[name='parameters.multiEnumParameter']", new String[]{"OPTION_A", "OPTION_C"});
     }
 }

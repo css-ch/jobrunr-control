@@ -12,6 +12,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.net.URL;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -194,5 +197,55 @@ public abstract class JobTriggerUITestBase {
         String templateIdString = hrefParts[hrefParts.length - 1];
         assertNotNull(templateIdString, "Template ID should be extractable from href");
         return UUID.fromString(templateIdString);
+    }
+
+    // Parameter filling helper methods
+
+    /**
+     * Fills ParameterDemoJob parameters with custom values.
+     */
+    protected void fillParameterDemoJobParameters(
+            String stringValue,
+            String intValue,
+            String booleanValue,
+            String enumValue) {
+
+        page.fill("input[name='parameters.stringParameter']", stringValue);
+        page.fill("input[name='parameters.integerParameter']", intValue);
+        page.selectOption("select[name='parameters.booleanParameter']", booleanValue);
+
+        // Date fields with current date
+        String dateValue = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+        page.fill("input[name='parameters.dateParameter']", dateValue);
+
+        String dateTimeValue = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+        page.fill("input[name='parameters.dateTimeParameter']", dateTimeValue);
+
+        page.selectOption("select[name='parameters.enumParameter']", enumValue);
+    }
+
+    /**
+     * Fills ParameterDemoJob parameters with default test values.
+     */
+    protected void fillParameterDemoJobParametersWithDefaults() {
+        fillParameterDemoJobParameters("Test String Value", "123", "false", "OPTION_A");
+        // Add multi-select enum if present
+        page.selectOption("select[name='parameters.multiEnumParameter']", new String[]{"OPTION_A", "OPTION_C"});
+    }
+
+    /**
+     * Fills batch job parameters with custom values.
+     */
+    protected void fillBatchJobParameters(int numberOfChunks, int chunkSize, boolean simulateErrors) {
+        page.fill("input[name='parameters.numberOfChunks']", String.valueOf(numberOfChunks));
+        page.fill("input[name='parameters.chunkSize']", String.valueOf(chunkSize));
+        page.selectOption("select[name='parameters.simulateErrors']", String.valueOf(simulateErrors));
+    }
+
+    /**
+     * Fills batch job parameters with default test values.
+     */
+    protected void fillBatchJobParametersWithDefaults() {
+        fillBatchJobParameters(10, 50, false);
     }
 }

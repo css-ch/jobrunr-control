@@ -21,7 +21,7 @@ public class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
         openJobCreationDialog();
         selectJobType("ExampleBatchJob");
         fillJobName("Test Batch Job - External Trigger");
-        fillBatchJobParameters();
+        fillBatchJobParametersWithDefaults();
         enableExternalTrigger();
         submitJobCreationForm();
 
@@ -49,11 +49,5 @@ public class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
         navigateToHistory();
         searchForJob("Test Batch Job - External Trigger");
         verifyJobInHistory("Test Batch Job - External Trigger", "Example Batch Job");
-    }
-
-    private void fillBatchJobParameters() {
-        page.fill("input[name='parameters.numberOfChunks']", "10");
-        page.fill("input[name='parameters.chunkSize']", "50");
-        page.selectOption("select[name='parameters.simulateErrors']", "false");
     }
 }

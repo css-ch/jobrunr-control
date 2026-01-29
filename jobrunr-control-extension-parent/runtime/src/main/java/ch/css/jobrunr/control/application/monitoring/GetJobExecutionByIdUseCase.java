@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.application.monitoring;
 
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import ch.css.jobrunr.control.domain.JobExecutionPort;
+import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -34,14 +35,5 @@ public class GetJobExecutionByIdUseCase {
 
         return jobExecutionPort.getJobExecutionById(jobId)
                 .orElseThrow(() -> new JobNotFoundException("Job with ID '" + jobId + "' not found"));
-    }
-
-    /**
-     * Exception thrown when a job is not found.
-     */
-    public static class JobNotFoundException extends RuntimeException {
-        public JobNotFoundException(String message) {
-            super(message);
-        }
     }
 }

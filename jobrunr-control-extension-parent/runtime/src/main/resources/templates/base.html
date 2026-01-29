@@ -140,7 +140,7 @@
                 // Show success feedback
                 const btn = event.target.closest('button');
                 const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<i class="bi bi-check2"></i> Kopiert!';
+                btn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
                 btn.classList.remove('btn-outline-secondary');
                 btn.classList.add('btn-success');
                 setTimeout(function() {
@@ -149,8 +149,8 @@
                     btn.classList.add('btn-outline-secondary');
                 }, 2000);
             }).catch(function(err) {
-                console.error('Fehler beim Kopieren: ', err);
-                alert('Fehler beim Kopieren in die Zwischenablage');
+                console.error('Error copying: ', err);
+                alert('Error copying to clipboard');
             });
         }
     </script>

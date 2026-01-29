@@ -6,9 +6,6 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.*;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,7 +36,7 @@ public class TemplateJobUITest extends JobTriggerUITestBase {
         openTemplateCreationDialog();
         selectTemplateJobType("ParameterDemoJob");
         fillTemplateName(TEMPLATE_NAME);
-        fillTemplateParameters();
+        fillParameterDemoJobParameters("Template Default String", "42", "true", "OPTION_B");
         submitTemplateCreationForm();
 
         templateId = extractTemplateIdFromTemplatesTable(TEMPLATE_NAME);
@@ -152,23 +149,7 @@ public class TemplateJobUITest extends JobTriggerUITestBase {
         assertTrue(secondJobRow.isVisible(), "Second execution should appear in history");
     }
 
-    // Template-specific parameters filling (specific to this test)
-
-    protected void fillTemplateParameters() {
-        page.fill("input[name='parameters.stringParameter']", "Template Default String");
-        page.fill("input[name='parameters.integerParameter']", "42");
-        page.selectOption("select[name='parameters.booleanParameter']", "true");
-
-        String dateValue = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        page.fill("input[name='parameters.dateParameter']", dateValue);
-
-        String dateTimeValue = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
-        page.fill("input[name='parameters.dateTimeParameter']", dateTimeValue);
-
-        page.selectOption("select[name='parameters.enumParameter']", "OPTION_B");
-    }
-
-    // Template execution API methods (specific to this test)
+    // Template-specific execution API methods
 
     protected String executeTemplateViaApi(UUID templateId, String postfix) {
         String requestBody = String.format("""

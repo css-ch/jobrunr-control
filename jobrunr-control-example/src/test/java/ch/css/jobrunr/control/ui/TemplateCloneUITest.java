@@ -6,7 +6,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
@@ -36,7 +35,7 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
         openTemplateCreationDialog();
         selectTemplateJobType("ParameterDemoJob");
         fillTemplateName(ORIGINAL_TEMPLATE_NAME);
-        fillTemplateParameters();
+        fillParameterDemoJobParameters("Template Test String", "99", "true", "OPTION_A");
         submitTemplateCreationForm();
 
         originalTemplateId = extractTemplateIdFromTemplatesTable(ORIGINAL_TEMPLATE_NAME);
@@ -194,21 +193,5 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
         int totalTemplatesVisible = page.locator("tbody tr").count();
         System.out.println("Total templates visible: " + totalTemplatesVisible);
         assertTrue(totalTemplatesVisible >= 3, "Should have at least 3 templates (original + 2 clones)");
-    }
-
-    // Template-specific parameters filling (specific to this test)
-
-    protected void fillTemplateParameters() {
-        page.fill("input[name='parameters.stringParameter']", "Template Test String");
-        page.fill("input[name='parameters.integerParameter']", "99");
-        page.selectOption("select[name='parameters.booleanParameter']", "true");
-
-        String dateValue = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        page.fill("input[name='parameters.dateParameter']", dateValue);
-
-        String dateTimeValue = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
-        page.fill("input[name='parameters.dateTimeParameter']", dateTimeValue);
-
-        page.selectOption("select[name='parameters.enumParameter']", "OPTION_A");
     }
 }

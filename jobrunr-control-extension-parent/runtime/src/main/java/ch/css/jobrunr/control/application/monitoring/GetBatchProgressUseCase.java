@@ -3,6 +3,8 @@ package ch.css.jobrunr.control.application.monitoring;
 import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import ch.css.jobrunr.control.domain.JobExecutionPort;
+import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
+import ch.css.jobrunr.control.domain.exceptions.TimeoutException;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -62,24 +64,6 @@ public class GetBatchProgressUseCase {
                 .ifNoItem().after(timeout).failWith(
                         new TimeoutException("Timeout loading batch progress for job " + jobId)
                 );
-    }
-
-    /**
-     * Exception for jobs not found.
-     */
-    public static class JobNotFoundException extends RuntimeException {
-        public JobNotFoundException(String message) {
-            super(message);
-        }
-    }
-
-    /**
-     * Exception for timeout situations.
-     */
-    public static class TimeoutException extends RuntimeException {
-        public TimeoutException(String message) {
-            super(message);
-        }
     }
 }
 

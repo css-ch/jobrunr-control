@@ -147,9 +147,6 @@ public class JobTriggerLoadTest extends JobTriggerUITestBase {
     private void fillBatchJobParametersForLoadTest() {
         // Calculate number of chunks: 1000 items / 100 per chunk = 10 chunks
         int numberOfChunks = ITEMS_PER_JOB / CHUNK_SIZE;
-
-        page.fill("input[name='parameters.numberOfChunks']", String.valueOf(numberOfChunks));
-        page.fill("input[name='parameters.chunkSize']", String.valueOf(CHUNK_SIZE));
-        page.selectOption("select[name='parameters.simulateErrors']", "false");
+        fillBatchJobParameters(numberOfChunks, CHUNK_SIZE, false);
     }
 }

@@ -223,7 +223,7 @@ public class TemplatesController {
         try {
             if (jobType == null || jobType.isBlank()) {
                 log.warnf("Job type is empty");
-                return buildErrorResponse("Job-Typ ist erforderlich");
+                return buildErrorResponse("Job type is required");
             }
 
             Map<String, String> paramMap = extractParameterMap(allFormParams);
@@ -234,7 +234,7 @@ public class TemplatesController {
             return buildModalCloseResponse(getDefaultTemplatesTable());
         } catch (Exception e) {
             log.errorf(e, "Error creating template");
-            return buildErrorResponse("Fehler beim Erstellen der Vorlage: " + e.getMessage());
+            return buildErrorResponse("Error creating template: " + e.getMessage());
         }
     }
 
@@ -254,7 +254,7 @@ public class TemplatesController {
 
             if (jobType == null || jobType.isBlank()) {
                 log.warnf("Job type is empty");
-                return buildErrorResponse("Job-Typ ist erforderlich");
+                return buildErrorResponse("Job type is required");
             }
 
             Map<String, String> paramMap = extractParameterMap(allFormParams);
@@ -265,7 +265,7 @@ public class TemplatesController {
             return buildModalCloseResponse(getDefaultTemplatesTable());
         } catch (Exception e) {
             log.errorf(e, "Error updating template %s", jobId);
-            return buildErrorResponse("Fehler beim Aktualisieren der Vorlage: " + e.getMessage());
+            return buildErrorResponse("Error updating template: " + e.getMessage());
         }
     }
 
@@ -345,7 +345,7 @@ public class TemplatesController {
         String errorHtml = String.format(
                 "<div id=\"form-alerts\" hx-swap-oob=\"true\">" +
                         "<div class=\"alert alert-danger alert-dismissible fade show\" role=\"alert\">" +
-                        "<i class=\"bi bi-exclamation-triangle-fill\"></i> <strong>Fehler:</strong> %s" +
+                        "<i class=\"bi bi-exclamation-triangle-fill\"></i> <strong>Error:</strong> %s" +
                         "<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button>" +
                         "</div>" +
                         "</div>",

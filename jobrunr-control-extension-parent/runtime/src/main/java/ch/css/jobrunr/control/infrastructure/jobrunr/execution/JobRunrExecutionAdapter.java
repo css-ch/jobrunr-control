@@ -63,7 +63,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                     .orElse(null);
             return Optional.of(mapToJobExecutionInfo(jobType, job));
         } catch (Exception e) {
-            log.errorf(e, "Fehler beim Abrufen von Job %s", jobId);
+            log.errorf(e, "Error retrieving job %s", jobId);
             return Optional.empty();
         }
     }

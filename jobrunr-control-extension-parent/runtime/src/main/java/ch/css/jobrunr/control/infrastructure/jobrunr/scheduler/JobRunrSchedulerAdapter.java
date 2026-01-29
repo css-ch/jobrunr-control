@@ -4,7 +4,6 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
-import ch.css.jobrunr.control.infrastructure.jobrunr.ConfigurableJobSearchAdapter;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobParameterExtractor;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -35,19 +34,16 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
     private final JobScheduler jobScheduler;
     private final StorageProvider storageProvider;
     private final JobInvoker jobInvoker;
-    private final ConfigurableJobSearchAdapter configurableJobSearchAdapter;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
 
     @Inject
     public JobRunrSchedulerAdapter(
             JobScheduler jobScheduler,
-            ConfigurableJobSearchAdapter configurableJobSearchAdapter,
             StorageProvider storageProvider,
             JobInvoker jobInvoker,
             JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
         this.jobScheduler = jobScheduler;
         this.storageProvider = storageProvider;
-        this.configurableJobSearchAdapter = configurableJobSearchAdapter;
         this.jobInvoker = jobInvoker;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
     }
@@ -121,11 +117,6 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
 
     @Override
     public List<ScheduledJobInfo> getScheduledJobs() {
-        configurableJobSearchAdapter
-                .getConfigurableJob(List.of(StateName.SCHEDULED))
-                .stream()
-                .map(j -> mapToScheduledJobInfo(j.job()))
-                .toList();
 
         try {
             // Create JobSearchRequest for SCHEDULED jobs

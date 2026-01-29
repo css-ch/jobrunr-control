@@ -256,13 +256,12 @@ public class ScheduledJobsController {
             // Validate required fields
             if (jobType == null || jobType.isBlank()) {
                 log.warnf("Job type is empty");
-                return buildErrorResponse("Job-Typ ist erforderlich");
+                return buildErrorResponse("Job type is required");
             }
 
+            Map<String, String> paramMap = extractParameterMap(allFormParams);
             boolean isExternalTrigger = "external".equals(triggerType);
             Instant scheduledTime = isExternalTrigger ? null : parseScheduledTime(scheduledAt);
-
-            Map<String, String> paramMap = extractParameterMap(allFormParams);
 
             // Create job
             // jobType is the name of the job definition (e.g., fully qualified class name)
@@ -273,7 +272,7 @@ public class ScheduledJobsController {
             return buildModalCloseResponse(getDefaultScheduledJobsTable());
         } catch (Exception e) {
             log.errorf(e, "Error creating job");
-            return buildErrorResponse("Fehler beim Erstellen des Jobs: " + e.getMessage());
+            return buildErrorResponse("Error creating job: " + e.getMessage());
         }
     }
 
@@ -299,7 +298,7 @@ public class ScheduledJobsController {
             // Validate required fields
             if (jobType == null || jobType.isBlank()) {
                 log.warnf("Job type is empty");
-                return buildErrorResponse("Job-Typ ist erforderlich");
+                return buildErrorResponse("Job type is required");
             }
 
             boolean isExternalTrigger = "external".equals(triggerType);
@@ -316,7 +315,7 @@ public class ScheduledJobsController {
             return buildModalCloseResponse(getDefaultScheduledJobsTable());
         } catch (Exception e) {
             log.errorf(e, "Error updating job %s", jobId);
-            return buildErrorResponse("Fehler beim Aktualisieren des Jobs: " + e.getMessage());
+            return buildErrorResponse("Error updating job: " + e.getMessage());
         }
     }
 
@@ -404,7 +403,7 @@ public class ScheduledJobsController {
         String errorHtml = String.format(
                 "<div id=\"form-alerts\" hx-swap-oob=\"true\">" +
                         "<div class=\"alert alert-danger alert-dismissible fade show\" role=\"alert\">" +
-                        "<i class=\"bi bi-exclamation-triangle-fill\"></i> <strong>Fehler:</strong> %s" +
+                        "<i class=\"bi bi-exclamation-triangle-fill\"></i> <strong>Error:</strong> %s" +
                         "<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button>" +
                         "</div>" +
                         "</div>",

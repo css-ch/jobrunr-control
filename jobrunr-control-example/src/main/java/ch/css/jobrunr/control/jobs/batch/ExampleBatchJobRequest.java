@@ -1,7 +1,7 @@
 package ch.css.jobrunr.control.jobs.batch;
 
 import ch.css.jobrunr.control.annotations.JobParameterDefinition;
-import ch.css.jobrunr.control.annotations.JobRequestOnFailureFeactory;
+import ch.css.jobrunr.control.annotations.JobRequestOnFailureFactory;
 import ch.css.jobrunr.control.annotations.JobRequestOnSuccessFactory;
 import ch.css.jobrunr.control.jobs.batch.postprocess.ExampleBatchFailureRequest;
 import ch.css.jobrunr.control.jobs.batch.postprocess.ExampleBatchSuccessRequest;
@@ -11,7 +11,7 @@ import org.jobrunr.scheduling.JobRequestId;
 public record ExampleBatchJobRequest(
         @JobParameterDefinition(defaultValue = "100") Integer numberOfChunks,
         Integer chunkSize,
-        @JobParameterDefinition(defaultValue = "true") Boolean simulateErrors) implements JobRequest, JobRequestOnSuccessFactory, JobRequestOnFailureFeactory {
+        @JobParameterDefinition(defaultValue = "true") Boolean simulateErrors) implements JobRequest, JobRequestOnSuccessFactory, JobRequestOnFailureFactory {
     @Override
     public Class<ExampleBatchJob> getJobRequestHandler() {
         return ExampleBatchJob.class;
