@@ -79,10 +79,30 @@
             }
         });
 
+        // Listen for scrollToError event from HTMX response header
+        document.body.addEventListener('scrollToError', function() {
+            // Scroll modal body to top to show the error
+            const modalBody = document.querySelector('#jobModal .modal-body');
+            if (modalBody) {
+                modalBody.scrollTop = 0;
+            }
+        });
+
         // Reset modal content when closed
         document.getElementById('jobModal').addEventListener('hidden.bs.modal', function () {
             // Reload modal content for next use
             htmx.trigger('#modal-content', 'load');
+        });
+
+        // Clear form alerts when form is submitted
+        document.body.addEventListener('htmx:beforeRequest', function(event) {
+            const form = event.detail.elt;
+            if (form && (form.id === 'templateForm' || form.id === 'jobForm')) {
+                const alertsContainer = form.querySelector('#form-alerts');
+                if (alertsContainer) {
+                    alertsContainer.innerHTML = '';
+                }
+            }
         });
     </script>
 {/content}

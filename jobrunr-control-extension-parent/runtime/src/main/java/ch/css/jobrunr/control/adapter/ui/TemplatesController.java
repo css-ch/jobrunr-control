@@ -209,17 +209,22 @@ public class TemplatesController {
             @FormParam("jobName") String jobName,
             MultivaluedMap<String, String> allFormParams) {
 
-        if (jobType == null || jobType.isBlank()) {
-            log.warnf("Job type is empty");
-            return Response.ok(getDefaultTemplatesTable()).build();
+        try {
+            if (jobType == null || jobType.isBlank()) {
+                log.warnf("Job type is empty");
+                return buildErrorResponse("Job-Typ ist erforderlich");
+            }
+
+            Map<String, String> paramMap = extractParameterMap(allFormParams);
+q
+            // Create template job
+            createTemplateUseCase.execute(jobType, jobName, paramMap);
+
+            return buildModalCloseResponse(getDefaultTemplatesTable());
+        } catch (Exception e) {
+            log.errorf(e, "Error creating template");
+            return buildErrorResponse("Fehler beim Erstellen der Vorlage: " + e.getMessage());
         }
-
-        Map<String, String> paramMap = extractParameterMap(allFormParams);
-
-        // Create template job
-        createTemplateUseCase.execute(jobType, jobName, paramMap);
-
-        return buildModalCloseResponse(getDefaultTemplatesTable());
     }
 
     @PUT
@@ -233,19 +238,24 @@ public class TemplatesController {
             @FormParam("jobName") String jobName,
             MultivaluedMap<String, String> allFormParams) {
 
-        log.infof("Updating template %s - jobType=%s, jobName=%s", jobId, jobType, jobName);
+        try {
+            log.infof("Updating template %s - jobType=%s, jobName=%s", jobId, jobType, jobName);
 
-        if (jobType == null || jobType.isBlank()) {
-            log.warnf("Job type is empty");
-            return Response.ok(getDefaultTemplatesTable()).build();
+            if (jobType == null || jobType.isBlank()) {
+                log.warnf("Job type is empty");
+                return buildErrorResponse("Job-Typ ist erforderlich");
+            }
+
+            Map<String, String> paramMap = extractParameterMap(allFormParams);
+
+            // Update template job
+            updateTemplateUseCase.execute(jobId, jobType, jobName, paramMap);
+
+            return buildModalCloseResponse(getDefaultTemplatesTable());
+        } catch (Exception e) {
+            log.errorf(e, "Error updating template %s", jobId);
+            return buildErrorResponse("Fehler beim Aktualisieren der Vorlage: " + e.getMessage());
         }
-
-        Map<String, String> paramMap = extractParameterMap(allFormParams);
-
-        // Update template job
-        updateTemplateUseCase.execute(jobId, jobType, jobName, paramMap);
-
-        return buildModalCloseResponse(getDefaultTemplatesTable());
     }
 
     @DELETE
@@ -308,12 +318,77 @@ public class TemplatesController {
     }
 
     /**
+     * Builds an error response that displays in the modal's alert area.
+     * The modal stays open so the user can fix the error.
+     * Uses HTMX out-of-band (OOB) swap to reliably target the alert container.
+     */
+    private Response buildErrorResponse(String errorMessage) {
+        String errorHtml = String.format(
+                "<div id=\"form-alerts\" hx-swap-oob=\"true\">" +
+                        "<div class=\"alert alert-danger alert-dismissible fade show\" role=\"alert\">" +
+                        "<i class=\"bi bi-exclamation-triangle-fill\"></i> <strong>Fehler:</strong> %s" +
+                        "<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button>" +
+                        "</div>" +
+                        "</div>",
+                errorMessage
+        );
+        return Response.ok(errorHtml)
+                .header("HX-Trigger", "scrollToError")
+                .build();
+    }
+
+    /**
      * Converts ScheduledJobInfo to ScheduledJobInfoView with resolved parameters.
      * If the job uses external parameter storage, the parameters are loaded from the parameter set.
+     * Parameters are truncated to avoid sending large data in the list view.
      */
     private ScheduledJobInfoView toView(ScheduledJobInfo jobInfo) {
         boolean usesExternal = resolveParametersUseCase.usesExternalStorage(jobInfo.getParameters());
         Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(jobInfo.getParameters());
-        return ScheduledJobInfoView.from(jobInfo, resolvedParameters, usesExternal);
+
+        // Truncate large parameter values to prevent 413 (Request Entity Too Large) errors
+        Map<String, Object> truncatedParameters = truncateParameterValues(resolvedParameters);
+
+        return ScheduledJobInfoView.from(jobInfo, truncatedParameters, usesExternal);
+    }
+
+    /**
+     * Truncates large parameter values to prevent HTTP 413 errors.
+     * String values longer than 1000 characters are truncated.
+     * Collection/Map sizes are limited to prevent excessive data transfer.
+     */
+    private Map<String, Object> truncateParameterValues(Map<String, Object> parameters) {
+        final int MAX_STRING_LENGTH = 1000;
+        final int MAX_COLLECTION_SIZE = 100;
+
+        Map<String, Object> truncated = new HashMap<>();
+
+        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+            Object value = entry.getValue();
+
+            if (value instanceof String str) {
+                if (str.length() > MAX_STRING_LENGTH) {
+                    truncated.put(entry.getKey(), str.substring(0, MAX_STRING_LENGTH) + "... [truncated]");
+                } else {
+                    truncated.put(entry.getKey(), value);
+                }
+            } else if (value instanceof java.util.Collection<?> collection) {
+                if (collection.size() > MAX_COLLECTION_SIZE) {
+                    truncated.put(entry.getKey(), String.format("[Collection with %d items - too large to display]", collection.size()));
+                } else {
+                    truncated.put(entry.getKey(), value);
+                }
+            } else if (value instanceof Map<?, ?> map) {
+                if (map.size() > MAX_COLLECTION_SIZE) {
+                    truncated.put(entry.getKey(), String.format("[Map with %d entries - too large to display]", map.size()));
+                } else {
+                    truncated.put(entry.getKey(), value);
+                }
+            } else {
+                truncated.put(entry.getKey(), value);
+            }
+        }
+
+        return truncated;
     }
 }
