@@ -107,24 +107,15 @@ public class JobControlResource {
                 jobId,
                 parameters != null ? parameters.size() : 0);
 
-        try {
-            executeScheduledJobUseCase.execute(jobId, parameters);
+        executeScheduledJobUseCase.execute(jobId, parameters);
 
-            StartJobResponse response = new StartJobResponse(
-                    jobId,
-                    "Job started successfully"
-            );
+        StartJobResponse response = new StartJobResponse(
+                jobId,
+                "Job started successfully"
+        );
 
-            log.infof("Job %s started successfully", jobId);
-            return Response.ok(response).build();
-
-        } catch (IllegalArgumentException e) {
-            log.warnf(e, "Bad request for job %s: %s", jobId, e.getMessage());
-            throw new BadRequestException(e.getMessage(), e);
-        } catch (Exception e) {
-            log.errorf(e, "Error starting job %s", jobId);
-            throw new InternalServerErrorException("Failed to start job: " + e.getMessage(), e);
-        }
+        log.infof("Job %s started successfully", jobId);
+        return Response.ok(response).build();
     }
 
     /**
@@ -180,24 +171,15 @@ public class JobControlResource {
                 postfix != null ? postfix : "auto-generated",
                 parameters != null ? parameters.size() : 0);
 
-        try {
-            UUID newJobId = executeTemplateUseCase.execute(templateId, postfix, parameters);
+        UUID newJobId = executeTemplateUseCase.execute(templateId, postfix, parameters);
 
-            StartJobResponse response = new StartJobResponse(
-                    newJobId,
-                    "Template job started successfully"
-            );
+        StartJobResponse response = new StartJobResponse(
+                newJobId,
+                "Template job started successfully"
+        );
 
-            log.infof("Template job %s cloned and started as job %s", templateId, newJobId);
-            return Response.ok(response).build();
-
-        } catch (IllegalArgumentException e) {
-            log.warnf(e, "Bad request for template %s: %s", templateId, e.getMessage());
-            throw new BadRequestException(e.getMessage(), e);
-        } catch (Exception e) {
-            log.errorf(e, "Error starting template job %s", templateId);
-            throw new InternalServerErrorException("Failed to start template job: " + e.getMessage(), e);
-        }
+        log.infof("Template job %s cloned and started as job %s", templateId, newJobId);
+        return Response.ok(response).build();
     }
 
     /**
@@ -234,36 +216,21 @@ public class JobControlResource {
 
         log.debugf("Getting status for job: %s", jobId);
 
-        try {
-            JobExecutionInfo executionInfo = getJobExecutionByIdUseCase.execute(jobId);
+        JobExecutionInfo executionInfo = getJobExecutionByIdUseCase.execute(jobId);
 
-            BatchProgressDTO batchProgressDTO = getBatchProgressDTO(executionInfo);
+        BatchProgressDTO batchProgressDTO = getBatchProgressDTO(executionInfo);
 
-            JobStatusResponse response = new JobStatusResponse(
-                    executionInfo.getJobId().toString(),
-                    executionInfo.getJobName(),
-                    executionInfo.getJobType(),
-                    executionInfo.getStatus(),
-                    executionInfo.getStartedAt() != null ? ISO_FORMATTER.format(executionInfo.getStartedAt()) : null,
-                    executionInfo.getFinishedAt().map(ISO_FORMATTER::format).orElse(null),
-                    batchProgressDTO
-            );
+        JobStatusResponse response = new JobStatusResponse(
+                executionInfo.getJobId().toString(),
+                executionInfo.getJobName(),
+                executionInfo.getJobType(),
+                executionInfo.getStatus(),
+                executionInfo.getStartedAt() != null ? ISO_FORMATTER.format(executionInfo.getStartedAt()) : null,
+                executionInfo.getFinishedAt().map(ISO_FORMATTER::format).orElse(null),
+                batchProgressDTO
+        );
 
-            return Response.ok(response).build();
-
-        } catch (IllegalArgumentException e) {
-            log.warnf(e, "Bad request for job status %s: %s", jobId, e.getMessage());
-            throw new BadRequestException(e.getMessage(), e);
-        } catch (Exception e) {
-            log.errorf(e, "Error getting status for job %s", jobId);
-
-            // Check if it's a not found exception
-            if (e.getMessage() != null && e.getMessage().contains("not found")) {
-                throw new NotFoundException("Job not found: " + jobId, e);
-            }
-
-            throw new InternalServerErrorException("Failed to get job status: " + e.getMessage(), e);
-        }
+        return Response.ok(response).build();
     }
 
     private static BatchProgressDTO getBatchProgressDTO(JobExecutionInfo executionInfo) {

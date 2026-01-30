@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import ch.css.jobrunr.control.domain.exceptions.JobSchedulingException;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobParameterExtractor;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -224,7 +225,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
             org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
             if (job == null) {
                 log.warnf("Job not found: %s", jobId);
-                throw new JobSchedulingException("Job not found: " + jobId, null);
+                throw new JobNotFoundException("Job with ID '" + jobId + "' not found");
             }
 
             // Override parameters if provided
@@ -244,7 +245,9 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
 
             log.infof("Job is being executed immediately: %s", jobId);
 
-
+        } catch (JobNotFoundException e) {
+            // Re-throw domain exception without wrapping
+            throw e;
         } catch (JobSchedulingException e) {
             log.errorf(e, "Error executing job immediately: %s", jobId);
             throw e;

@@ -69,7 +69,8 @@ class DesignPatternsTest {
                 .should().haveSimpleNameEndingWith("Resource")
                 .orShould().haveSimpleNameEndingWith("DTO")
                 .orShould().haveSimpleNameEndingWith("Response")
-                .because("REST API adapters should be named *Resource, DTOs allowed in dto package");
+                .orShould().haveSimpleNameEndingWith("Mapper")
+                .because("REST API adapters should be named *Resource, DTOs allowed in dto package, Exception mappers allowed");
 
         rule.check(importedClasses);
     }
