@@ -1,11 +1,11 @@
-package ch.css.jobrunr.control.application.validation;
+package ch.css.jobrunr.control.domain.exceptions;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Exception for validation errors in job parameters.
+ * Exception thrown when validation errors occur in job parameters.
  */
 public class ValidationException extends RuntimeException {
 
@@ -25,4 +25,3 @@ public class ValidationException extends RuntimeException {
         return Collections.unmodifiableList(errors);
     }
 }
-

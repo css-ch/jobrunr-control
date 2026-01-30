@@ -37,3 +37,4 @@ jacoco.exec
 
 # JobRunr Pro license (ignore in any directory)
 **/jobrunr-pro.license
+/PROJECT_ANALYSIS.md

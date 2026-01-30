@@ -2,7 +2,7 @@ package ch.css.jobrunr.control.infrastructure.jobrunr;
 
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
-import ch.css.jobrunr.control.infrastructure.jobrunr.execution.JobRunrExecutionAdapter;
+import ch.css.jobrunr.control.domain.exceptions.JobExecutionException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -28,7 +28,7 @@ public class ConfigurableJobSearchAdapter {
     public record ConfigurableJobSearchResult(JobDefinition jobDefinition, Job job) {
     }
 
-    private static final Logger log = Logger.getLogger(JobRunrExecutionAdapter.class);
+    private static final Logger log = Logger.getLogger(ConfigurableJobSearchAdapter.class);
 
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
@@ -71,7 +71,7 @@ public class ConfigurableJobSearchAdapter {
             return configurableJob;
         } catch (Exception e) {
             log.errorf("Error retrieving job executions", e);
-            throw new JobRunrExecutionAdapter.JobExecutionException("Error retrieving job executions", e);
+            throw new JobExecutionException("Error retrieving job executions", e);
         }
     }
 

@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.application.validation;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterType;
+import ch.css.jobrunr.control.domain.exceptions.ValidationException;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.time.LocalDate;

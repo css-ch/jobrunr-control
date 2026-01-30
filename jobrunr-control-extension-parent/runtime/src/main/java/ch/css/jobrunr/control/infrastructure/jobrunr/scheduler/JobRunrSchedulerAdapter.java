@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.domain.exceptions.JobSchedulingException;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobParameterExtractor;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -258,14 +259,5 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
         // Year 2999 indicates external triggers
         return scheduledAt != null &&
                 scheduledAt.equals(EXTERNAL_TRIGGER);
-    }
-
-    /**
-     * Exception for job scheduling errors.
-     */
-    public static class JobSchedulingException extends RuntimeException {
-        public JobSchedulingException(String message, Throwable cause) {
-            super(message, cause);
-        }
     }
 }

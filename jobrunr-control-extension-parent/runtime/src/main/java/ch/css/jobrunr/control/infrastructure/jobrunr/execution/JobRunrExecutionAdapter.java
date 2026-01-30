@@ -148,14 +148,4 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         }
         return null;
     }
-
-
-    /**
-     * Exception for job execution errors.
-     */
-    public static class JobExecutionException extends RuntimeException {
-        public JobExecutionException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
 }

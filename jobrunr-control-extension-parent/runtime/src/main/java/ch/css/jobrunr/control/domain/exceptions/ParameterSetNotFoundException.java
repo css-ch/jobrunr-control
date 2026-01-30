@@ -1,9 +1,9 @@
-package ch.css.jobrunr.control.domain;
+package ch.css.jobrunr.control.domain.exceptions;
 
 import java.util.UUID;
 
 /**
- * Thrown when a referenced parameter set cannot be found.
+ * Exception thrown when a referenced parameter set cannot be found.
  */
 public class ParameterSetNotFoundException extends RuntimeException {
 

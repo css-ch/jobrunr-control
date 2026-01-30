@@ -1,8 +1,8 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr;
 
 import ch.css.jobrunr.control.domain.ParameterSetLoaderPort;
-import ch.css.jobrunr.control.domain.ParameterSetNotFoundException;
 import ch.css.jobrunr.control.domain.ParameterStoragePort;
+import ch.css.jobrunr.control.domain.exceptions.ParameterSetNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
