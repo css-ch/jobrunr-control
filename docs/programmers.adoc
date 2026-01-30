@@ -302,38 +302,75 @@ public record MyJobRequest(
 
 === Supported Parameter Types
 
-[cols="1,2,2"]
+[cols="1,2,2,2"]
 |===
-|Java Type |UI Input |Default Value Format
+|Java Type |UI Input |Default Value Format |Notes
 
 |`String`
-|Text input
+|Text input (single line)
 |`"any text"`
+|Use for short text values
+
+|`String` (with MULTILINE type)
+|Multi-line textarea
+|`"Line 1\nLine 2\nLine 3"`
+|Use `@JobParameterDefinition(type = "MULTILINE")`
 
 |`Integer` / `int`
 |Number input
 |`"42"`
+|Whole numbers only
 
 |`Long` / `long`
 |Number input
 |`"1234567890"`
+|Large whole numbers
 
 |`Boolean` / `boolean`
 |Checkbox
 |`"true"` or `"false"`
+|True/false values
 
 |`LocalDate`
 |Date picker
 |`"2024-01-15"` (ISO format)
+|Date only, no time component
 
 |`LocalDateTime`
 |DateTime picker
 |`"2024-01-15T14:30:00"` (ISO format)
+|Date and time
 
 |`Enum`
-|Dropdown
+|Dropdown (single selection)
 |`"ENUM_VALUE"` (constant name)
+|Single enum value
+
+|`EnumSet<E>`
+|Multi-select dropdown
+|`"VALUE1,VALUE2,VALUE3"`
+|Multiple enum values (comma-separated)
 |===
+
+[IMPORTANT]
+====
+For multiline text parameters, explicitly specify the type in `@JobParameterDefinition`:
+[source,java]
+----
+@JobParameterDefinition(
+    name = "Description",
+    type = "MULTILINE",  // <-- Required for textarea
+    defaultValue = "Default text"
+)
+String description
+----
+====
+
+[TIP]
+====
+EnumSet parameters allow users to select multiple enum values in the UI.
+The values are stored as a comma-separated string and automatically converted to EnumSet at runtime.
+====
 
 === Required vs Optional Parameters
 
@@ -367,6 +404,322 @@ public record TaskJobRequest(
     Priority priority
 ) implements JobRequest { ... }
 ----
+
+=== Multi-Enum Parameters
+
+Use `EnumSet<E>` to allow multiple enum selections:
+
+[source,java]
+----
+public enum Feature {
+    REPORTS, EXPORTS, NOTIFICATIONS, ANALYTICS
+}
+
+public record ConfigJobRequest(
+    @JobParameterDefinition(defaultValue = "REPORTS,EXPORTS")
+    EnumSet<Feature> enabledFeatures
+) implements JobRequest { ... }
+----
+
+The UI renders a multi-select dropdown, and values are stored as comma-separated strings.
+
+== Parameter Storage Strategies
+
+The extension supports two parameter storage strategies to handle different job requirements.
+
+=== Inline Storage (Default)
+
+By default, all job parameters are stored **inline** directly in JobRunr's job metadata table.
+
+.Characteristics
+* Parameters serialized as part of the JobRequest
+* Stored in JobRunr's `jobrunr_jobs` table
+* No additional database tables required
+* Suitable for most use cases
+
+.When to Use
+* Jobs with small to medium parameter sets (< 10 parameters)
+* Parameters with reasonable sizes (strings < 1000 chars)
+* Standard data types (String, Integer, Boolean, Date, Enum)
+
+.Example: Inline Storage Job
+[source,java]
+----
+public record SimpleReportRequest(
+    @JobParameterDefinition(defaultValue = "2024-01-01")
+    LocalDate startDate,
+
+    @JobParameterDefinition(defaultValue = "PDF")
+    OutputFormat format,
+
+    @JobParameterDefinition(defaultValue = "admin@example.com")
+    String recipient
+) implements JobRequest {
+    @Override
+    public Class<SimpleReportHandler> getJobRequestHandler() {
+        return SimpleReportHandler.class;
+    }
+}
+----
+
+=== External Storage
+
+For jobs with **large or numerous parameters**, use the `@JobParameterSet` annotation to store parameters externally.
+
+.Characteristics
+* Parameters stored in separate database table (`jobrunr_control_parameter_sets`)
+* Only parameter set ID stored in JobRequest
+* Requires Hibernate ORM configuration
+* Automatic cleanup of orphaned parameter sets
+
+.When to Use
+[cols="1,3"]
+|===
+|Scenario |Description
+
+|**Large Text Fields**
+|Multiline text parameters with substantial content (> 2000 characters)
+
+|**Many Parameters**
+|Jobs with 10+ parameters or complex nested structures
+
+|**Parameter Reuse**
+|Multiple job executions sharing the same parameter configuration
+
+|**Database Limits**
+|JobRunr's job metadata approaching database column size limits
+
+|**Template Jobs**
+|Jobs designed as reusable templates with varying parameter sets
+|===
+
+=== Implementing External Storage
+
+==== Step 1: Enable Hibernate ORM
+
+External storage requires Hibernate ORM to be configured:
+
+[source,properties]
+----
+# application.properties
+quarkus.hibernate-orm.enabled=true
+quarkus.datasource.db-kind=postgresql
+quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/mydb
+quarkus.datasource.username=myuser
+quarkus.datasource.password=mypass
+----
+
+The extension automatically creates the `jobrunr_control_parameter_sets` table via Flyway migration.
+
+==== Step 2: Use @JobParameterSet Annotation
+
+Instead of defining parameters on record components, use `@JobParameterSet` annotation:
+
+[source,java]
+----
+public record LargeDataJobRequest(
+    @JobParameterSet({
+        @JobParameterDefinition(
+            name = "description",
+            type = "MULTILINE",  // Multi-line text
+            defaultValue = "Enter detailed description here..."
+        ),
+        @JobParameterDefinition(
+            name = "documentContent",
+            type = "MULTILINE",
+            defaultValue = ""
+        ),
+        @JobParameterDefinition(
+            name = "recipients",
+            type = "MULTILINE",
+            defaultValue = "user1@example.com\nuser2@example.com"
+        ),
+        @JobParameterDefinition(
+            name = "processingMode",
+            type = "com.example.ProcessingMode",
+            defaultValue = "STANDARD"
+        ),
+        @JobParameterDefinition(
+            name = "batchSize",
+            type = "java.lang.Integer",
+            defaultValue = "1000"
+        )
+    })
+    String parameterSetId  // <-- Receives UUID reference to parameter set
+) implements JobRequest {
+    @Override
+    public Class<LargeDataJobHandler> getJobRequestHandler() {
+        return LargeDataJobHandler.class;
+    }
+}
+----
+
+[IMPORTANT]
+====
+.@JobParameterSet Requirements
+* Must be applied to **exactly one** record component
+* The annotated field **must** be of type `String`
+* The `value` array must contain at least one `@JobParameterDefinition`
+* Each definition must specify both `name` and `type` attributes
+* The `type` must be the **fully qualified class name** (e.g., `"java.lang.String"`)
+====
+
+==== Step 3: Access Parameters in Handler
+
+The handler receives the parameter set ID and can load parameters through the JobRunr context:
+
+[source,java]
+----
+@ApplicationScoped
+public class LargeDataJobHandler implements JobRequestHandler<LargeDataJobRequest> {
+
+    @Inject
+    ParameterSetLoaderPort parameterLoader;
+
+    @ConfigurableJob(name = "Large Data Processor")
+    @Override
+    public void run(LargeDataJobRequest request) throws Exception {
+        var logger = jobContext().logger();
+
+        // Parameters are automatically loaded by the extension
+        // and available in the job context metadata
+        String description = getParameter("description", String.class);
+        String documentContent = getParameter("documentContent", String.class);
+        ProcessingMode mode = getParameter("processingMode", ProcessingMode.class);
+        Integer batchSize = getParameter("batchSize", Integer.class);
+
+        logger.info("Processing with mode: %s, batch size: %d", mode, batchSize);
+
+        // Your job logic here
+        processDocument(documentContent, mode, batchSize);
+    }
+
+    private <T> T getParameter(String name, Class<T> type) {
+        // Helper method to extract parameters from job context
+        // Implementation depends on how your job accesses metadata
+        return jobContext().getMetadata(name, type);
+    }
+}
+----
+
+[TIP]
+====
+The extension provides a `ParameterSetLoaderPort` that you can inject to manually load parameter sets if needed:
+[source,java]
+----
+@Inject
+ParameterSetLoaderPort parameterLoader;
+
+ParameterSet paramSet = parameterLoader.load(request.parameterSetId());
+Map<String, Object> params = paramSet.parameters();
+----
+====
+
+=== Parameter Type Specification
+
+For external storage, the `type` attribute must be a fully qualified class name:
+
+[cols="1,2"]
+|===
+|Java Type |Type Specification
+
+|String
+|`"java.lang.String"`
+
+|Integer
+|`"java.lang.Integer"`
+
+|Boolean
+|`"java.lang.Boolean"`
+
+|LocalDate
+|`"java.time.LocalDate"`
+
+|LocalDateTime
+|`"java.time.LocalDateTime"`
+
+|Enum
+|`"com.example.MyEnum"` (fully qualified)
+
+|EnumSet
+|`"java.util.EnumSet<com.example.MyEnum>"`
+
+|Multiline (String)
+|`"MULTILINE"` (special marker for textarea)
+|===
+
+=== Parameter Storage Cleanup
+
+The extension provides automatic cleanup of orphaned parameter sets:
+
+[source,properties]
+----
+# application.properties
+
+# Enable automatic cleanup
+jobrunr.control.parameter-storage.cleanup.enabled=true
+
+# Retention period (days) before cleanup
+jobrunr.control.parameter-storage.cleanup.retention-days=30
+----
+
+.Cleanup Behavior
+* Runs periodically as a background job
+* Removes parameter sets not referenced by any active job
+* Parameter sets older than retention period are deleted
+* Cleanup respects the `last_accessed_at` timestamp
+
+=== Choosing the Right Strategy
+
+[cols="1,2,2"]
+|===
+|Aspect |Inline Storage |External Storage
+
+|**Complexity**
+|Simple, no setup required
+|Requires Hibernate ORM setup
+
+|**Performance**
+|Faster for small parameters
+|Better for large parameters
+
+|**Database Impact**
+|Single table (jobrunr_jobs)
+|Two tables (jobs + parameter_sets)
+
+|**Size Limits**
+|Limited by JobRunr metadata size
+|No practical limits
+
+|**Use Cases**
+|Standard jobs with few parameters
+|Jobs with many or large parameters
+
+|**Maintenance**
+|No cleanup needed
+|Automatic cleanup available
+|===
+
+=== Best Practices
+
+==== Inline Storage
+* Keep parameter count low (< 10)
+* Limit string lengths (< 1000 chars)
+* Use for jobs with fixed parameter schemas
+* Prefer for simple configuration jobs
+
+==== External Storage
+* Use for jobs with 10+ parameters
+* Ideal for template jobs with varying configs
+* Use MULTILINE type for large text fields
+* Enable cleanup to prevent storage bloat
+* Consider parameter set reuse for similar jobs
+
+==== Type Annotations
+* Always specify `type` for external storage parameters
+* Use fully qualified class names for custom types
+* Mark multiline text explicitly with `type = "MULTILINE"`
+* Document expected parameter formats in job comments
 
 == Lifecycle Callbacks
 

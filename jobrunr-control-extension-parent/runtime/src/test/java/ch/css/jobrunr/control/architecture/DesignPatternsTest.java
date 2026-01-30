@@ -191,6 +191,7 @@ class DesignPatternsTest {
         ArchRule rule = classes()
                 .that().resideInAPackage("..adapter.ui..")
                 .and().haveSimpleNameEndingWith("Controller")
+                .and().areNotAssignableTo(ch.css.jobrunr.control.adapter.ui.BaseController.class)
                 .should().beAnnotatedWith("jakarta.ws.rs.Path")
                 .because("Controllers are JAX-RS resources");
 

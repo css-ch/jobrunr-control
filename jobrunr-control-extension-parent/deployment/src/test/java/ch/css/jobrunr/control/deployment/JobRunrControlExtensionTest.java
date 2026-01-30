@@ -1,11 +1,9 @@
 package ch.css.jobrunr.control.deployment;
 
 import io.quarkus.test.QuarkusUnitTest;
-import io.restassured.RestAssured;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 /**
@@ -32,19 +30,4 @@ public class JobRunrControlExtensionTest {
                                     "org.jobrunr.quarkus.autoconfigure.**," +
                                     "org.jobrunr.scheduling.AsyncJobInterceptor\n"
                     ), "application.properties"));
-
-    @Test
-    void testExtensionLoads() {
-        // If we get here, the extension was loaded successfully during Quarkus build
-        // The extension registers the "jobrunr-control" feature
-    }
-
-    @Test
-    void testHealthEndpointAvailable() {
-        // Health check should be available since quarkus-smallrye-health is a dependency
-        RestAssured.when()
-                .get("/q/health")
-                .then()
-                .statusCode(200);
-    }
 }

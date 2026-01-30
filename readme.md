@@ -74,14 +74,25 @@ Three roles control access to different features:
 
 ### Supported Parameter Types
 
-| Type     | Format             | Example               |
-|----------|--------------------|-----------------------|
-| String   | Plain text         | `"Hello World"`       |
-| Integer  | Whole number       | `42`                  |
-| Boolean  | true/false         | `true`                |
-| Date     | ISO date           | `2024-01-15`          |
-| DateTime | ISO datetime       | `2024-01-15T10:30:00` |
-| Enum     | Enum constant name | `OPTION_A`            |
+| Type       | Format                    | Example                      |
+|------------|---------------------------|------------------------------|
+| String     | Plain text                | `"Hello World"`              |
+| Multiline  | Multi-line text           | `"Line 1\nLine 2\nLine 3"`   |
+| Integer    | Whole number              | `42`                         |
+| Boolean    | true/false                | `true`                       |
+| Date       | ISO date                  | `2024-01-15`                 |
+| DateTime   | ISO datetime              | `2024-01-15T10:30:00`        |
+| Enum       | Enum constant name        | `OPTION_A`                   |
+| Multi-Enum | Comma-separated enum list | `OPTION_A,OPTION_B,OPTION_C` |
+
+### Parameter Storage Strategies
+
+The extension supports two parameter storage strategies:
+
+- **Inline Storage** (default): Parameters stored directly in JobRunr's job table
+- **External Storage**: Parameters stored in separate database table for large parameter sets
+
+Use `@JobParameterSet` annotation on JobRequest to enable external storage. Requires Hibernate ORM configuration.
 
 ## Development
 

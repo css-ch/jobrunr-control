@@ -68,6 +68,16 @@
                                         title="Job-ID in Zwischenablage kopieren">
                                     <i class="bi bi-clipboard"></i>
                                 </button>
+                                {#if security:hasOneOfRole('admin')}
+                                <button class="btn btn-outline-success"
+                                        hx-post="/q/jobrunr-control/templates/{job.jobId}/start"
+                                        hx-confirm="Template '{job.jobName}' jetzt starten?"
+                                        hx-target="#jobs-table"
+                                        hx-swap="outerHTML"
+                                        title="Jetzt starten">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                                {/if}
                                 {#if security:hasOneOfRole('configurator', 'admin')}
                                 <button class="btn btn-outline-primary"
                                         onclick="editJob('{job.jobId}')"

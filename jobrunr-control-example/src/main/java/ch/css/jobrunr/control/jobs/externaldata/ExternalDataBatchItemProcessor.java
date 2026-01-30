@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.jobs.externaldata;
 
+import ch.css.jobrunr.control.domain.exceptions.JobProcessingException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import org.jobrunr.jobs.annotations.Job;
@@ -18,10 +19,17 @@ public class ExternalDataBatchItemProcessor implements JobRequestHandler<Externa
 
     private static final Random random = new Random();
 
+    /**
+     * Executes the external data batch item processing.
+     * Simulates data processing with configurable error simulation for testing retry mechanisms.
+     *
+     * @param request the batch item request containing child ID, external parameter, and error simulation flag
+     * @throws JobProcessingException if processing fails, is interrupted, or a simulated error occurs
+     */
     @Override
     @Transactional
     @Job(name = "External Data Processing: %0", retries = 2)
-    public void run(ExternalDataBatchItemRequest request) throws Exception {
+    public void run(ExternalDataBatchItemRequest request) {
         jobContext().logger().info(String.format(
                 "Processing child job %d with parameter: %s",
                 request.childId(),
@@ -41,7 +49,7 @@ public class ExternalDataBatchItemProcessor implements JobRequestHandler<Externa
 
             // Simulate occasional errors if enabled
             if (request.simulateErrors() && random.nextDouble() < 0.1) {
-                throw new Exception("Simulated processing error for child job " + request.childId());
+                throw new JobProcessingException("Simulated processing error for child job " + request.childId());
             }
 
             // Save processing metadata
@@ -55,8 +63,8 @@ public class ExternalDataBatchItemProcessor implements JobRequestHandler<Externa
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new Exception("Processing interrupted", e);
-        } catch (Exception e) {
+            throw new JobProcessingException("Processing interrupted for child job " + request.childId(), e);
+        } catch (JobProcessingException e) {
             jobContext().logger().error(String.format(
                     "Error in child job %d: %s",
                     request.childId(),

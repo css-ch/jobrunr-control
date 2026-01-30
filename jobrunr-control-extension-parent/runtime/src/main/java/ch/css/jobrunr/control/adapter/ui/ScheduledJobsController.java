@@ -22,8 +22,6 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,7 +30,7 @@ import java.util.stream.Collectors;
  * Renders type-safe Qute templates and processes HTMX requests.
  */
 @Path("/q/jobrunr-control/scheduled")
-public class ScheduledJobsController {
+public class ScheduledJobsController extends BaseController {
 
     private static final Logger log = Logger.getLogger(ScheduledJobsController.class);
 
@@ -360,58 +358,8 @@ public class ScheduledJobsController {
                 .toList();
     }
 
-    private Instant parseScheduledTime(String scheduledAt) {
-        if (scheduledAt == null || scheduledAt.isBlank()) {
-            return null;
-        }
-        LocalDateTime ldt = LocalDateTime.parse(scheduledAt);
-        return ldt.atZone(ZoneId.systemDefault()).toInstant();
-    }
-
-    private Map<String, String> extractParameterMap(MultivaluedMap<String, String> allFormParams) {
-        return allFormParams.keySet().stream()
-                .collect(HashMap::new,
-                        (map, key) -> {
-                            List<String> values = allFormParams.get(key);
-                            if (values != null && values.size() > 1) {
-                                // Multiple values (e.g., from multiselect) - join with comma
-                                map.put(key, String.join(",", values));
-                            } else {
-                                // Single value
-                                map.put(key, allFormParams.getFirst(key));
-                            }
-                        },
-                        HashMap::putAll);
-    }
-
     private TemplateInstance getDefaultScheduledJobsTable() {
         return getScheduledJobsTable(null, "all", null, 0, 10, "scheduledAt", "asc");
-    }
-
-    private Response buildModalCloseResponse(TemplateInstance table) {
-        return Response.ok(table)
-                .header("HX-Trigger", "closeModal")
-                .build();
-    }
-
-    /**
-     * Builds an error response that displays in the modal's alert area.
-     * The modal stays open so the user can fix the error.
-     * Uses HTMX out-of-band (OOB) swap to reliably target the alert container.
-     */
-    private Response buildErrorResponse(String errorMessage) {
-        String errorHtml = String.format(
-                "<div id=\"form-alerts\" hx-swap-oob=\"true\">" +
-                        "<div class=\"alert alert-danger alert-dismissible fade show\" role=\"alert\">" +
-                        "<i class=\"bi bi-exclamation-triangle-fill\"></i> <strong>Error:</strong> %s" +
-                        "<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button>" +
-                        "</div>" +
-                        "</div>",
-                errorMessage
-        );
-        return Response.ok(errorHtml)
-                .header("HX-Trigger", "scrollToError")
-                .build();
     }
 
     /**
@@ -429,44 +377,5 @@ public class ScheduledJobsController {
         return ScheduledJobInfoView.from(jobInfo, truncatedParameters, usesExternal);
     }
 
-    /**
-     * Truncates large parameter values to prevent HTTP 413 errors.
-     * String values longer than 1000 characters are truncated.
-     * Collection/Map sizes are limited to prevent excessive data transfer.
-     */
-    private Map<String, Object> truncateParameterValues(Map<String, Object> parameters) {
-        final int MAX_STRING_LENGTH = 1000;
-        final int MAX_COLLECTION_SIZE = 100;
-
-        Map<String, Object> truncated = new HashMap<>();
-
-        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
-            Object value = entry.getValue();
-
-            if (value instanceof String str) {
-                if (str.length() > MAX_STRING_LENGTH) {
-                    truncated.put(entry.getKey(), str.substring(0, MAX_STRING_LENGTH) + "... [truncated]");
-                } else {
-                    truncated.put(entry.getKey(), value);
-                }
-            } else if (value instanceof java.util.Collection<?> collection) {
-                if (collection.size() > MAX_COLLECTION_SIZE) {
-                    truncated.put(entry.getKey(), String.format("[Collection with %d items - too large to display]", collection.size()));
-                } else {
-                    truncated.put(entry.getKey(), value);
-                }
-            } else if (value instanceof Map<?, ?> map) {
-                if (map.size() > MAX_COLLECTION_SIZE) {
-                    truncated.put(entry.getKey(), String.format("[Map with %d entries - too large to display]", map.size()));
-                } else {
-                    truncated.put(entry.getKey(), value);
-                }
-            } else {
-                truncated.put(entry.getKey(), value);
-            }
-        }
-
-        return truncated;
-    }
 
 }

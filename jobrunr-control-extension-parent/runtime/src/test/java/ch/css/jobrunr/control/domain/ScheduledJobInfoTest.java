@@ -18,7 +18,6 @@ class ScheduledJobInfoTest {
                 "test.JobRequest",
                 "test.JobHandler",
                 List.of(),
-                false,
                 new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
                 false,
                 null

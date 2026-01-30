@@ -12,9 +12,14 @@ import org.jobrunr.jobs.lambdas.JobRequestHandler;
 @ApplicationScoped
 public class ParameterDemoJob implements JobRequestHandler<ParameterDemoJobRequest> {
 
+    /**
+     * Executes the parameter demo job, logging all provided parameters.
+     *
+     * @param request the job request containing all parameter values
+     */
     @Override
     @ConfigurableJob()
-    public void run(ParameterDemoJobRequest request) throws Exception {
+    public void run(ParameterDemoJobRequest request) {
         JobDashboardLogger log = jobContext().logger();
         log.info(String.format("String parameter: %s", request.stringParameter()));
         log.info(String.format("Multiline parameter: %s", request.multilineParameter()));

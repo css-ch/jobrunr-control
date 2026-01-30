@@ -117,15 +117,43 @@ ch.css.jobrunr.control/
 └── annotations/       # Public API annotations
 ----
 
-=== AD-2: No Separate Persistence
+=== AD-2: Shared Database Architecture
 
-The extension relies entirely on **JobRunr's persistence layer**.
-There is no separate database or storage mechanism for job definitions or schedules.
+The extension uses **JobRunr's persistence layer** and shares the same database.
 
 .Rationale
 * Job definitions are discovered at **build time** using Quarkus build steps
 * Job schedules and execution data are stored in JobRunr's storage provider
-* This avoids data synchronization issues between two persistence layers
+* **External parameter storage** (when enabled) uses a separate table (`jobrunr_control_parameter_sets`) in the **same database**
+* Both JobRunr Control and JobRunr Runtime (job handlers) access the same database
+* This ensures parameter consistency between job scheduling and execution
+
+.Database Tables
+[cols="1,2,2"]
+|===
+|Table |Owner |Purpose
+
+|`jobrunr_jobs`
+|JobRunr Pro
+|Job metadata, schedules, states
+
+|`jobrunr_recurring_jobs`
+|JobRunr Pro
+|Recurring job definitions
+
+|`jobrunr_backgroundjobservers`
+|JobRunr Pro
+|Background job server registrations
+
+|`jobrunr_control_parameter_sets`
+|JobRunr Control
+|External parameter storage (when `@JobParameterSet` is used)
+|===
+
+[NOTE]
+====
+The `jobrunr_control_parameter_sets` table is only created when Hibernate ORM is enabled and at least one job uses external parameter storage via `@JobParameterSet` annotation.
+====
 
 === AD-3: Build-Time Job Discovery
 
@@ -221,6 +249,7 @@ System_Boundary(jobrunr_control, "JobRunr Control") {
 
 System_Ext(jobrunr_dashboard, "JobRunr Pro Dashboard", "Built-in JobRunr monitoring UI")
 System_Ext(jobrunr_runtime, "JobRunr Pro Runtime", "Job execution engine")
+ContainerDb(shared_db, "Shared Database", "PostgreSQL/H2/etc", "Stores job metadata and external parameters")
 
 Rel(ops_user, control_app, "Creates and monitors jobs", "HTTPS")
 Rel(admin, control_app, "Executes jobs", "HTTPS")
@@ -228,6 +257,16 @@ Rel(external_system, control_app, "Triggers jobs", "REST API")
 
 Rel(control_app, jobrunr_dashboard, "Deep-links for details", "HTTP")
 Rel(control_app, jobrunr_runtime, "Schedules/queries jobs", "Java API")
+
+Rel(control_app, shared_db, "Reads/Writes", "JDBC")
+Rel(jobrunr_runtime, shared_db, "Reads/Writes", "JDBC")
+
+note right of shared_db
+  Contains:
+  - JobRunr jobs table
+  - External parameter sets table
+  (when external storage enabled)
+end note
 
 @enduml
 ----
@@ -274,12 +313,26 @@ System_Boundary(control, "JobRunr Control Extension") {
 }
 
 Container_Ext(jobrunr, "JobRunr Pro", "Library", "Job scheduling engine")
+Container_Ext(job_handlers, "Job Handlers", "Java", "Execute scheduled jobs")
+ContainerDb(database, "Database", "PostgreSQL/H2/etc", "Stores jobs and parameters")
 
 web_ui --> app_layer
 rest_api --> app_layer
 app_layer --> domain
 infra --> domain : implements
 infra --> jobrunr : uses
+infra --> database : reads/writes\nexternal parameters
+
+jobrunr --> database : stores job metadata
+job_handlers --> database : reads external\nparameters
+
+note right of database
+  Tables:
+  - jobrunr_jobs (JobRunr)
+  - jobrunr_control_parameter_sets
+  Both control and runtime
+  access same database
+end note
 
 @enduml
 ----
@@ -374,6 +427,28 @@ public record MyJobRequest(
     MyEnum option
 ) implements JobRequest { ... }
 ----
+
+==== @JobParameterSet
+
+Marks a JobRequest for external parameter storage.
+Parameters are defined in the annotation and stored in a separate database table:
+
+[source,java]
+----
+public record LargeJobRequest(
+    @JobParameterSet({
+        @JobParameterDefinition(name = "description", type = "MULTILINE", defaultValue = ""),
+        @JobParameterDefinition(name = "batchSize", type = "java.lang.Integer", defaultValue = "1000"),
+        @JobParameterDefinition(name = "mode", type = "com.example.Mode", defaultValue = "STANDARD")
+    })
+    String parameterSetId  // Receives UUID reference
+) implements JobRequest { ... }
+----
+
+[IMPORTANT]
+====
+External storage requires Hibernate ORM to be enabled in the Quarkus application.
+====
 
 === Lifecycle Interfaces
 

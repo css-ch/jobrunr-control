@@ -10,7 +10,6 @@ import java.util.List;
  * @param jobRequestTypeName     Fully qualified name of the JobRequest class
  * @param handlerClassName       Fully qualified name of the JobRequestHandler class
  * @param parameters             List of job parameters (inline or external schema)
- * @param isRecord               Whether the JobRequest is a record
  * @param jobSettings            Job execution settings from @ConfigurableJob
  * @param usesExternalParameters Whether this job uses external parameter storage (@JobParameterSet)
  * @param parameterSetFieldName  Name of the field annotated with @JobParameterSet (null if inline)
@@ -20,7 +19,6 @@ public record JobDefinition(String jobType,
                             String jobRequestTypeName,
                             String handlerClassName,
                             List<JobParameter> parameters,
-                            boolean isRecord,
                             JobSettings jobSettings,
                             boolean usesExternalParameters,
                             String parameterSetFieldName) {
