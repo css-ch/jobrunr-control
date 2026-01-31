@@ -1,12 +1,13 @@
 package ch.css.jobrunr.control.deployment;
 
 import ch.css.jobrunr.control.infrastructure.persistence.ParameterSetEntity;
+import io.quarkus.deployment.Capabilities;
+import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.IndexDependencyBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.hibernate.orm.deployment.spi.AdditionalJpaModelBuildItem;
-import io.quarkus.hibernate.orm.runtime.PersistenceUnitUtil;
 
 import java.util.Set;
 
@@ -24,22 +25,30 @@ public class ExternalParameterStorageProcessor {
     /**
      * Register the JPA entity with Hibernate ORM.
      * This ensures the entity is properly discovered during build time.
+     * Only registers if Hibernate ORM capability is present.
      */
     @BuildStep
-    AdditionalJpaModelBuildItem registerEntity() {
-        return new AdditionalJpaModelBuildItem(
-                ParameterSetEntity.class.getName(),
-                Set.of(PersistenceUnitUtil.DEFAULT_PERSISTENCE_UNIT_NAME)
-        );
+    void registerEntity(Capabilities capabilities,
+                        ParameterStorageBuildTimeConfig config,
+                        BuildProducer<AdditionalJpaModelBuildItem> producer) {
+        if (capabilities.isPresent(Capability.HIBERNATE_ORM)) {
+            producer.produce(new AdditionalJpaModelBuildItem(
+                    ParameterSetEntity.class.getName(),
+                    Set.of(config.persistenceUnitName())
+            ));
+        }
     }
 
     /**
      * Register the entity for reflection (needed for native builds).
+     * Only registers if Hibernate ORM capability is present.
      */
     @BuildStep
-    ReflectiveClassBuildItem registerForReflection() {
-        return ReflectiveClassBuildItem.builder(
-                ParameterSetEntity.class.getName()
-        ).methods().fields().build();
+    void registerForReflection(Capabilities capabilities, BuildProducer<ReflectiveClassBuildItem> producer) {
+        if (capabilities.isPresent(Capability.HIBERNATE_ORM)) {
+            producer.produce(ReflectiveClassBuildItem.builder(
+                    ParameterSetEntity.class.getName()
+            ).methods().fields().build());
+        }
     }
 }

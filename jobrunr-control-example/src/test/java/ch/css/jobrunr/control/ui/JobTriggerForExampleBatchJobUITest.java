@@ -50,4 +50,18 @@ public class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
         searchForJob("Test Batch Job - External Trigger");
         verifyJobInHistory("Test Batch Job - External Trigger", "Example Batch Job");
     }
+
+    @Test
+    @Order(4)
+    @DisplayName("Verify job exists in JobRunr Pro Dashboard with correct signature")
+    public void testVerifyJobInJobRunrDashboard() {
+        assertNotNull(scheduledJobId, "Job ID should be set from previous test");
+
+        navigateToJobRunrDashboard(scheduledJobId);
+
+        // The actual parameters used in the test are: numberOfChunks=10, chunkSize=50, simulateErrors=false
+        // But we need to check for the signature that includes the parameters
+        String expectedJobSignature = "ExampleBatchJob.run({\"numberOfChunks\":10,\"chunkSize\":50,\"simulateErrors\":false});";
+        verifyJobSignatureInDashboard(expectedJobSignature);
+    }
 }

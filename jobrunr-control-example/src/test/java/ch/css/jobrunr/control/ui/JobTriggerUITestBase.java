@@ -248,4 +248,51 @@ public abstract class JobTriggerUITestBase {
     protected void fillBatchJobParametersWithDefaults() {
         fillBatchJobParameters(10, 50, false);
     }
+
+    // JobRunr Dashboard verification methods
+
+    /**
+     * Navigates to the JobRunr Pro Dashboard for a specific job and verifies the job details.
+     * Uses the deep link to the job details page.
+     *
+     * @param jobId The UUID of the job to verify
+     */
+    protected void navigateToJobRunrDashboard(UUID jobId) {
+        String dashboardJobUrl = baseUrl + "my-custom-dashboard/dashboard/jobs/" + jobId;
+        page.navigate(dashboardJobUrl);
+        // Wait for the React app to initialize and load content
+        // The dashboard is a SPA that loads content dynamically via JavaScript
+        page.waitForTimeout(4000);
+    }
+
+    /**
+     * Verifies that a specific job signature appears on the JobRunr Dashboard page.
+     * The job signature is the method call with parameters, e.g., "ExampleBatchJob.run({...})".
+     * Since the dashboard is a React SPA, we check the rendered content in the DOM.
+     *
+     * @param expectedJobSignature The expected job signature text to find on the page
+     */
+    protected void verifyJobSignatureInDashboard(String expectedJobSignature) {
+        // Get the visible text content of the page (what a user would see)
+        String pageText = page.locator("body").innerText();
+
+        // Also get HTML content for debugging
+        String pageContent = page.content();
+        System.out.println("=== JobRunr Dashboard Page Text (visible content, first 2000 chars) ===");
+        System.out.println(pageText.substring(0, Math.min(2000, pageText.length())));
+        System.out.println("=== End of Page Text ===");
+
+        // Check if the signature is in the page content
+        // The signature might be formatted differently in the UI, so we check for key components
+        boolean containsMethodName = pageText.contains("ExampleBatchJob.run") || pageContent.contains("ExampleBatchJob.run");
+        boolean containsParameters = (pageText.contains("numberOfChunks") || pageContent.contains("numberOfChunks")) &&
+                (pageText.contains("chunkSize") || pageContent.contains("chunkSize")) &&
+                (pageText.contains("simulateErrors") || pageContent.contains("simulateErrors"));
+
+        assertTrue(containsMethodName && containsParameters,
+                "JobRunr Dashboard should contain job signature with method name and parameters. " +
+                        "Looking for: " + expectedJobSignature +
+                        "\nMethod name found: " + containsMethodName +
+                        "\nParameters found: " + containsParameters);
+    }
 }

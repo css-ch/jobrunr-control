@@ -40,22 +40,30 @@ provides:
 # application.properties
 quarkus.jobrunr.dashboard.type=embedded
 quarkus.jobrunr.dashboard.context-path=/dashboard
+# Enable dashboard access in dev mode (disable authentication)
+%dev.quarkus.jobrunr.dashboard.security.allow-all-to-be-monitored=true
 ```
 
 ### 3. Access the Dashboard
 
 Start your Quarkus application and navigate to:
 
-- **Control Dashboard**: `http://localhost:8080/q/jobrunr-control`
+- **Control Dashboard**: `http://localhost:8080/q/jobrunr-control` (Your custom UI)
+- **JobRunr Dashboard**: `http://localhost:8080/q/jobrunr/dashboard` (JobRunr Pro monitoring)
 - **External API**: `http://localhost:8080/swagger-ui/`
+
+> **Note**: The JobRunr Pro Dashboard requires security configuration.
+> See [Dashboard Access Guide](docs/JOBRUNR_DASHBOARD_ACCESS.md) for details.
 
 ## Documentation
 
-| Document                                      | Description                                     |
-|-----------------------------------------------|-------------------------------------------------|
-| [Architecture Documentation](docs/arc42.adoc) | Technical architecture following arc42 template |
-| [User Guide](docs/user.adoc)                  | End-user guide for operating the dashboard      |
-| [Programmer's Guide](docs/programmers.adoc)   | Developer guide for implementing jobs           |
+| Document                                                   | Description                                     |
+|------------------------------------------------------------|-------------------------------------------------|
+| [Architecture Documentation](docs/arc42.adoc)              | Technical architecture following arc42 template |
+| [User Guide](docs/user.adoc)                               | End-user guide for operating the dashboard      |
+| [Programmer's Guide](docs/programmers.adoc)                | Developer guide for implementing jobs           |
+| [Dashboard Access Guide](docs/JOBRUNR_DASHBOARD_ACCESS.md) | Configuring access to JobRunr Pro Dashboard     |
+| [Error Handling Guide](docs/ERROR_HANDLING_GUIDE.md)       | Error handling patterns and best practices      |
 
 ## Key Features
 

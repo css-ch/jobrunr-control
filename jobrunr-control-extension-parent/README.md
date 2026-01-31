@@ -193,6 +193,25 @@ runtime/
 
 ## Advanced Configuration
 
+### Parameter Storage
+
+Configure parameter storage strategy and persistence:
+
+```properties
+# Storage strategy: INLINE (default) or EXTERNAL
+jobrunr.control.parameter-storage.strategy=INLINE
+# Persistence unit for external parameter storage (build-time config)
+# Default: <default> (Hibernate ORM default persistence unit)
+jobrunr.control.parameter-storage.persistence-unit-name=<default>
+# Cleanup configuration for external parameter storage
+jobrunr.control.parameter-storage.cleanup.enabled=true
+jobrunr.control.parameter-storage.cleanup.retention-days=30
+```
+
+**Note:** The `persistence-unit-name` is a build-time configuration that determines which Hibernate ORM persistence unit
+is used for storing external parameter sets. If you have multiple persistence units configured, you can specify which
+one to use for JobRunr Control's parameter storage.
+
 ### Batch Progress Timeout
 
 ```properties

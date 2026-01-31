@@ -1,6 +1,7 @@
 package ch.css.jobrunr.control.adapter.rest;
 
 import ch.css.jobrunr.control.domain.exceptions.*;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
@@ -24,11 +25,9 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
         // Generate correlation ID for tracking
         String correlationId = UUID.randomUUID().toString();
 
-        // Log full exception with correlation ID
-        log.errorf(exception, "[%s] Unhandled exception in REST API", correlationId);
-
         // Map exception to appropriate HTTP response
         return switch (exception) {
+            case NotFoundException e -> handleJaxRsNotFound(e, correlationId);
             case JobNotFoundException e -> handleNotFound(e, correlationId);
             case ValidationException e -> handleValidation(e, correlationId);
             case JobSchedulingException e -> handleScheduling(e, correlationId);
@@ -38,6 +37,23 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
             case IllegalStateException e -> handleConflict(e, correlationId);
             default -> handleUnexpected(exception, correlationId);
         };
+    }
+
+    /**
+     * 404 Not Found - JAX-RS route not found
+     * This is a normal scenario (e.g., browser requesting favicon.ico, mistyped URLs)
+     */
+    private Response handleJaxRsNotFound(NotFoundException e, String correlationId) {
+        log.debugf("[%s] Route not found: %s", correlationId, e.getMessage());
+
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity(new ErrorResponse(
+                        "NOT_FOUND",
+                        "Resource not found",
+                        "The requested resource does not exist",
+                        correlationId
+                ))
+                .build();
     }
 
     /**

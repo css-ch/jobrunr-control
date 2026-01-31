@@ -18,6 +18,15 @@ public interface ParameterStorageConfiguration {
     ParameterStorageStrategy strategy();
 
     /**
+     * Persistence unit name for external parameter storage.
+     * Default: &lt;default&gt; (Hibernate ORM default persistence unit)
+     * <p>
+     * Note: This is a build-time configuration that must be set before building the application.
+     */
+    @WithDefault("<default>")
+    String persistenceUnitName();
+
+    /**
      * Cleanup configuration for external parameter storage.
      */
     CleanupConfig cleanup();
