@@ -53,6 +53,11 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-hibernate-orm</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-flyway</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <!-- JobRunr Pro -->
         <!-- JobRunr Pro -->
