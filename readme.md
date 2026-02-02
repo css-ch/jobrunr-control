@@ -122,6 +122,10 @@ Use `@JobParameterSet` annotation on JobRequest to enable external storage. Requ
 - JobRunr Control: http://localhost:8080/q/jobrunr-control
 - JobRunr Dashboard: http://localhost:8080/q/jobrunr/dashboard
 
+## Release Management
+
+For information on how to release this extension to Maven Central, see the [Release Documentation](docs/RELEASE.md).
+
 ## License
 
 This extension requires a valid JobRunr Pro license.
