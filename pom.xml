@@ -54,4 +54,11 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <repositories>
+        <repository>
+            <id>JobRunrPro</id>
+            <url>https://repo.jobrunr.io/releases</url>
+        </repository>
+    </repositories>
 </project>
