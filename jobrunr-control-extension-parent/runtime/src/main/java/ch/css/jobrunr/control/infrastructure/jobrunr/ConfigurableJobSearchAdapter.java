@@ -11,6 +11,7 @@ import org.jobrunr.jobs.states.AbstractInitialJobState;
 import org.jobrunr.jobs.states.EnqueuedState;
 import org.jobrunr.jobs.states.StateName;
 import org.jobrunr.storage.JobSearchRequest;
+import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.navigation.AmountRequest;
 
@@ -91,33 +92,11 @@ public class ConfigurableJobSearchAdapter {
      * @return a configured JobSearchRequest
      */
     public static JobSearchRequest createSearchRequestForStateAndJobType(StateName state, String jobType) {
-        return new JobSearchRequest(
-                state,                     // state
-                null,                      // priority
-                null,                      // jobId
-                null,                      // jobIdGreaterThan
-                null,                      // jobIds
-                null,                      // jobName
-                null,                      // jobSignature
-                null,                      // jobExceptionType
-                null,                      // jobFingerprint
-                "jobtype:" + jobType,      // label
-                null,                      // serverTag
-                null,                      // mutex
-                null,                      // recurringJobId
-                null,                      // recurringJobIds
-                null,                      // awaitingOn
-                null,                      // parentId
-                null,                      // rateLimiter
-                null,                      // onlyBatchJobs
-                null,                      // createdAtFrom
-                null,                      // createdAtTo
-                null,                      // updatedAtFrom
-                null,                      // updatedAtTo
-                null,                      // scheduledAtFrom
-                null,                      // scheduledAtTo
-                null                       // deleteAtTo
-        );
+        return JobSearchRequestBuilder
+                .aJobSearchRequest()
+                .withStateName(state)
+                .withLabel("jobtype:" + jobType)
+                .build();
     }
 
     /**
@@ -129,32 +108,10 @@ public class ConfigurableJobSearchAdapter {
      * @return a configured JobSearchRequest for batch jobs
      */
     public static JobSearchRequest createSearchRequestForStateAndJobTypeForBatch(StateName state, String jobType) {
-        return new JobSearchRequest(
-                state,                     // state
-                null,                      // priority
-                null,                      // jobId
-                null,                      // jobIdGreaterThan
-                null,                      // jobIds
-                null,                      // jobName
-                null,                      // jobSignature
-                null,                      // jobExceptionType
-                null,                      // jobFingerprint
-                "jobtype:" + jobType,      // label
-                null,                      // serverTag
-                null,                      // mutex
-                null,                      // recurringJobId
-                null,                      // recurringJobIds
-                null,                      // awaitingOn
-                null,                      // parentId
-                null,                      // rateLimiter
-                true,                      // onlyBatchJobs
-                null,                      // createdAtFrom
-                null,                      // createdAtTo
-                null,                      // updatedAtFrom
-                null,                      // updatedAtTo
-                null,                      // scheduledAtFrom
-                null,                      // scheduledAtTo
-                null                       // deleteAtTo
-        );
+        return JobSearchRequestBuilder
+                .aJobSearchRequest()
+                .withOnlyBatchJobs(true)
+                .withStateName(state)
+                .withLabel("jobtype:" + jobType).build();
     }
 }

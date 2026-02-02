@@ -50,7 +50,7 @@ Start your Quarkus application and navigate to:
 
 - **Control Dashboard**: `http://localhost:8080/q/jobrunr-control` (Your custom UI)
 - **JobRunr Dashboard**: `http://localhost:8080/q/jobrunr/dashboard` (JobRunr Pro monitoring)
-- **External API**: `http://localhost:8080/swagger-ui/`
+- **External API**: `http://localhost:8080/q/swagger-ui/`
 
 > **Note**: The JobRunr Pro Dashboard requires security configuration.
 > See [Dashboard Access Guide](docs/JOBRUNR_DASHBOARD_ACCESS.md) for details.

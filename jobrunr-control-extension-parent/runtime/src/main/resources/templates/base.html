@@ -78,7 +78,7 @@
                     </li>
                     {#if dashboard.hasOpenApi()}
                     <li class="nav-item">
-                        <a class="nav-link" href="/swagger-ui" target="_blank">
+                        <a class="nav-link" href="/q/swagger-ui" target="_blank">
                             <i class="bi bi-file-earmark-code"></i> API Docs
                         </a>
                     </li>
@@ -110,7 +110,7 @@
                 <small>
                     JobRunr Control v{dashboard.version()} |
                     {#if dashboard.hasOpenApi()}
-                    <a href="/swagger-ui">API Documentation</a> |
+                    <a href="/q/swagger-ui">API Documentation</a> |
                     {/if}
                     <a href="{dashboard.url()}" target="_blank">JobRunr Dashboard</a>
                 </small>
