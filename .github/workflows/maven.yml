@@ -37,6 +37,7 @@ jobs:
         env:
           MAVEN_USER: ${{ secrets.JOBRUNR_USERNAME }}
           MAVEN_PASS: ${{ secrets.JOBRUNR_PASSWORD }}
+          JOBRUNR_PRO_LICENSE:  ${{ secrets.JOBRUNR_PRO_LICENSE }}
 
       # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
       - name: Update dependency graph
