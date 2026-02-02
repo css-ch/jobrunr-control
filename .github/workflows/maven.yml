@@ -27,6 +27,11 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
+        # THIS SECTION GENERATES THE SETTINGS.XML:
+        server-id: JobRunrPro        # Must match <id> in your pom.xml
+        server-username: MAVEN_USER  # The environment variable name (defined below)
+        server-password: MAVEN_PASS  # The environment variable name (defined below)
+        
     - name: Build with Maven
       run: mvn -B package --file pom.xml
 
