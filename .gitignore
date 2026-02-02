@@ -38,3 +38,11 @@ jacoco.exec
 # JobRunr Pro license (ignore in any directory)
 **/jobrunr-pro.license
 /PROJECT_ANALYSIS.md
+
+# GPG / Security (prevent accidental commit of sensitive data)
+*.gpg
+*.asc
+*.pgp
+.gnupg/
+private-key.txt
+

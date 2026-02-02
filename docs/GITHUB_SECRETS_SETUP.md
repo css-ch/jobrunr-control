@@ -27,6 +27,16 @@ gpg --armor --export-secret-keys ABCD1234EFGH5678
 # -----END PGP PRIVATE KEY BLOCK-----
 ```
 
+**🧪 Test your key before adding to GitHub:**
+
+Run the test script from the repository root:
+
+```bash
+./test-gpg-key.sh
+```
+
+This script will validate that your key is properly formatted and can be imported successfully.
+
 **Add to GitHub:**
 
 1. Copy the entire output (including BEGIN and END lines)
