@@ -1,6 +1,6 @@
 package ch.css.jobrunr.control.application.template;
 
-import ch.css.jobrunr.control.application.monitoring.GetScheduledJobsUseCase;
+import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -14,11 +14,11 @@ import java.util.List;
 @ApplicationScoped
 public class GetTemplatesUseCase {
 
-    private final GetScheduledJobsUseCase getScheduledJobsUseCase;
+    private final JobSchedulerPort jobSchedulerPort;
 
     @Inject
-    public GetTemplatesUseCase(GetScheduledJobsUseCase getScheduledJobsUseCase) {
-        this.getScheduledJobsUseCase = getScheduledJobsUseCase;
+    public GetTemplatesUseCase(JobSchedulerPort jobSchedulerPort) {
+        this.jobSchedulerPort = jobSchedulerPort;
     }
 
     /**
@@ -27,7 +27,7 @@ public class GetTemplatesUseCase {
      * @return List of template jobs
      */
     public List<ScheduledJobInfo> execute() {
-        return getScheduledJobsUseCase.execute().stream()
+        return jobSchedulerPort.getScheduledJobs().stream()
                 .filter(ScheduledJobInfo::isTemplate)
                 .toList();
     }

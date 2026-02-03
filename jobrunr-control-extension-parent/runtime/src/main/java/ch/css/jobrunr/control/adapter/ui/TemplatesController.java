@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.adapter.ui;
 import ch.css.jobrunr.control.application.discovery.DiscoverJobsUseCase;
 import ch.css.jobrunr.control.application.discovery.GetJobParametersUseCase;
 import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
+import ch.css.jobrunr.control.application.scheduling.StartJobUseCase;
 import ch.css.jobrunr.control.application.template.*;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
@@ -82,7 +83,7 @@ public class TemplatesController extends BaseController {
     CloneTemplateUseCase cloneTemplateUseCase;
 
     @Inject
-    ExecuteTemplateUseCase executeTemplateUseCase;
+    StartJobUseCase startJobUseCase;
 
     @GET
     @RolesAllowed({"viewer", "configurator", "admin"})
@@ -284,6 +285,7 @@ public class TemplatesController extends BaseController {
     @POST
     @Path("/{id}/clone")
     @RolesAllowed({"configurator", "admin"})
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance cloneTemplate(@PathParam("id") UUID jobId) {
         cloneTemplateUseCase.execute(jobId, null);
@@ -293,9 +295,10 @@ public class TemplatesController extends BaseController {
     @POST
     @Path("/{id}/start")
     @RolesAllowed({"admin"})
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance startTemplate(@PathParam("id") UUID templateId) {
-        executeTemplateUseCase.execute(templateId, null, null);
+        startJobUseCase.execute(templateId, null, null);
         return getDefaultTemplatesTable();
     }
 

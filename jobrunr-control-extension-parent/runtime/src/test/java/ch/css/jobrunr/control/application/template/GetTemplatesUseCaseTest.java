@@ -1,7 +1,7 @@
 package ch.css.jobrunr.control.application.template;
 
-import ch.css.jobrunr.control.application.monitoring.GetScheduledJobsUseCase;
 import ch.css.jobrunr.control.domain.JobDefinition;
+import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 class GetTemplatesUseCaseTest {
 
     @Mock
-    private GetScheduledJobsUseCase getScheduledJobsUseCase;
+    private JobSchedulerPort jobSchedulerPort;
 
     @InjectMocks
     private GetTemplatesUseCase useCase;
@@ -38,7 +38,7 @@ class GetTemplatesUseCaseTest {
                 createJobWithLabel("Job2", "template"),
                 createJobWithLabel("Job3", "regular")
         );
-        when(getScheduledJobsUseCase.execute()).thenReturn(allJobs);
+        when(jobSchedulerPort.getScheduledJobs()).thenReturn(allJobs);
 
         // Act
         List<ScheduledJobInfo> result = useCase.execute();
@@ -54,7 +54,7 @@ class GetTemplatesUseCaseTest {
     @DisplayName("should return empty list when no templates exist")
     void execute_NoTemplates_ReturnsEmptyList() {
         // Arrange
-        when(getScheduledJobsUseCase.execute()).thenReturn(List.of());
+        when(jobSchedulerPort.getScheduledJobs()).thenReturn(List.of());
 
         // Act
         List<ScheduledJobInfo> result = useCase.execute();

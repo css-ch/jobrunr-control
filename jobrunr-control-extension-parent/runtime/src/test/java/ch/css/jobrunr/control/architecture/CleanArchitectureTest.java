@@ -1,5 +1,7 @@
 package ch.css.jobrunr.control.architecture;
 
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -165,6 +167,38 @@ class CleanArchitectureTest {
                 .and().areDeclaredInClassesThat().haveSimpleNameEndingWith("UseCase")
                 .should().notBeAnnotatedWith("jakarta.inject.Inject")
                 .because("Constructor injection is required per organizational constraints");
+
+        rule.check(importedClasses);
+    }
+
+    /**
+     * Validates that use cases don't depend on other use cases.
+     * Use cases should use domain ports, services, or helpers instead.
+     * <p>
+     * This enforces the Clean Architecture principle that use cases are at the same
+     * layer and should not call each other. Business logic reuse should be achieved
+     * through domain services or helpers, and infrastructure access through ports.
+     * <p>
+     * Note: Dependencies on Helpers and Validators are allowed as they are support classes.
+     */
+    @Test
+    @DisplayName("Use cases should not depend on other use cases")
+    void useCasesShouldNotDependOnOtherUseCases() {
+        DescribedPredicate<JavaClass> isUseCase = new DescribedPredicate<>("is a UseCase in application layer") {
+            @Override
+            public boolean test(JavaClass javaClass) {
+                return javaClass.getPackageName().contains(".application.")
+                        && javaClass.getSimpleName().endsWith("UseCase");
+            }
+        };
+
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..application..")
+                .and().haveSimpleNameEndingWith("UseCase")
+                .should().dependOnClassesThat(isUseCase)
+                .because("Use cases are at the same layer and should not depend on each other. " +
+                        "Use domain ports, services, or helpers for shared logic instead " +
+                        "(Clean Architecture principle)");
 
         rule.check(importedClasses);
     }

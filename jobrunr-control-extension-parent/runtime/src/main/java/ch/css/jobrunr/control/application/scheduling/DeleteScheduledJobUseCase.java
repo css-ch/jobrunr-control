@@ -1,6 +1,7 @@
 package ch.css.jobrunr.control.application.scheduling;
 
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
+import ch.css.jobrunr.control.domain.ParameterStoragePort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -18,14 +19,14 @@ public class DeleteScheduledJobUseCase {
     private static final Logger log = Logger.getLogger(DeleteScheduledJobUseCase.class);
 
     private final JobSchedulerPort jobSchedulerPort;
-    private final DeleteParametersUseCase deleteParametersUseCase;
+    private final ParameterStoragePort parameterStoragePort;
 
     @Inject
     public DeleteScheduledJobUseCase(
             JobSchedulerPort jobSchedulerPort,
-            DeleteParametersUseCase deleteParametersUseCase) {
+            ParameterStoragePort parameterStoragePort) {
         this.jobSchedulerPort = jobSchedulerPort;
-        this.deleteParametersUseCase = deleteParametersUseCase;
+        this.parameterStoragePort = parameterStoragePort;
     }
 
     /**
@@ -44,7 +45,8 @@ public class DeleteScheduledJobUseCase {
             if (jobInfo != null && jobInfo.hasExternalParameters()) {
                 jobInfo.getParameterSetId().ifPresent(paramSetId -> {
                     log.debugf("Cleaning up external parameters for job %s: %s", jobId, paramSetId);
-                    deleteParametersUseCase.execute(paramSetId);
+                    parameterStoragePort.deleteById(paramSetId);
+                    log.infof("Deleted parameter set: %s", paramSetId);
                 });
             }
         } catch (Exception e) {

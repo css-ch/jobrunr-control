@@ -1,8 +1,11 @@
 package ch.css.jobrunr.control.application.template;
 
-import ch.css.jobrunr.control.application.scheduling.DeleteScheduledJobUseCase;
+import ch.css.jobrunr.control.domain.JobSchedulerPort;
+import ch.css.jobrunr.control.domain.ParameterStoragePort;
+import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.util.UUID;
 
@@ -12,11 +15,17 @@ import java.util.UUID;
 @ApplicationScoped
 public class DeleteTemplateUseCase {
 
-    private final DeleteScheduledJobUseCase deleteScheduledJobUseCase;
+    private static final Logger log = Logger.getLogger(DeleteTemplateUseCase.class);
+
+    private final JobSchedulerPort jobSchedulerPort;
+    private final ParameterStoragePort parameterStoragePort;
 
     @Inject
-    public DeleteTemplateUseCase(DeleteScheduledJobUseCase deleteScheduledJobUseCase) {
-        this.deleteScheduledJobUseCase = deleteScheduledJobUseCase;
+    public DeleteTemplateUseCase(
+            JobSchedulerPort jobSchedulerPort,
+            ParameterStoragePort parameterStoragePort) {
+        this.jobSchedulerPort = jobSchedulerPort;
+        this.parameterStoragePort = parameterStoragePort;
     }
 
     /**
@@ -25,6 +34,25 @@ public class DeleteTemplateUseCase {
      * @param templateId Template job ID
      */
     public void execute(UUID templateId) {
-        deleteScheduledJobUseCase.execute(templateId);
+        if (templateId == null) {
+            throw new IllegalArgumentException("templateId must not be null");
+        }
+
+        // Before deleting job, check if it has external parameters and clean them up
+        try {
+            ScheduledJobInfo jobInfo = jobSchedulerPort.getScheduledJobById(templateId);
+            if (jobInfo != null && jobInfo.hasExternalParameters()) {
+                jobInfo.getParameterSetId().ifPresent(paramSetId -> {
+                    log.debugf("Cleaning up external parameters for template %s: %s", templateId, paramSetId);
+                    parameterStoragePort.deleteById(paramSetId);
+                    log.infof("Deleted parameter set: %s", paramSetId);
+                });
+            }
+        } catch (Exception e) {
+            log.warnf("Failed to cleanup external parameters for template %s: %s", templateId, e.getMessage());
+            // Continue with job deletion even if parameter cleanup fails
+        }
+
+        jobSchedulerPort.deleteScheduledJob(templateId);
     }
 }

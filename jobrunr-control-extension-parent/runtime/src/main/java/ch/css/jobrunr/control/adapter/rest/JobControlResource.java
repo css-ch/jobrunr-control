@@ -2,11 +2,10 @@ package ch.css.jobrunr.control.adapter.rest;
 
 import ch.css.jobrunr.control.adapter.rest.dto.BatchProgressDTO;
 import ch.css.jobrunr.control.adapter.rest.dto.JobStatusResponse;
+import ch.css.jobrunr.control.adapter.rest.dto.StartJobRequestDTO;
 import ch.css.jobrunr.control.adapter.rest.dto.StartJobResponse;
-import ch.css.jobrunr.control.adapter.rest.dto.StartTemplateRequestDTO;
 import ch.css.jobrunr.control.application.monitoring.GetJobExecutionByIdUseCase;
-import ch.css.jobrunr.control.application.scheduling.ExecuteScheduledJobUseCase;
-import ch.css.jobrunr.control.application.template.ExecuteTemplateUseCase;
+import ch.css.jobrunr.control.application.scheduling.StartJobUseCase;
 import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import jakarta.annotation.security.PermitAll;
@@ -44,25 +43,24 @@ public class JobControlResource {
     private static final Logger log = Logger.getLogger(JobControlResource.class);
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
-    private final ExecuteScheduledJobUseCase executeScheduledJobUseCase;
+    private final StartJobUseCase startJobUseCase;
     private final GetJobExecutionByIdUseCase getJobExecutionByIdUseCase;
-    private final ExecuteTemplateUseCase executeTemplateUseCase;
 
     @Inject
     public JobControlResource(
-            ExecuteScheduledJobUseCase executeScheduledJobUseCase,
-            GetJobExecutionByIdUseCase getJobExecutionByIdUseCase,
-            ExecuteTemplateUseCase executeTemplateUseCase) {
-        this.executeScheduledJobUseCase = executeScheduledJobUseCase;
+            StartJobUseCase startJobUseCase,
+            GetJobExecutionByIdUseCase getJobExecutionByIdUseCase) {
+        this.startJobUseCase = startJobUseCase;
         this.getJobExecutionByIdUseCase = getJobExecutionByIdUseCase;
-        this.executeTemplateUseCase = executeTemplateUseCase;
     }
 
     /**
-     * Starts an externally triggerable job immediately.
+     * Starts a job (regular or template) immediately.
+     * If the job is a template, it will be cloned first with an optional postfix, then started.
+     * If it's a regular job, it will be started directly (postfix is ignored).
      *
-     * @param jobId      Job ID from path parameter
-     * @param parameters Optional map of parameter overrides in request body
+     * @param jobId   Job ID from path parameter
+     * @param request Request body containing optional postfix and parameter overrides
      * @return Response containing the started job ID and message
      */
     @POST
@@ -70,7 +68,9 @@ public class JobControlResource {
     @PermitAll
     @Operation(
             summary = "Start a job",
-            description = "Starts an externally triggerable job immediately with optional parameter overrides. The job must be scheduled with external trigger flag."
+            description = "Starts a job immediately. If the job is a template, it will be cloned and started. " +
+                    "If it's a regular scheduled job, it will be started directly. " +
+                    "Optionally accepts a postfix for template job names and parameter overrides."
     )
     @APIResponses({
             @APIResponse(
@@ -94,91 +94,35 @@ public class JobControlResource {
     public Response startJob(
             @Parameter(description = "Job ID", required = true)
             @PathParam("jobId") UUID jobId,
-            @RequestBody(description = "Optional parameter overrides", required = false,
-                    content = @Content(schema = @Schema(implementation = java.util.Map.class)))
-            java.util.Map<String, Object> parameters) {
+            @RequestBody(description = "Optional postfix and parameter overrides", required = false,
+                    content = @Content(schema = @Schema(implementation = StartJobRequestDTO.class)))
+            StartJobRequestDTO request) {
 
         if (jobId == null) {
             log.errorf("Invalid request: jobId is required");
             throw new BadRequestException("jobId is required");
         }
 
-        log.infof("Starting job with ID: %s with %s parameter override(s)",
-                jobId,
-                parameters != null ? parameters.size() : 0);
-
-        executeScheduledJobUseCase.execute(jobId, parameters);
-
-        StartJobResponse response = new StartJobResponse(
-                jobId,
-                "Job started successfully"
-        );
-
-        log.infof("Job %s started successfully", jobId);
-        return Response.ok(response).build();
-    }
-
-    /**
-     * Starts a template job by cloning it and executing the clone.
-     *
-     * @param templateId Template job ID from path parameter
-     * @param request    Request body containing optional postfix and parameter overrides
-     * @return Response containing the started job ID and message
-     */
-    @POST
-    @Path("/templates/{templateId}/start")
-    @PermitAll
-    @Operation(
-            summary = "Start a template job",
-            description = "Starts a template job by cloning it and executing the clone immediately. Optionally accepts a postfix for the job name and parameter overrides."
-    )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Template job started successfully",
-                    content = @Content(schema = @Schema(implementation = StartJobResponse.class))
-            ),
-            @APIResponse(
-                    responseCode = "400",
-                    description = "Invalid request"
-            ),
-            @APIResponse(
-                    responseCode = "404",
-                    description = "Template job not found"
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal server error"
-            )
-    })
-    public Response startTemplate(
-            @Parameter(description = "Template Job ID", required = true)
-            @PathParam("templateId") UUID templateId,
-            @RequestBody(description = "Optional postfix and parameter overrides", required = false,
-                    content = @Content(schema = @Schema(implementation = StartTemplateRequestDTO.class)))
-            StartTemplateRequestDTO request) {
-
-        if (templateId == null) {
-            log.errorf("Invalid request: templateId is required");
-            throw new BadRequestException("templateId is required");
-        }
-
         String postfix = request != null ? request.postfix() : null;
         java.util.Map<String, Object> parameters = request != null ? request.parameters() : null;
 
-        log.infof("Starting template job with ID: %s, postfix: %s, with %s parameter override(s)",
-                templateId,
-                postfix != null ? postfix : "auto-generated",
+        log.infof("Starting job with ID: %s, postfix: %s, with %s parameter override(s)",
+                jobId,
+                postfix != null ? postfix : "none",
                 parameters != null ? parameters.size() : 0);
 
-        UUID newJobId = executeTemplateUseCase.execute(templateId, postfix, parameters);
+        UUID resultJobId = startJobUseCase.execute(jobId, postfix, parameters);
+
+        // Determine if this was a template (ID changed) or a regular job (ID stayed the same)
+        boolean wasTemplate = !resultJobId.equals(jobId);
+        String message = wasTemplate ? "Template job started successfully" : "Job started successfully";
 
         StartJobResponse response = new StartJobResponse(
-                newJobId,
-                "Template job started successfully"
+                resultJobId,
+                message
         );
 
-        log.infof("Template job %s cloned and started as job %s", templateId, newJobId);
+        log.infof("Job started with ID: %s", resultJobId);
         return Response.ok(response).build();
     }
 

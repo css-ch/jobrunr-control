@@ -1,11 +1,20 @@
 package ch.css.jobrunr.control.application.template;
 
-import ch.css.jobrunr.control.application.scheduling.UpdateScheduledJobUseCase;
+import ch.css.jobrunr.control.application.scheduling.ParameterStorageHelper;
+import ch.css.jobrunr.control.application.validation.JobParameterValidator;
+import ch.css.jobrunr.control.domain.JobDefinition;
+import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
+import ch.css.jobrunr.control.domain.JobSchedulerPort;
+import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -15,11 +24,27 @@ import java.util.UUID;
 @ApplicationScoped
 public class UpdateTemplateUseCase {
 
-    private final UpdateScheduledJobUseCase updateScheduledJobUseCase;
+    // Date for externally triggerable jobs (31.12.2999)
+    private static final Instant EXTERNAL_TRIGGER_DATE =
+            LocalDate.of(2999, 12, 31)
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant();
+
+    private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
+    private final JobSchedulerPort jobSchedulerPort;
+    private final JobParameterValidator validator;
+    private final ParameterStorageHelper parameterStorageHelper;
 
     @Inject
-    public UpdateTemplateUseCase(UpdateScheduledJobUseCase updateScheduledJobUseCase) {
-        this.updateScheduledJobUseCase = updateScheduledJobUseCase;
+    public UpdateTemplateUseCase(
+            JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
+            JobSchedulerPort jobSchedulerPort,
+            JobParameterValidator validator,
+            ParameterStorageHelper parameterStorageHelper) {
+        this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
+        this.jobSchedulerPort = jobSchedulerPort;
+        this.validator = validator;
+        this.parameterStorageHelper = parameterStorageHelper;
     }
 
     /**
@@ -31,15 +56,29 @@ public class UpdateTemplateUseCase {
      * @param parameters Parameter map for job execution
      */
     public void execute(UUID templateId, String jobType, String jobName, Map<String, String> parameters) {
+        // Load job definition
+        Optional<JobDefinition> jobDefOpt = jobDefinitionDiscoveryService.findJobByType(jobType);
+        if (jobDefOpt.isEmpty()) {
+            throw new JobNotFoundException("JobDefinition for type '" + jobType + "' not found");
+        }
+        JobDefinition jobDefinition = jobDefOpt.get();
+
+        // Validate parameters
+        Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
+
+        // Prepare job parameters (handles inline vs external storage)
+        Map<String, Object> jobParameters = parameterStorageHelper.prepareJobParameters(
+                jobDefinition, jobType, jobName, convertedParameters);
+
         // Template jobs are always external trigger with no scheduled time and maintain the "template" label
-        updateScheduledJobUseCase.execute(
+        jobSchedulerPort.updateJob(
                 templateId,
-                jobType,
+                jobDefinition,
                 jobName,
-                parameters,
-                null,           // scheduledAt - templates have no schedule
-                true,           // isExternalTrigger
-                List.of("template")  // labels
+                jobParameters,
+                true,                    // isExternalTrigger
+                EXTERNAL_TRIGGER_DATE,   // External trigger uses special date
+                List.of("template")      // labels
         );
     }
 }

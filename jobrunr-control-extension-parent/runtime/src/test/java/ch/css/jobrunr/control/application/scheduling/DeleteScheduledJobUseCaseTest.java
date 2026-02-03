@@ -1,6 +1,7 @@
 package ch.css.jobrunr.control.application.scheduling;
 
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
+import ch.css.jobrunr.control.domain.ParameterStoragePort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,7 @@ class DeleteScheduledJobUseCaseTest {
     private JobSchedulerPort jobSchedulerPort;
 
     @Mock
-    private DeleteParametersUseCase deleteParametersUseCase;
+    private ParameterStoragePort parameterStoragePort;
 
     @InjectMocks
     private DeleteScheduledJobUseCase useCase;
@@ -44,7 +45,7 @@ class DeleteScheduledJobUseCaseTest {
         // Assert
         verify(jobSchedulerPort).getScheduledJobById(jobId);
         verify(jobSchedulerPort).deleteScheduledJob(jobId);
-        verify(deleteParametersUseCase, never()).execute(any());
+        verify(parameterStoragePort, never()).deleteById(any());
     }
 
     @Test
@@ -62,7 +63,7 @@ class DeleteScheduledJobUseCaseTest {
         useCase.execute(jobId);
 
         // Assert
-        verify(deleteParametersUseCase).execute(any(UUID.class));
+        verify(parameterStoragePort).deleteById(any(UUID.class));
         verify(jobSchedulerPort).deleteScheduledJob(jobId);
     }
 

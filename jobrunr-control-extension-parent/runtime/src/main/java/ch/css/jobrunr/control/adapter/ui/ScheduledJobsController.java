@@ -330,6 +330,7 @@ public class ScheduledJobsController extends BaseController {
     @POST
     @Path("/{id}/execute")
     @RolesAllowed({"admin"})
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance executeJob(@PathParam("id") UUID jobId) {
         executeScheduledJobUseCase.execute(jobId);
