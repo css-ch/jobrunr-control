@@ -16,6 +16,11 @@
 
     <name>Quarkus - JobRunr Control - Extension Parent</name>
 
+    <properties>
+        <!-- Skip deployment to Maven Central for this parent module -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
     <modules>
         <module>runtime</module>
         <module>deployment</module>
