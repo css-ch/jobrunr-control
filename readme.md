@@ -1,4 +1,4 @@
-# JobRunr Control Extension
+# Quarkus - JobRunr Control
 
 A Quarkus extension providing a web-based control dashboard and REST API for managing and monitoring jobs in JobRunr
 Pro.
@@ -28,20 +28,19 @@ provides:
 ```xml
 
 <dependency>
-    <groupId>ch.css.jobrunr</groupId>
-    <artifactId>jobrunr-control-extension</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <groupId>ch.css.quarkus</groupId>
+    <artifactId>quarkus-jobrunr-control</artifactId>
+    <version>1.0.1</version>
 </dependency>
-```
 
-### 2. Configure Your Application
+        ### 2. Configure Your Application
 
-```properties
-# application.properties
-quarkus.jobrunr.dashboard.type=embedded
-quarkus.jobrunr.dashboard.context-path=/dashboard
-# Enable dashboard access in dev mode (disable authentication)
-%dev.quarkus.jobrunr.dashboard.security.allow-all-to-be-monitored=true
+        ```properties
+        # application.properties
+        quarkus.jobrunr.dashboard.type=embedded
+        quarkus.jobrunr.dashboard.context-path=/dashboard
+        # Enable dashboard access in dev mode (disable authentication)
+        %dev.quarkus.jobrunr.dashboard.security.allow-all-to-be-monitored=true
 ```
 
 ### 3. Access the Dashboard

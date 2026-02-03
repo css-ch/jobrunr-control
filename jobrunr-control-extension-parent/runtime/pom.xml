@@ -6,13 +6,16 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>ch.css.jobrunr</groupId>
-        <artifactId>jobrunr-control-extension-parent</artifactId>
+        <groupId>ch.css.quarkus</groupId>
+        <artifactId>quarkus-jobrunr-control-extension-parent</artifactId>
         <version>1.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jobrunr-control-extension</artifactId>
-    <name>JobRunr Control Extension - Runtime</name>
+    <artifactId>quarkus-jobrunr-control</artifactId>
+    <name>Quarkus - JobRunr Control - Runtime</name>
+    <description>Quarkus extension for JobRunr Control - Runtime module providing web dashboard and REST API for JobRunr
+        Pro
+    </description>
 
     <dependencies>
         <!-- Quarkus Core -->

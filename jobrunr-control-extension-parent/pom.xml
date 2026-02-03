@@ -6,15 +6,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>ch.css.jobrunr</groupId>
-        <artifactId>jobrunr-control-parent</artifactId>
+        <groupId>ch.css.quarkus</groupId>
+        <artifactId>quarkus-jobrunr-control-parent</artifactId>
         <version>1.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jobrunr-control-extension-parent</artifactId>
+    <artifactId>quarkus-jobrunr-control-extension-parent</artifactId>
     <packaging>pom</packaging>
 
-    <name>JobRunr Control Extension - Parent</name>
+    <name>Quarkus - JobRunr Control - Extension Parent</name>
 
     <modules>
         <module>runtime</module>

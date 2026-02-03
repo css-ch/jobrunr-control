@@ -6,8 +6,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>ch.css.jobrunr</groupId>
-        <artifactId>jobrunr-control-parent</artifactId>
+        <groupId>ch.css.quarkus</groupId>
+        <artifactId>quarkus-jobrunr-control-parent</artifactId>
         <version>1.0.1-SNAPSHOT</version>
     </parent>
 
@@ -17,8 +17,8 @@
     <dependencies>
         <!-- Extension Dependency -->
         <dependency>
-            <groupId>ch.css.jobrunr</groupId>
-            <artifactId>jobrunr-control-extension</artifactId>
+            <groupId>ch.css.quarkus</groupId>
+            <artifactId>quarkus-jobrunr-control</artifactId>
             <version>${project.version}</version>
         </dependency>
 

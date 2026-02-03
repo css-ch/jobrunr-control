@@ -118,6 +118,21 @@ jobs:
           MAVEN_PASS: ${{ secrets.JOBRUNR_PASSWORD }}
           JOBRUNR_PRO_LICENSE: ${{ secrets.JOBRUNR_PRO_LICENSE }}
 
+      - name: Verify deployed artifacts
+        run: |
+          echo "🔍 Verifying deployed artifacts..."
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # List expected artifacts
+          echo "Expected artifacts in local repository:"
+          find ~/.m2/repository/ch/css/quarkus/ -name "*${VERSION}*" -type f | grep -v "\.repositories" | sort
+          
+          echo ""
+          echo "✅ Local artifacts verified"
+          echo ""
+          echo "⏳ Note: Artifacts will be available on Maven Central after manual publishing in Sonatype Central Portal"
+          echo "📝 Next step: Login to https://central.sonatype.com/ and publish the deployment"
+
       - name: Commit version changes
         if: github.event_name == 'workflow_dispatch'
         run: |

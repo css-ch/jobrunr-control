@@ -5,16 +5,16 @@
          https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ch.css.jobrunr</groupId>
-    <artifactId>jobrunr-control-parent</artifactId>
+    <groupId>ch.css.quarkus</groupId>
+    <artifactId>quarkus-jobrunr-control-parent</artifactId>
     <version>1.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>JobRunr Control Parent</name>
-    <description>JobRunr Control Extension - Web-based control dashboard and REST API for managing and monitoring jobs
-        in JobRunr Pro
+    <name>Quarkus - JobRunr Control - Parent</name>
+    <description>Quarkus extension for JobRunr Control - Web-based control dashboard and REST API for managing and
+        monitoring jobs in JobRunr Pro
     </description>
-    <url>https://github.com/lukasweibel/jobrunr-control</url>
+    <url>https://github.com/css-ch/jobrunr-control</url>
 
     <licenses>
         <license>
@@ -33,9 +33,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/lukasweibel/jobrunr-control.git</connection>
-        <developerConnection>scm:git:ssh://github.com:lukasweibel/jobrunr-control.git</developerConnection>
-        <url>https://github.com/lukasweibel/jobrunr-control</url>
+        <connection>scm:git:git://github.com/css-ch/jobrunr-control.git</connection>
+        <developerConnection>scm:git:ssh://github.com/css-ch/jobrunr-control.git</developerConnection>
+        <url>https://github.com/css-ch/jobrunr-control</url>
         <tag>HEAD</tag>
     </scm>
 

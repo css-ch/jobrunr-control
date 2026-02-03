@@ -1,18 +1,20 @@
 ---
-name: "JobRunr Control Extension"
-description: "UI and REST API for managing JobRunr Pro scheduled jobs with configurable paths and htmx-based interface"
+name: "JobRunr Control"
+description: "Web-based control dashboard and REST API for managing and monitoring JobRunr Pro scheduled jobs"
 metadata:
   keywords:
     - "jobrunr"
+    - "jobrunr-pro"
     - "scheduler"
     - "jobs"
+    - "dashboard"
+    - "monitoring"
     - "ui"
     - "qute"
     - "htmx"
-    - "monitoring"
-  guide: "https://github.com/css/jobrunr-control"
+  guide: "https://github.com/css-ch/jobrunr-control"
   categories:
     - "web"
     - "observability"
   status: "stable"
-  built-with-quarkus-core: "3.30.7"
+  built-with-quarkus-core: "3.30.8"

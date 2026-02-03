@@ -6,19 +6,20 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>ch.css.jobrunr</groupId>
-        <artifactId>jobrunr-control-extension-parent</artifactId>
+        <groupId>ch.css.quarkus</groupId>
+        <artifactId>quarkus-jobrunr-control-extension-parent</artifactId>
         <version>1.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jobrunr-control-extension-deployment</artifactId>
-    <name>JobRunr Control Extension - Deployment</name>
+    <artifactId>quarkus-jobrunr-control-deployment</artifactId>
+    <name>Quarkus - JobRunr Control - Deployment</name>
+    <description>Quarkus extension for JobRunr Control - Deployment module for build-time processing</description>
 
     <dependencies>
         <!-- Runtime Module -->
         <dependency>
-            <groupId>ch.css.jobrunr</groupId>
-            <artifactId>jobrunr-control-extension</artifactId>
+            <groupId>ch.css.quarkus</groupId>
+            <artifactId>quarkus-jobrunr-control</artifactId>
             <version>${project.version}</version>
         </dependency>
 
