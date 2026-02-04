@@ -353,7 +353,7 @@ The domain layer defines the core business model and port interfaces:
 |Defines a single parameter with name, type, default value, and constraints
 
 |`JobParameterType`
-|Enumeration of supported types: STRING, INTEGER, BOOLEAN, DATE, DATETIME, ENUM
+|Enumeration of supported types: STRING, MULTILINE, INTEGER, DOUBLE, BOOLEAN, DATE, DATETIME, ENUM, MULTI_ENUM
 
 |`ScheduledJobInfo`
 |Represents a scheduled job instance with parameters
@@ -674,6 +674,98 @@ end note
 
 @enduml
 ----
+
+=== Job Chain Status Evaluation (Runtime)
+
+When jobs use continuation chains (via `continueWith()` or `onFailure()` callbacks), the extension evaluates the overall status of the entire chain to provide accurate visibility.
+
+[plantuml,job-chain-status,svg]
+----
+@startuml
+actor User
+participant "UI Controller" as ui
+participant "GetJobExecutionHistoryUseCase" as usecase
+participant "JobExecutionPort" as port
+participant "JobRunrExecutionAdapter" as adapter
+participant "JobChainStatusEvaluator" as evaluator
+participant "JobRunr StorageProvider" as storage
+
+User -> ui: View execution history
+ui -> usecase: execute(filters)
+usecase -> port: getJobExecutionHistory()
+port -> adapter: getJobChainExecutionById(jobId)
+
+adapter -> storage: getJobById(parentJobId)
+storage --> adapter: parent Job
+
+adapter -> evaluator: evaluateChainStatus(parentJobId, parentStatus)
+
+evaluator -> storage: getJobList(withAwaitingOn=parentJobId)
+storage --> evaluator: continuation jobs
+
+loop recursively find leaf jobs
+    evaluator -> storage: getJobList(withAwaitingOn=continuationJobId)
+    storage --> evaluator: child continuation jobs
+end
+
+evaluator -> evaluator: determine relevant leaf jobs\n(based on parent status:\nsuccess → continueWith jobs,\nfailure → onFailure jobs)
+
+evaluator -> evaluator: check if all relevant\nleaf jobs are terminal\n(SUCCEEDED, FAILED, DELETED)
+
+alt all leaf jobs complete
+    evaluator -> evaluator: any leaf job failed?\nYes → FAILED\nNo → SUCCEEDED
+else any leaf job in progress
+    evaluator -> evaluator: status = PROCESSING
+end
+
+evaluator --> adapter: JobChainStatus(isComplete, overallStatus)
+adapter --> port: JobExecutionInfo with chain status
+port --> usecase: execution history with chain status
+usecase --> ui: display to user
+
+note right of evaluator
+  Evaluation Rules:
+  - Only "relevant" leaf jobs matter
+    (continueWith if parent succeeded,
+     onFailure if parent failed)
+  - Chain complete when all
+    relevant leaves are terminal
+  - Chain failed if any relevant
+    leaf failed
+end note
+
+@enduml
+----
+
+==== Job Chain Status Logic
+
+The `JobChainStatusEvaluator` component implements the following logic:
+
+.Chain Status Determination
+[cols="1,3"]
+|===
+|Condition |Result
+
+|No continuation jobs
+|Chain status equals parent job status
+
+|All relevant leaf jobs succeeded
+|Chain status = `SUCCEEDED`, isComplete = `true`
+
+|Any relevant leaf job failed
+|Chain status = `FAILED`, isComplete = `true`
+
+|Any relevant leaf job still running (ENQUEUED, PROCESSING, PROCESSED)
+|Chain status = `PROCESSING`, isComplete = `false`
+|===
+
+.Relevant Leaf Jobs
+The evaluator determines which jobs are "relevant" based on the parent's status:
+
+* If parent **SUCCEEDED**: Only `continueWith()` jobs are relevant
+* If parent **FAILED**: Only `onFailure()` jobs are relevant
+
+This ensures accurate status reporting for conditional continuation chains.
 
 == Cross-Cutting Concerns
 

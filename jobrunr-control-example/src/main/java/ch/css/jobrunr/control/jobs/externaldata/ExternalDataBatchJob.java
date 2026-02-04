@@ -62,6 +62,7 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
         String stringParam = parameterSet.getString("stringExternalParameter");
         String notesParam = parameterSet.getString("notesExternalParameter");
         Integer integerParam = parameterSet.getInteger("integerExternalParameter");
+        Double doubleParam = parameterSet.getDouble("doubleExternalParameter");
         Boolean booleanParam = parameterSet.getBoolean("booleanExternalParameter");
         LocalDate dateParam = parameterSet.getDate("dateExternalParameter");
         LocalDateTime dateTimeParam = parameterSet.getDateTime("dateTimeExternalParameter");
@@ -74,12 +75,13 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
                         "  String: %s%n" +
                         "  Notes (Multiline): %s%n" +
                         "  Integer: %d%n" +
+                        "  Double: %f%n" +
                         "  Boolean: %b%n" +
                         "  LocalDate: %s%n" +
                         "  LocalDateTime: %s%n" +
                         "  Enum: %s%n" +
                         "  EnumSet: %s",
-                numberOfChildJobs, stringParam, notesParam, integerParam, booleanParam, dateParam, dateTimeParam, enumParam, multiEnumParam));
+                numberOfChildJobs, stringParam, notesParam, integerParam, doubleParam, booleanParam, dateParam, dateTimeParam, enumParam, multiEnumParam));
 
         // Create batch items (using integer parameter for batch count)
         List<ExternalDataBatchItemRequest> items = IntStream.rangeClosed(1, numberOfChildJobs)

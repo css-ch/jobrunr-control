@@ -36,6 +36,11 @@ public record ExternalDataBatchJobRequest(
                         defaultValue = "100"
                 ),
                 @JobParameterDefinition(
+                        name = "doubleExternalParameter",
+                        type = "java.lang.Double",
+                        defaultValue = "3.14159"
+                ),
+                @JobParameterDefinition(
                         name = "booleanExternalParameter",
                         type = "java.lang.Boolean",
                         defaultValue = "true"

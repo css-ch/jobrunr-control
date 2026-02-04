@@ -26,20 +26,26 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
 
     private final StorageProvider storageProvider;
     private final ConfigurableJobSearchAdapter configurableJobSearchAdapter;
+    private final JobChainStatusEvaluator jobChainStatusEvaluator;
+    private final JobStateMapper jobStateMapper;
 
     @Inject
     public JobRunrExecutionAdapter(
             StorageProvider storageProvider,
             JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
-            ConfigurableJobSearchAdapter configurableJobSearchAdapter
+            ConfigurableJobSearchAdapter configurableJobSearchAdapter,
+            JobChainStatusEvaluator jobChainStatusEvaluator,
+            JobStateMapper jobStateMapper
     ) {
         this.storageProvider = storageProvider;
         this.configurableJobSearchAdapter = configurableJobSearchAdapter;
+        this.jobChainStatusEvaluator = jobChainStatusEvaluator;
+        this.jobStateMapper = jobStateMapper;
     }
 
     @Override
     public List<JobExecutionInfo> getJobExecutions() {
-        List<StateName> relavantStates = List.of(
+        List<StateName> relevantStates = List.of(
                 StateName.ENQUEUED,
                 StateName.AWAITING,
                 StateName.PROCESSING,
@@ -47,7 +53,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                 StateName.SUCCEEDED,
                 StateName.FAILED
         );
-        return configurableJobSearchAdapter.getConfigurableJob(relavantStates)
+        return configurableJobSearchAdapter.getConfigurableJob(relevantStates)
                 .stream().map(j -> mapToJobExecutionInfo(j.jobDefinition().jobType(), j.job()))
                 .toList();
     }
@@ -68,8 +74,32 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         }
     }
 
+    @Override
+    public Optional<JobExecutionInfo> getJobChainExecutionById(UUID jobId) {
+        try {
+            org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
+            String jobType = job.getLabels().stream()
+                    .filter(label -> label.startsWith("jobtype:"))
+                    .map(label -> label.substring(8))
+                    .findFirst()
+                    .orElse(null);
+
+            JobExecutionInfo jobInfo = mapToJobExecutionInfo(jobType, job);
+
+            // Evaluate the job chain status
+            JobChainStatusEvaluator.JobChainStatus chainStatus =
+                    jobChainStatusEvaluator.evaluateChainStatus(jobId, jobInfo.status());
+
+            // Return job info with status from chain evaluation
+            return Optional.of(jobInfo.withStatus(chainStatus.overallStatus()));
+        } catch (Exception e) {
+            log.errorf(e, "Error retrieving job chain %s", jobId);
+            return Optional.empty();
+        }
+    }
+
     private JobExecutionInfo mapToJobExecutionInfo(String jobType, org.jobrunr.jobs.Job job) {
-        JobStatus status = mapJobState(job.getJobState());
+        JobStatus status = jobStateMapper.mapJobState(job.getJobState());
         Instant startedAt = extractStartedAt(job);
         Instant finishedAt = extractFinishedAt(job);
         BatchProgress batchProgress = extractBatchProgress(job);
@@ -95,23 +125,6 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         );
     }
 
-    private JobStatus mapJobState(JobState jobState) {
-        return switch (jobState) {
-            case EnqueuedState s -> JobStatus.ENQUEUED;
-            case ScheduledState s -> JobStatus.ENQUEUED;
-            case AwaitingState s -> JobStatus.ENQUEUED;
-            case ProcessingState s -> JobStatus.PROCESSING;
-            case ProcessedState s -> JobStatus.PROCESSED;
-            case SucceededState s -> JobStatus.SUCCEEDED;
-            case FailedState s -> JobStatus.FAILED;
-            case FailedBatchJobState s -> JobStatus.FAILED;
-            case null -> JobStatus.ENQUEUED;
-            default -> {
-                log.warnf("Unexpected job state: %s. Defaulting to ENQUEUED.", jobState.getName());
-                yield JobStatus.ENQUEUED;
-            }
-        };
-    }
 
     private Instant extractStartedAt(org.jobrunr.jobs.Job job) {
         // Suche nach PROCESSING State in der Job-History

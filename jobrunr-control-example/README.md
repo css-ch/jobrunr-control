@@ -29,10 +29,15 @@ Demonstrates all parameter types
 
 **Parameters:**
 
-- `stringParam` (String)
-- `integerParam` (Integer)
-- `booleanParam` (Boolean)
-- `instantParam` (Instant)
+- `stringParameter` (String)
+- `multilineParameter` (String/Multiline)
+- `integerParameter` (Integer)
+- `doubleParameter` (Double)
+- `booleanParameter` (Boolean)
+- `dateParameter` (LocalDate)
+- `dateTimeParameter` (LocalDateTime)
+- `enumParameter` (Enum)
+- `multiEnumParameter` (EnumSet)
 
 ### 3. SimpleReportJob
 

@@ -326,6 +326,16 @@ public record MyJobRequest(
 |`"1234567890"`
 |Large whole numbers
 
+|`Double` / `double`
+|Decimal number input
+|`"3.14159"`
+|Floating-point numbers
+
+|`Float` / `float`
+|Decimal number input
+|`"2.71828"`
+|Floating-point numbers (mapped to DOUBLE)
+
 |`Boolean` / `boolean`
 |Checkbox
 |`"true"` or `"false"`
@@ -801,6 +811,75 @@ public record MyBatchJobRequest(Integer batchSize)
     }
 }
 ----
+
+=== Job Chain Status Evaluation
+
+When using lifecycle callbacks (`continueWith()` or `onFailure()`), the JobRunr Control extension automatically evaluates the overall status of the entire job chain.
+
+==== How It Works
+
+The extension analyzes all continuation jobs recursively to determine:
+
+* **Chain Completion**: Whether all relevant jobs in the chain have finished executing
+* **Overall Status**: The aggregated status representing the entire workflow
+
+==== Status Evaluation Rules
+
+[cols="1,3"]
+|===
+|Condition |Chain Status
+
+|All relevant leaf jobs succeeded
+|`SUCCEEDED`
+
+|Any executed leaf job failed
+|`FAILED`
+
+|Any leaf job is still running (ENQUEUED, PROCESSING, PROCESSED)
+|`PROCESSING` (in-progress)
+
+|Parent job has no continuation jobs
+|Status equals parent job status
+|===
+
+==== Relevant Leaf Jobs
+
+The evaluator determines which jobs are "relevant" based on the parent job's status:
+
+* **continueWith()** jobs: Only execute if parent **SUCCEEDED** → included in evaluation when parent succeeds
+* **onFailure()** jobs: Only execute if parent **FAILED** → included in evaluation when parent fails
+
+[source,java]
+----
+public record DataProcessingRequest(String dataPath)
+    implements JobRequest, JobRequestOnSuccessFactory, JobRequestOnFailureFeactory {
+
+    @Override
+    public JobRequest createOnSuccessJobRequest(...) {
+        // This job only executes if parent succeeds
+        return new NotifySuccessRequest(...);
+    }
+
+    @Override
+    public JobRequest createOnFailureJobRequest(...) {
+        // This job only executes if parent fails
+        return new AlertFailureRequest(...);
+    }
+}
+----
+
+==== Benefits
+
+* **Accurate Workflow Visibility**: See the true status of complex job chains in the UI
+* **Automatic Tracking**: No manual status management required
+* **Deep Chain Support**: Works with nested continuation chains of any depth
+* **Conditional Execution**: Properly handles success-only and failure-only continuations
+
+[TIP]
+====
+The job chain status is visible in the JobRunr Control dashboard execution history.
+For detailed per-job analysis, click the deep-link to JobRunr Pro Dashboard.
+====
 
 == @ConfigurableJob Options
 

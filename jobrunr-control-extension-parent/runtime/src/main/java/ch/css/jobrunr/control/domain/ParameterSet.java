@@ -70,6 +70,17 @@ public record ParameterSet(
     }
 
     /**
+     * Gets a Double parameter value.
+     */
+    public Double getDouble(String name) {
+        Object value = parameters.get(name);
+        if (value == null) return null;
+        if (value instanceof Double d) return d;
+        if (value instanceof Number n) return n.doubleValue();
+        return Double.parseDouble(value.toString());
+    }
+
+    /**
      * Gets a LocalDate parameter value.
      */
     public LocalDate getDate(String name) {

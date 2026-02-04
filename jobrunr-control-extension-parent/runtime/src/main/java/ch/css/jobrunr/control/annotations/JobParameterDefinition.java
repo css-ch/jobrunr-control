@@ -27,11 +27,14 @@ public @interface JobParameterDefinition {
      * It will be parsed to the target type at runtime.
      * Use standard formats:
      * - String: "some text"
-     * - boolean: "true" or "false"
-     * - Integer: "123"
+     * - MULTILINE: "line 1\nline 2\nline 3"
+     * - Integer/Long: "123"
+     * - Double/Float: "3.14159"
+     * - Boolean: "true" or "false"
      * - Enum: "ENUM_VALUE"
-     * - LocalDate: "yyyy-MM-dd" (e.g., "2023-12-31")
-     * - LocalDateTime: ISO-8601 (e.g., "2023-12-31T23:59:59")
+     * - EnumSet: "VALUE1,VALUE2,VALUE3"
+     * - LocalDate: "yyyy-MM-dd" (e.g., "2024-12-31")
+     * - LocalDateTime: ISO-8601 (e.g., "2024-12-31T23:59:59")
      */
     String defaultValue() default NO_DEFAULT_VALUE;
 

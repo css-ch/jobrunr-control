@@ -69,5 +69,26 @@ public record JobExecutionInfo(
     public boolean isBatchJob() {
         return batchProgress != null;
     }
+
+    /**
+     * Creates a new JobExecutionInfo with a different status.
+     * All other fields remain the same.
+     *
+     * @param newStatus The new status to use
+     * @return A new JobExecutionInfo instance with the updated status
+     */
+    public JobExecutionInfo withStatus(JobStatus newStatus) {
+        return new JobExecutionInfo(
+                jobId,
+                jobName,
+                jobType,
+                newStatus,
+                startedAt,
+                finishedAt,
+                batchProgress,
+                parameters,
+                metadata
+        );
+    }
 }
 

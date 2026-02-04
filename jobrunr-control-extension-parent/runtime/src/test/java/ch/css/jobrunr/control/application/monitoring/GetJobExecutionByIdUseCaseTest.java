@@ -28,19 +28,19 @@ class GetJobExecutionByIdUseCaseTest {
     private GetJobExecutionByIdUseCase useCase;
 
     @Test
-    @DisplayName("should return job execution when exists")
+    @DisplayName("should return job execution with chain-evaluated status when job exists")
     void execute_ExistingExecution_ReturnsExecution() {
         // Arrange
         UUID executionId = UUID.randomUUID();
         JobExecutionInfo expectedExecution = mock(JobExecutionInfo.class);
-        when(jobExecutionPort.getJobExecutionById(executionId)).thenReturn(Optional.of(expectedExecution));
+        when(jobExecutionPort.getJobChainExecutionById(executionId)).thenReturn(Optional.of(expectedExecution));
 
         // Act
         JobExecutionInfo result = useCase.execute(executionId);
 
         // Assert
         assertThat(result).isEqualTo(expectedExecution);
-        verify(jobExecutionPort).getJobExecutionById(executionId);
+        verify(jobExecutionPort).getJobChainExecutionById(executionId);
     }
 
     @Test
@@ -48,12 +48,21 @@ class GetJobExecutionByIdUseCaseTest {
     void execute_NonExistentExecution_ThrowsException() {
         // Arrange
         UUID executionId = UUID.randomUUID();
-        when(jobExecutionPort.getJobExecutionById(executionId)).thenReturn(Optional.empty());
+        when(jobExecutionPort.getJobChainExecutionById(executionId)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThatThrownBy(() -> useCase.execute(executionId))
                 .isInstanceOf(JobNotFoundException.class)
                 .hasMessageContaining("Job with ID")
                 .hasMessageContaining(executionId.toString());
+    }
+
+    @Test
+    @DisplayName("should throw IllegalArgumentException when jobId is null")
+    void execute_NullJobId_ThrowsException() {
+        // Act & Assert
+        assertThatThrownBy(() -> useCase.execute(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("jobId must not be null");
     }
 }

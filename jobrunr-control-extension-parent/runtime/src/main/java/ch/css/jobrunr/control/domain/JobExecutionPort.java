@@ -25,5 +25,13 @@ public interface JobExecutionPort {
      */
     Optional<JobExecutionInfo> getJobExecutionById(UUID jobId);
 
+    /**
+     * Finds a job execution by ID. And checks the state of the entire job chain.
+     *
+     * @param jobId Job ID
+     * @return Optional with job execution information, if found
+     */
+    Optional<JobExecutionInfo> getJobChainExecutionById(UUID jobId);
+
 }
 

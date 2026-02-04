@@ -180,6 +180,10 @@ Jobs in progress are not affected.
 |Whole number
 |`42`, `-10`, `1000`
 
+|**Double**
+|Decimal number
+|`3.14159`, `-2.5`, `0.001`
+
 |**Boolean**
 |Checkbox (true/false)
 |Checked = true
@@ -620,6 +624,21 @@ The Execution History view shows all job executions with their current status:
 |**FAILED**
 |Job execution failed (may retry automatically)
 |===
+
+[NOTE]
+====
+**Job Chain Status Evaluation**
+
+For jobs with continuation chains (using success or failure callbacks), the displayed status represents the **overall chain status**, not just the parent job:
+
+* **Chain Complete**: All continuation jobs have finished (SUCCEEDED, FAILED, or DELETED)
+* **Chain In-Progress**: At least one continuation job is still running (ENQUEUED, PROCESSING, PROCESSED)
+* **Chain Success**: All executed continuation jobs succeeded
+* **Chain Failure**: Any executed continuation job failed
+
+This provides accurate visibility into complex job workflows.
+Click the deep-link to JobRunr Pro Dashboard to see individual job details.
+====
 
 === Filtering by Status
 

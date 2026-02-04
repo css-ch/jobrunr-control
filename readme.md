@@ -86,6 +86,7 @@ Three roles control access to different features:
 | String     | Plain text                | `"Hello World"`              |
 | Multiline  | Multi-line text           | `"Line 1\nLine 2\nLine 3"`   |
 | Integer    | Whole number              | `42`                         |
+| Double     | Decimal number            | `3.14159`                    |
 | Boolean    | true/false                | `true`                       |
 | Date       | ISO date                  | `2024-01-15`                 |
 | DateTime   | ISO datetime              | `2024-01-15T10:30:00`        |
@@ -100,6 +101,18 @@ The extension supports two parameter storage strategies:
 - **External Storage**: Parameters stored in separate database table for large parameter sets
 
 Use `@JobParameterSet` annotation on JobRequest to enable external storage. Requires Hibernate ORM configuration.
+
+### Job Chain Status Evaluation
+
+For jobs with continuation chains (using `continueWith()` or `onFailure()`), the extension automatically evaluates the overall status of the entire chain:
+
+- **Chain Status Determination**: The status reflects the state of all jobs in the chain, not just the parent job
+- **Completion Detection**: A chain is complete when all relevant leaf jobs have finished (SUCCEEDED, FAILED, or DELETED)
+- **In-Progress Tracking**: A chain is IN_PROGRESS when any leaf job is still running (ENQUEUED, PROCESSING, PROCESSED)
+- **Success Evaluation**: A chain SUCCEEDED when all executed leaf jobs succeeded
+- **Failure Evaluation**: A chain FAILED when any executed leaf job failed
+
+This ensures accurate status reporting for complex job workflows with multiple continuation steps.
 
 ## Development
 
