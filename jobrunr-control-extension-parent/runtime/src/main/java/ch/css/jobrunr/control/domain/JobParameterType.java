@@ -8,6 +8,7 @@ public enum JobParameterType {
     STRING,
     MULTILINE,
     INTEGER,
+    DOUBLE,
     BOOLEAN,
     DATE,
     DATETIME,

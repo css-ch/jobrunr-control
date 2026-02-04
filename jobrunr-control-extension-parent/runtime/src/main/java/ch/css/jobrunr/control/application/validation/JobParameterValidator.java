@@ -80,6 +80,7 @@ public class JobParameterValidator {
                 case STRING -> convertToString(value);
                 case MULTILINE -> convertToString(value);
                 case INTEGER -> convertToInteger(name, value);
+                case DOUBLE -> convertToDouble(name, value);
                 case BOOLEAN -> convertToBoolean(name, value);
                 case DATE -> convertToDate(name, value);
                 case DATETIME -> convertToDateTime(name, value);
@@ -123,6 +124,17 @@ public class JobParameterValidator {
             return Integer.parseInt(value.toString());
         } catch (NumberFormatException e) {
             throw new ValidationException("Parameter '" + name + "' muss eine ganze Zahl sein");
+        }
+    }
+
+    private Double convertToDouble(String name, Object value) {
+        try {
+            if (value instanceof Number) {
+                return ((Number) value).doubleValue();
+            }
+            return Double.parseDouble(value.toString());
+        } catch (NumberFormatException e) {
+            throw new ValidationException("Parameter '" + name + "' muss eine Zahl sein");
         }
     }
 

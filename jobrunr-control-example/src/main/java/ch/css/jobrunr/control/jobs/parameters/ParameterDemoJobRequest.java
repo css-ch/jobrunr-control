@@ -14,6 +14,8 @@ public record ParameterDemoJobRequest(
         String multilineParameter,
         @JobParameterDefinition(defaultValue = "42")
         Integer integerParameter,
+        @JobParameterDefinition(defaultValue = "3.14159")
+        Double doubleParameter,
         @JobParameterDefinition(defaultValue = "true")
         Boolean booleanParameter,
         @JobParameterDefinition(defaultValue = "2024-01-01")

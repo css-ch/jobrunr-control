@@ -207,6 +207,8 @@ public class ParameterExtractor {
             case "MULTILINE" -> JobParameterType.MULTILINE;
             case "java.lang.Integer", "int" -> JobParameterType.INTEGER;
             case "java.lang.Long", "long" -> JobParameterType.INTEGER;
+            case "java.lang.Double", "double" -> JobParameterType.DOUBLE;
+            case "java.lang.Float", "float" -> JobParameterType.DOUBLE;
             case "java.lang.Boolean", "boolean" -> JobParameterType.BOOLEAN;
             case "java.time.LocalDate" -> JobParameterType.DATE;
             case "java.time.LocalDateTime" -> JobParameterType.DATETIME;
@@ -225,7 +227,7 @@ public class ParameterExtractor {
 
                 throw new IllegalStateException(
                         "Unsupported parameter type: " + typeString + ". " +
-                                "Supported types: String, MULTILINE, Integer, Long, Boolean, LocalDate, LocalDateTime, Enum, EnumSet<Enum>");
+                                "Supported types: String, MULTILINE, Integer, Long, Double, Float, Boolean, LocalDate, LocalDateTime, Enum, EnumSet<Enum>");
             }
         };
     }
@@ -270,8 +272,8 @@ public class ParameterExtractor {
             case "java.lang.Integer", "Integer", "int" -> JobParameterType.INTEGER;
             case "java.lang.Boolean", "Boolean", "boolean" -> JobParameterType.BOOLEAN;
             case "java.lang.Long", "Long", "long" -> JobParameterType.INTEGER;
-            case "java.lang.Double", "Double", "double" -> JobParameterType.INTEGER;
-            case "java.lang.Float", "Float", "float" -> JobParameterType.INTEGER;
+            case "java.lang.Double", "Double", "double" -> JobParameterType.DOUBLE;
+            case "java.lang.Float", "Float", "float" -> JobParameterType.DOUBLE;
             case "java.lang.Short", "Short", "short" -> JobParameterType.INTEGER;
             case "java.lang.Byte", "Byte", "byte" -> JobParameterType.INTEGER;
             case "java.lang.Character", "Character", "char" -> JobParameterType.STRING;

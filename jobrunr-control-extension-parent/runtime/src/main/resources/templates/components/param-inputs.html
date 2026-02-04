@@ -70,6 +70,28 @@
                                 {/if}
                                placeholder="Zahl eingeben">
 
+                    {#else if param.type().name() == 'DOUBLE'}
+                        <input type="number"
+                               step="any"
+                               name="parameters.{param.name()}"
+                               id="param-{param.name()}"
+                               class="form-control"
+                               {#if param.required()}required{/if}
+                                {#if existingValues}
+                                    {#if existingValues.get(param.name())}
+                                        value="{existingValues.get(param.name())}"
+                                    {#else}
+                                        {#if param.defaultValue()}
+                                            value="{param.defaultValue()}"
+                                        {/if}
+                                    {/if}
+                                {#else}
+                                    {#if param.defaultValue()}
+                                        value="{param.defaultValue()}"
+                                    {/if}
+                                {/if}
+                               placeholder="Dezimalzahl eingeben (z.B. 3.14)">
+
                     {#else if param.type().name() == 'BOOLEAN'}
                         <select name="parameters.{param.name()}"
                                 id="param-{param.name()}"
