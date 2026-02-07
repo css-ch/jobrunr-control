@@ -17,7 +17,7 @@ import java.util.Random;
 @ApplicationScoped
 public class ExternalDataBatchItemProcessor implements JobRequestHandler<ExternalDataBatchItemRequest> {
 
-    private static final Random random = new Random();
+    private static final Random RANDOM = new Random();
 
     /**
      * Executes the external data batch item processing.
@@ -48,7 +48,7 @@ public class ExternalDataBatchItemProcessor implements JobRequestHandler<Externa
             Thread.sleep(100);
 
             // Simulate occasional errors if enabled
-            if (request.simulateErrors() && random.nextDouble() < 0.1) {
+            if (request.simulateErrors() && RANDOM.nextDouble() < 0.1) {
                 throw new JobProcessingException("Simulated processing error for child job " + request.childId());
             }
 

@@ -7,11 +7,11 @@ import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
 @ApplicationScoped
 public class ExampleBatchFailure implements JobRequestHandler<ExampleBatchFailureRequest> {
-    private static final Logger log = Logger.getLogger(ExampleBatchFailure.class);
+    private static final Logger LOG = Logger.getLogger(ExampleBatchFailure.class);
 
     @Override
     @Job(name = "Example Batch Failure Post-Processing Job", retries = 0)
     public void run(ExampleBatchFailureRequest jobRequest) {
-        log.infof("Starting example batch failure job. Parent job id: %s", jobContext().getAwaitedJob());
+        LOG.infof("Starting example batch failure job. Parent job id: %s", jobContext().getAwaitedJob());
     }
 }

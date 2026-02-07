@@ -15,7 +15,7 @@ import java.util.Optional;
 @ApplicationScoped
 public class JobDefinitionDiscoveryAdapter implements JobDefinitionDiscoveryService {
 
-    private static final Logger log = Logger.getLogger(JobDefinitionDiscoveryAdapter.class);
+    private static final Logger LOG = Logger.getLogger(JobDefinitionDiscoveryAdapter.class);
 
     /**
      * Returns all discovered job definitions.

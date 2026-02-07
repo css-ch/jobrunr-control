@@ -17,7 +17,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class ParameterStorageHelper {
 
-    private static final Logger log = Logger.getLogger(ParameterStorageHelper.class);
+    private static final Logger LOG = Logger.getLogger(ParameterStorageHelper.class);
 
     private final ParameterStorageService parameterStorageService;
 
@@ -62,7 +62,7 @@ public class ParameterStorageHelper {
         ParameterSet parameterSet = ParameterSet.create(parameterSetId, jobType, convertedParameters);
         parameterStorageService.store(parameterSet);
 
-        log.infof("Stored parameters externally with ID: %s for job: %s", parameterSetId, jobName);
+        LOG.infof("Stored parameters externally with ID: %s for job: %s", parameterSetId, jobName);
 
         // Return parameter map with only the parameter set ID
         return Map.of(jobDefinition.parameterSetFieldName(), parameterSetId.toString());

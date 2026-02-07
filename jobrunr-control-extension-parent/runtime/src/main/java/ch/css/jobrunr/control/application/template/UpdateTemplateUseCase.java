@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.application.template;
 
+import ch.css.jobrunr.control.application.scheduling.JobUpdateHelper;
 import ch.css.jobrunr.control.application.scheduling.ParameterStorageHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
@@ -12,7 +13,6 @@ import jakarta.inject.Inject;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -61,14 +61,10 @@ public class UpdateTemplateUseCase {
         if (jobDefOpt.isEmpty()) {
             throw new JobNotFoundException("JobDefinition for type '" + jobType + "' not found");
         }
-        JobDefinition jobDefinition = jobDefOpt.get();
-
-        // Validate parameters
-        Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
-
-        // Prepare job parameters (handles inline vs external storage)
-        Map<String, Object> jobParameters = parameterStorageHelper.prepareJobParameters(
-                jobDefinition, jobType, jobName, convertedParameters);
+        JobUpdateHelper.JobUpdateData jobUpdateData = JobUpdateHelper.prepareJobUpdateData(
+                jobType, jobName, parameters, jobDefinitionDiscoveryService, validator, parameterStorageHelper);
+        JobDefinition jobDefinition = jobUpdateData.jobDefinition();
+        Map<String, Object> jobParameters = jobUpdateData.jobParameters();
 
         // Template jobs are always external trigger with no scheduled time and maintain the "template" label
         jobSchedulerPort.updateJob(
@@ -78,7 +74,7 @@ public class UpdateTemplateUseCase {
                 jobParameters,
                 true,                    // isExternalTrigger
                 EXTERNAL_TRIGGER_DATE,   // External trigger uses special date
-                List.of("template")      // labels
+                java.util.List.of("template") // Always add "template" label
         );
     }
 }

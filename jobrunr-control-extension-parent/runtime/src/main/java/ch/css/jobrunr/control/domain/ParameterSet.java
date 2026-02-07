@@ -3,14 +3,17 @@ package ch.css.jobrunr.control.domain;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Represents a set of job parameters stored externally.
  * Used when parameter storage strategy is EXTERNAL.
+ *
+ * @param id             Unique identifier
+ * @param jobType        Job type name
+ * @param parameters     Parameter values map
+ * @param createdAt      Creation timestamp
+ * @param lastAccessedAt Last access timestamp
  */
 public record ParameterSet(
         UUID id,
@@ -61,12 +64,19 @@ public record ParameterSet(
 
     /**
      * Gets a Boolean parameter value.
+     *
+     * @param name Parameter name
+     * @return Optional containing the boolean value, or empty if parameter is missing or not a boolean
      */
-    public Boolean getBoolean(String name) {
+    public Optional<Boolean> getBoolean(String name) {
         Object value = parameters.get(name);
-        if (value == null) return null;
-        if (value instanceof Boolean b) return b;
-        return Boolean.parseBoolean(value.toString());
+        if (value == null) return Optional.empty();
+        if (value instanceof Boolean b) return Optional.of(b);
+        try {
+            return Optional.of(Boolean.parseBoolean(value.toString()));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
     /**

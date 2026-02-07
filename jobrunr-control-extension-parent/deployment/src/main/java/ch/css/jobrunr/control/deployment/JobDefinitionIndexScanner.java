@@ -22,9 +22,9 @@ import java.util.Set;
  *   <li>{@link JobSettingsExtractor} - Extracts job settings from annotations</li>
  * </ul>
  */
-class JobDefinitionIndexScanner {
+final class JobDefinitionIndexScanner {
 
-    private static final Logger log = Logger.getLogger(JobDefinitionIndexScanner.class);
+    private static final Logger LOG = Logger.getLogger(JobDefinitionIndexScanner.class);
 
     private static final DotName JOB_REQUEST_HANDLER = DotName.createSimple(JobRequestHandler.class.getName());
 
@@ -46,13 +46,13 @@ class JobDefinitionIndexScanner {
         ParameterExtractor parameterExtractor = new ParameterExtractor(index);
         JobSettingsExtractor settingsExtractor = new JobSettingsExtractor();
 
-        log.debugf("Searching for JobRequestHandler implementations");
+        LOG.debugf("Searching for JobRequestHandler implementations");
 
         // Find all classes that implement JobRequestHandler
         var implementations = index.getAllKnownImplementations(JOB_REQUEST_HANDLER);
 
         for (ClassInfo classInfo : implementations) {
-            log.debugf("Inspecting implementation: %s", classInfo.name());
+            LOG.debugf("Inspecting implementation: %s", classInfo.name());
 
             // Find the run method with @ConfigurableJob annotation
             MethodInfo runMethod = settingsExtractor.findConfigurableJobMethod(classInfo);
@@ -60,7 +60,7 @@ class JobDefinitionIndexScanner {
                 continue;
             }
 
-            log.debugf("Found @ConfigurableJob run method on %s", classInfo.name());
+            LOG.debugf("Found @ConfigurableJob run method on %s", classInfo.name());
 
             // Extract the JobRequest type parameter
             Type jobRequestType = requestAnalyzer.findJobRequestType(classInfo);
@@ -71,7 +71,7 @@ class JobDefinitionIndexScanner {
             // Get the JobRequest class info
             ClassInfo requestClassInfo = index.getClassByName(jobRequestType.name());
             if (requestClassInfo == null) {
-                log.debugf("Could not find ClassInfo for JobRequest type: %s", jobRequestType.name());
+                LOG.debugf("Could not find ClassInfo for JobRequest type: %s", jobRequestType.name());
                 continue;
             }
 
@@ -87,7 +87,7 @@ class JobDefinitionIndexScanner {
             JobSettings jobSettings = settingsExtractor.extractJobSettings(runMethod);
 
             // Log discovered job
-            log.infof("Discovered job: %s (batch=%s, externalParams=%s) with %s parameters",
+            LOG.infof("Discovered job: %s (batch=%s, externalParams=%s) with %s parameters",
                     jobType, isBatchJob, analyzedParams.usesExternalParameters(),
                     analyzedParams.parameters().size());
 

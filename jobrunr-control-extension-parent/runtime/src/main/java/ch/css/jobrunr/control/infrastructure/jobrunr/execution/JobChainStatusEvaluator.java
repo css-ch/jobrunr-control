@@ -33,7 +33,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class JobChainStatusEvaluator {
 
-    private static final Logger log = Logger.getLogger(JobChainStatusEvaluator.class);
+    private static final Logger LOG = Logger.getLogger(JobChainStatusEvaluator.class);
 
     private final StorageProvider storageProvider;
     private final JobStateMapper jobStateMapper;
@@ -68,7 +68,7 @@ public class JobChainStatusEvaluator {
             return evaluateLeafJobs(parentJobStatus, leafJobs);
 
         } catch (Exception e) {
-            log.errorf(e, "Error evaluating chain status for parent job %s", parentJobId);
+            LOG.errorf(e, "Error evaluating chain status for parent job %s", parentJobId);
             return new JobChainStatus(isTerminalStatus(parentJobStatus), parentJobStatus);
         }
     }
@@ -150,13 +150,32 @@ public class JobChainStatusEvaluator {
 
     /**
      * Extracts the awaiting states from a job.
+     * <p>
+     * LIMITATION: JobRunr Pro's AwaitingState does not expose the continuation type (continueWith vs onFailure)
+     * through its public API, and JobSearchRequestBuilder does not provide a withAwaitingOnStates() method
+     * to filter by parent state triggers.
+     * <p>
+     * Conservative Approach: This method returns BOTH SUCCEEDED and FAILED states to ensure all continuation
+     * types are considered. This may include jobs that won't execute (e.g., an onFailure continuation when
+     * the parent succeeds), but ensures complete chain status evaluation.
+     * <p>
+     * Impact:
+     * - Chain status evaluation is conservative (may show IN_PROGRESS for jobs that won't execute)
+     * - More accurate than assuming only SUCCEEDED, which would miss onFailure() continuations
+     * <p>
+     * Alternative Solutions:
+     * 1. Use reflection to access JobRunr internals (fragile, version-dependent)
+     * 2. Request JobRunr Pro to expose continuation type in AwaitingState API
+     * 3. Maintain external metadata about continuation types (requires code changes)
+     *
+     * @param job the job to analyze
+     * @return set of awaiting states (currently returns both SUCCEEDED and FAILED for safety)
      */
     private Set<JobAwaitingState> extractAwaitingStates(Job job) {
-        // Check current state
+        // Check current state or job history for AwaitingState
         if (job.getJobState() instanceof AwaitingState) {
-            // Default to SUCCEEDED (most common case for continueWith)
-            // TODO: Use reflection or metadata to detect FAILED (onFailure) continuations
-            return Set.of(JobAwaitingState.SUCCEEDED);
+            // Conservative approach: assume job could be triggered by either parent success or failure
+            return Set.of(JobAwaitingState.SUCCEEDED, JobAwaitingState.FAILED);
         }
 
         // Check job history for AwaitingState
@@ -165,7 +184,8 @@ public class JobChainStatusEvaluator {
                 .findFirst();
 
         if (awaitingStateOpt.isPresent()) {
-            return Set.of(JobAwaitingState.SUCCEEDED);
+            // Conservative approach: assume job could be triggered by either parent success or failure
+            return Set.of(JobAwaitingState.SUCCEEDED, JobAwaitingState.FAILED);
         }
 
         return Set.of();

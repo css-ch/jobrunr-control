@@ -22,7 +22,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class ParameterStorageAdapter implements ParameterStorageService {
 
-    private static final Logger log = Logger.getLogger(ParameterStorageAdapter.class);
+    private static final Logger LOG = Logger.getLogger(ParameterStorageAdapter.class);
 
     private final Instance<ParameterStoragePort> storageAdapters;
 
@@ -36,7 +36,7 @@ public class ParameterStorageAdapter implements ParameterStorageService {
         try {
             return storageAdapters.select(JpaParameterStorageAdapter.class).isResolvable();
         } catch (Exception e) {
-            log.debugf("External storage check failed: %s", e.getMessage());
+            LOG.debugf("External storage check failed: %s", e.getMessage());
             return false;
         }
     }
@@ -55,7 +55,7 @@ public class ParameterStorageAdapter implements ParameterStorageService {
                             "Ensure Hibernate ORM is enabled (quarkus.hibernate-orm.enabled=true)");
         }
         getExternalStorage().store(parameterSet);
-        log.debugf("Stored parameter set: %s", parameterSet.id());
+        LOG.debugf("Stored parameter set: %s", parameterSet.id());
     }
 
     /**
@@ -67,7 +67,7 @@ public class ParameterStorageAdapter implements ParameterStorageService {
     @Override
     public Optional<ParameterSet> findById(UUID id) {
         if (!isExternalStorageAvailable()) {
-            log.warnf("External storage not available, cannot load parameter set: %s", id);
+            LOG.warnf("External storage not available, cannot load parameter set: %s", id);
             return Optional.empty();
         }
         return getExternalStorage().findById(id);
@@ -82,7 +82,7 @@ public class ParameterStorageAdapter implements ParameterStorageService {
     public void deleteById(UUID id) {
         if (isExternalStorageAvailable()) {
             getExternalStorage().deleteById(id);
-            log.debugf("Deleted parameter set: %s", id);
+            LOG.debugf("Deleted parameter set: %s", id);
         }
     }
 

@@ -32,8 +32,10 @@ public class FlywayProcessor {
             return null;
         }
 
-        String tablePrefix = config.tablePrefix().orElse("");
-        LOG.info("JobRunr Control Flyway migrations enabled with table prefix: '" + tablePrefix + "'");
+        if (LOG.isInfoEnabled()) {
+            String tablePrefix = config.tablePrefix().orElse("");
+            LOG.info("JobRunr Control Flyway migrations enabled with table prefix: '" + tablePrefix + "'");
+        }
 
         return new FeatureBuildItem(FEATURE_NAME);
     }

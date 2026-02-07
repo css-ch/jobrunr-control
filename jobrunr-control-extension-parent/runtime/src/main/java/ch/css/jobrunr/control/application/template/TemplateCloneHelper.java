@@ -21,7 +21,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class TemplateCloneHelper {
 
-    private static final Logger log = Logger.getLogger(TemplateCloneHelper.class);
+    private static final Logger LOG = Logger.getLogger(TemplateCloneHelper.class);
 
     private final JobSchedulerPort jobSchedulerPort;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
@@ -55,13 +55,13 @@ public class TemplateCloneHelper {
             throw new IllegalArgumentException("Template job not found: " + templateId);
         }
 
-        log.infof("Cloning template job %s (%s)", templateId, sourceJob.jobName());
+        LOG.infof("Cloning template job %s (%s)", templateId, sourceJob.jobName());
 
         // Merge parameters: start with template parameters, then apply overrides
         Map<String, Object> mergedParameters = new HashMap<>(sourceJob.parameters());
         if (parameterOverrides != null && !parameterOverrides.isEmpty()) {
             mergedParameters.putAll(parameterOverrides);
-            log.infof("Applied %s parameter override(s)", parameterOverrides.size());
+            LOG.infof("Applied %s parameter override(s)", parameterOverrides.size());
         }
 
         // Create a new name for the clone
@@ -88,7 +88,7 @@ public class TemplateCloneHelper {
             );
         }
 
-        log.infof("Created cloned job with ID: %s and name: %s", newJobId, newJobName);
+        LOG.infof("Created cloned job with ID: %s and name: %s", newJobId, newJobName);
 
         return newJobId;
     }
@@ -101,9 +101,10 @@ public class TemplateCloneHelper {
      * @return Generated job name
      */
     private String generateJobName(String baseJobName, String postfix) {
-        if (postfix == null || postfix.isBlank()) {
-            postfix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String effectivePostfix = postfix;
+        if (effectivePostfix == null || effectivePostfix.isBlank()) {
+            effectivePostfix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         }
-        return baseJobName + "-" + postfix;
+        return baseJobName + "-" + effectivePostfix;
     }
 }

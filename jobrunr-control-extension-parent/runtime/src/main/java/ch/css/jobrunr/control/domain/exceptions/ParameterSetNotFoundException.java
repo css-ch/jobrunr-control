@@ -14,6 +14,9 @@ public class ParameterSetNotFoundException extends RuntimeException {
         this.parameterSetId = parameterSetId;
     }
 
+    /**
+     * Returns the ID of the parameter set that was not found.
+     */
     public UUID getParameterSetId() {
         return parameterSetId;
     }

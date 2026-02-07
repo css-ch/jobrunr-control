@@ -13,7 +13,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class DeleteParametersUseCase {
 
-    private static final Logger log = Logger.getLogger(DeleteParametersUseCase.class);
+    private static final Logger LOG = Logger.getLogger(DeleteParametersUseCase.class);
 
     private final ParameterStoragePort parameterStoragePort;
 
@@ -33,6 +33,6 @@ public class DeleteParametersUseCase {
         }
 
         parameterStoragePort.deleteById(parameterSetId);
-        log.infof("Deleted parameter set: %s", parameterSetId);
+        LOG.infof("Deleted parameter set: %s", parameterSetId);
     }
 }

@@ -5,6 +5,7 @@ import ch.css.jobrunr.control.annotations.JobRequestOnFailureFactory;
 import ch.css.jobrunr.control.annotations.JobRequestOnSuccessFactory;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobSettings;
+import ch.css.jobrunr.control.domain.exceptions.JobSchedulingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -31,7 +32,7 @@ import static org.jobrunr.scheduling.JobBuilder.aJob;
 @ApplicationScoped
 public class JobInvoker {
 
-    private static final Logger log = Logger.getLogger(JobInvoker.class);
+    private static final Logger LOG = Logger.getLogger(JobInvoker.class);
 
     private final JobRequestScheduler jobScheduler;
     private final ObjectMapper objectMapper;
@@ -86,14 +87,14 @@ public class JobInvoker {
             if (jobRequest instanceof JobRequestOnFailureFactory jobRequestOnFailureFactory) {
                 jobRequestId.onFailure(jobRequestOnFailureFactory.createOnFailureJobRequest(jobRequestId, jobRequest));
             }
-            log.infof("Job scheduled successfully: %s (batch=%s) with JobId: %s", jobDefinition.jobSettings().name(), jobDefinition.jobType(), jobRequestId);
+            LOG.infof("Job scheduled successfully: %s (batch=%s) with JobId: %s", jobDefinition.jobSettings().name(), jobDefinition.jobType(), jobRequestId);
             return jobRequestId;
         } catch (ClassNotFoundException e) {
-            log.errorf("Failed to load JobRequest class: %s", jobDefinition.jobRequestTypeName(), e);
-            throw new RuntimeException("JobRequest class not found: " + jobDefinition.jobRequestTypeName(), e);
+            LOG.errorf("Failed to load JobRequest class: %s", jobDefinition.jobRequestTypeName(), e);
+            throw new JobSchedulingException("JobRequest class not found: " + jobDefinition.jobRequestTypeName(), e);
         } catch (Exception e) {
-            log.errorf("Failed to schedule job: %s (batch=%s)", jobDefinition.jobSettings().name(), jobDefinition.jobType(), e);
-            throw new RuntimeException("Failed to schedule job: " + jobDefinition.jobSettings().name(), e);
+            LOG.errorf("Failed to schedule job: %s (batch=%s)", jobDefinition.jobSettings().name(), jobDefinition.jobType(), e);
+            throw new JobSchedulingException("Failed to schedule job: " + jobDefinition.jobSettings().name(), e);
         }
     }
 
@@ -141,9 +142,9 @@ public class JobInvoker {
                             (Class<? extends org.jobrunr.jobs.filters.JobFilter>)
                                     Thread.currentThread().getContextClassLoader().loadClass(filterClassName);
                     // jobBuilder.withJobFilter(filterClass); // Method may not exist in JobRunr 8.4.1
-                    log.warnf("JobFilter support not yet implemented: %s", filterClassName);
+                    LOG.warnf("JobFilter support not yet implemented: %s", filterClassName);
                 } catch (ClassNotFoundException e) {
-                    log.warnf("Could not load JobFilter class: %s", filterClassName, e);
+                    LOG.warnf("Could not load JobFilter class: %s", filterClassName, e);
                 }
             }
         }
@@ -156,7 +157,7 @@ public class JobInvoker {
         // Apply server tag if provided
         if (settings.runOnServerWithTag() != null && !settings.runOnServerWithTag().isEmpty()) {
             // jobBuilder.runOnServerWithTag(settings.runOnServerWithTag()); // Method may not exist in JobRunr 8.4.1
-            log.warnf("Server tag support not yet implemented: %s", settings.runOnServerWithTag());
+            LOG.warnf("Server tag support not yet implemented: %s", settings.runOnServerWithTag());
         }
 
         // Apply mutex if provided
@@ -175,7 +176,7 @@ public class JobInvoker {
                 java.time.Duration timeout = java.time.Duration.parse(settings.processTimeOut());
                 jobBuilder.withProcessTimeOut(timeout);
             } catch (Exception e) {
-                log.warnf(e, "Invalid process timeout format: %s", settings.processTimeOut());
+                LOG.warnf(e, "Invalid process timeout format: %s", settings.processTimeOut());
             }
         }
 

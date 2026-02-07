@@ -19,7 +19,10 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -30,7 +33,7 @@ import java.util.stream.Collectors;
 @Path("/q/jobrunr-control/templates")
 public class TemplatesController extends BaseController {
 
-    private static final Logger log = Logger.getLogger(TemplatesController.class);
+    private static final Logger LOG = Logger.getLogger(TemplatesController.class);
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Templates {
@@ -108,27 +111,9 @@ public class TemplatesController extends BaseController {
         // Get all template jobs
         List<ScheduledJobInfo> jobs = getTemplatesUseCase.execute();
 
-        // Filter by job type if specified
-        if (jobType != null && !jobType.isBlank() && !"all".equals(jobType)) {
-            jobs = jobs.stream()
-                    .filter(job -> jobType.equals(job.getJobType()))
-                    .toList();
-        }
-
-        // Apply search
-        jobs = JobSearchUtils.applySearchToScheduledJobs(search, jobs);
-
-        // Apply sorting
-        Comparator<ScheduledJobInfo> comparator = getComparator(sortBy);
-        if ("desc".equalsIgnoreCase(sortOrder)) {
-            comparator = comparator.reversed();
-        }
-        jobs = jobs.stream()
-                .sorted(comparator)
-                .collect(Collectors.toList());
-
-        // Apply pagination
-        PaginationHelper.PaginationResult<ScheduledJobInfo> paginationResult = PaginationHelper.paginate(jobs, page, size);
+        // Use base controller helper for filter, search, sort, paginate
+        PaginationHelper.PaginationResult<ScheduledJobInfo> paginationResult =
+                filterSortAndPaginate(jobs, jobType, search, sortBy, sortOrder, page, size, this::getComparator);
 
         // Convert to view models with resolved parameters
         List<ScheduledJobInfoView> jobViews = paginationResult.getPageItems().stream()
@@ -165,30 +150,16 @@ public class TemplatesController extends BaseController {
         ScheduledJobInfo jobInfo = getTemplateByIdUseCase.execute(jobId)
                 .orElseThrow(() -> new NotFoundException("Template nicht gefunden: " + jobId));
 
-        // Resolve parameters (expand external parameter sets)
-        Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(jobInfo.getParameters());
-
-        // Create a new ScheduledJobInfo with resolved parameters for the form
-        ScheduledJobInfo jobInfoWithResolvedParams = new ScheduledJobInfo(
-                jobInfo.getJobId(),
-                jobInfo.getJobName(),
-                jobInfo.getJobDefinition(),
-                jobInfo.getScheduledAt(),
-                resolvedParameters,
-                jobInfo.isExternallyTriggerable(),
-                jobInfo.getLabels()
+        // Use base controller helper to resolve parameters
+        ResolvedJobData resolvedData = resolveJobParameters(
+                jobInfo,
+                params -> resolveParametersUseCase.execute(params),
+                jobType -> getJobParametersUseCase.execute(jobType),
+                LOG
         );
 
-        // Load parameter definitions for this job type
-        List<JobParameter> parameters = Collections.emptyList();
-        try {
-            parameters = getJobParametersUseCase.execute(jobInfo.getJobType());
-            log.infof("Loaded %s parameter definitions for job type '%s' in edit mode", parameters.size(), jobInfo.getJobType());
-        } catch (Exception e) {
-            log.errorf("Error loading parameters for job type '%s': %s", jobInfo.getJobType(), e.getMessage(), e);
-        }
-
-        return Modals.templateForm(jobDefinitions, true, jobInfoWithResolvedParams, parameters);
+        return Modals.templateForm(jobDefinitions, true,
+                resolvedData.jobInfoWithResolvedParams, resolvedData.parameters);
     }
 
     @GET
@@ -196,10 +167,10 @@ public class TemplatesController extends BaseController {
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getJobParameters(@QueryParam("jobType") String jobType) {
-        log.infof("getJobParameters called with jobType='%s'", jobType);
+        LOG.infof("getJobParameters called with jobType='%s'", jobType);
 
         if (jobType == null || jobType.isBlank()) {
-            log.warnf("jobType is empty");
+            LOG.warnf("jobType is empty");
             return ScheduledJobsController.Components.paramInputs(List.of(), null);
         }
 
@@ -207,10 +178,10 @@ public class TemplatesController extends BaseController {
             List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream()
                     .sorted(Comparator.comparing(JobParameter::name))
                     .toList();
-            log.infof("Found %s parameters for job type '%s'", parameters.size(), jobType);
+            LOG.infof("Found %s parameters for job type '%s'", parameters.size(), jobType);
             return ScheduledJobsController.Components.paramInputs(parameters, null);
         } catch (Exception e) {
-            log.errorf("Error getting parameters for job type '%s': %s", jobType, e.getMessage(), e);
+            LOG.errorf("Error getting parameters for job type '%s': %s", jobType, e.getMessage(), e);
             return ScheduledJobsController.Components.paramInputs(List.of(), null);
         }
     }
@@ -226,7 +197,7 @@ public class TemplatesController extends BaseController {
 
         try {
             if (jobType == null || jobType.isBlank()) {
-                log.warnf("Job type is empty");
+                LOG.warnf("Job type is empty");
                 return buildErrorResponse("Job type is required");
             }
 
@@ -237,7 +208,7 @@ public class TemplatesController extends BaseController {
 
             return buildModalCloseResponse(getDefaultTemplatesTable());
         } catch (Exception e) {
-            log.errorf(e, "Error creating template");
+            LOG.errorf(e, "Error creating template");
             return buildErrorResponse("Error creating template: " + e.getMessage());
         }
     }
@@ -254,10 +225,10 @@ public class TemplatesController extends BaseController {
             MultivaluedMap<String, String> allFormParams) {
 
         try {
-            log.infof("Updating template %s - jobType=%s, jobName=%s", jobId, jobType, jobName);
+            LOG.infof("Updating template %s - jobType=%s, jobName=%s", jobId, jobType, jobName);
 
             if (jobType == null || jobType.isBlank()) {
-                log.warnf("Job type is empty");
+                LOG.warnf("Job type is empty");
                 return buildErrorResponse("Job type is required");
             }
 
@@ -268,7 +239,7 @@ public class TemplatesController extends BaseController {
 
             return buildModalCloseResponse(getDefaultTemplatesTable());
         } catch (Exception e) {
-            log.errorf(e, "Error updating template %s", jobId);
+            LOG.errorf(e, "Error updating template %s", jobId);
             return buildErrorResponse("Error updating template: " + e.getMessage());
         }
     }
@@ -305,7 +276,6 @@ public class TemplatesController extends BaseController {
 
     private Comparator<ScheduledJobInfo> getComparator(String sortBy) {
         return switch (sortBy) {
-            case "jobName" -> Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
             case "jobType" -> Comparator.comparing(ScheduledJobInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
             default -> Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
         };

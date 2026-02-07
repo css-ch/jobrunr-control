@@ -77,14 +77,12 @@ public class JobParameterValidator {
 
         try {
             return switch (type) {
-                case STRING -> convertToString(value);
-                case MULTILINE -> convertToString(value);
+                case STRING, ENUM, MULTILINE -> convertToString(value);
                 case INTEGER -> convertToInteger(name, value);
                 case DOUBLE -> convertToDouble(name, value);
                 case BOOLEAN -> convertToBoolean(name, value);
                 case DATE -> convertToDate(name, value);
                 case DATETIME -> convertToDateTime(name, value);
-                case ENUM -> convertToString(value);
                 case MULTI_ENUM -> convertToStringList(value);
             };
         } catch (ValidationException e) {

@@ -63,7 +63,7 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
         String notesParam = parameterSet.getString("notesExternalParameter");
         Integer integerParam = parameterSet.getInteger("integerExternalParameter");
         Double doubleParam = parameterSet.getDouble("doubleExternalParameter");
-        Boolean booleanParam = parameterSet.getBoolean("booleanExternalParameter");
+        Boolean booleanParam = parameterSet.getBoolean("booleanExternalParameter").orElse(null);
         LocalDate dateParam = parameterSet.getDate("dateExternalParameter");
         LocalDateTime dateTimeParam = parameterSet.getDateTime("dateTimeExternalParameter");
         EnumParameter enumParam = parameterSet.getEnum("enumExternalParameter", EnumParameter.class);

@@ -22,7 +22,10 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -32,7 +35,7 @@ import java.util.stream.Collectors;
 @Path("/q/jobrunr-control/scheduled")
 public class ScheduledJobsController extends BaseController {
 
-    private static final Logger log = Logger.getLogger(ScheduledJobsController.class);
+    private static final Logger LOG = Logger.getLogger(ScheduledJobsController.class);
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Templates {
@@ -128,26 +131,9 @@ public class ScheduledJobsController extends BaseController {
                     .toList();
         }
 
-        // Filter by job type if specified
-        if (jobType != null && !jobType.isBlank() && !"all".equals(jobType)) {
-            jobs = jobs.stream()
-                    .filter(job -> jobType.equals(job.getJobType()))
-                    .toList();
-        }
-        // Suche anwenden
-        jobs = JobSearchUtils.applySearchToScheduledJobs(search, jobs);
-
-        // Sortierung anwenden
-        Comparator<ScheduledJobInfo> comparator = getComparator(sortBy);
-        if ("desc".equalsIgnoreCase(sortOrder)) {
-            comparator = comparator.reversed();
-        }
-        jobs = jobs.stream()
-                .sorted(comparator)
-                .collect(Collectors.toList());
-
-        // Pagination anwenden
-        PaginationHelper.PaginationResult<ScheduledJobInfo> paginationResult = PaginationHelper.paginate(jobs, page, size);
+        // Use base controller helper for filter, search, sort, paginate
+        PaginationHelper.PaginationResult<ScheduledJobInfo> paginationResult =
+                filterSortAndPaginate(jobs, jobType, search, sortBy, sortOrder, page, size, this::getComparator);
 
         // Convert to view models with resolved parameters
         List<ScheduledJobInfoView> jobViews = paginationResult.getPageItems().stream()
@@ -187,30 +173,16 @@ public class ScheduledJobsController extends BaseController {
         ScheduledJobInfo jobInfo = getScheduledJobByIdUseCase.execute(jobId)
                 .orElseThrow(() -> new NotFoundException("Job nicht gefunden: " + jobId));
 
-        // Resolve parameters (expand external parameter sets)
-        Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(jobInfo.getParameters());
-
-        // Create a new ScheduledJobInfo with resolved parameters for the form
-        ScheduledJobInfo jobInfoWithResolvedParams = new ScheduledJobInfo(
-                jobInfo.getJobId(),
-                jobInfo.getJobName(),
-                jobInfo.getJobDefinition(),
-                jobInfo.getScheduledAt(),
-                resolvedParameters,
-                jobInfo.isExternallyTriggerable(),
-                jobInfo.getLabels()
+        // Use base controller helper to resolve parameters
+        ResolvedJobData resolvedData = resolveJobParameters(
+                jobInfo,
+                params -> resolveParametersUseCase.execute(params),
+                jobType -> getJobParametersUseCase.execute(jobType),
+                LOG
         );
 
-        // Load parameter definitions for this job type
-        List<JobParameter> parameters = Collections.emptyList();
-        try {
-            parameters = getJobParametersUseCase.execute(jobInfo.getJobType());
-            log.infof("Loaded %s parameter definitions for job type '%s' in edit mode", parameters.size(), jobInfo.getJobType());
-        } catch (Exception e) {
-            log.errorf("Error loading parameters for job type '%s': %s", jobInfo.getJobType(), e.getMessage(), e);
-        }
-
-        return Modals.jobForm(jobDefinitions, true, jobInfoWithResolvedParams, parameters);
+        return Modals.jobForm(jobDefinitions, true,
+                resolvedData.jobInfoWithResolvedParams, resolvedData.parameters);
     }
 
     @GET
@@ -218,23 +190,23 @@ public class ScheduledJobsController extends BaseController {
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getJobParameters(@QueryParam("jobType") String jobType) {
-        log.debugf("getJobParameters called with jobType='%s'", jobType);
+        LOG.debugf("getJobParameters called with jobType='%s'", jobType);
 
         if (jobType == null || jobType.isBlank()) {
-            log.warnf("jobType is empty");
+            LOG.warnf("jobType is empty");
             return Components.paramInputs(List.of(), null);
         }
 
         try {
             List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream().sorted(Comparator.comparing(JobParameter::name)).toList();
-            log.infof("Found %s parameters for job type '%s'", parameters.size(), jobType);
+            LOG.infof("Found %s parameters for job type '%s'", parameters.size(), jobType);
             for (JobParameter param : parameters) {
-                log.infof("  - Parameter: %s (type: %s, required: %s, defaultValue: '%s')",
+                LOG.infof("  - Parameter: %s (type: %s, required: %s, defaultValue: '%s')",
                         param.name(), param.type(), param.required(), param.defaultValue());
             }
             return Components.paramInputs(parameters, null);
         } catch (Exception e) {
-            log.errorf("Error getting parameters for job type '%s': %s", jobType, e.getMessage(), e);
+            LOG.errorf("Error getting parameters for job type '%s': %s", jobType, e.getMessage(), e);
             return Components.paramInputs(List.of(), null);
         }
     }
@@ -253,7 +225,7 @@ public class ScheduledJobsController extends BaseController {
         try {
             // Validate required fields
             if (jobType == null || jobType.isBlank()) {
-                log.warnf("Job type is empty");
+                LOG.warnf("Job type is empty");
                 return buildErrorResponse("Job type is required");
             }
 
@@ -269,7 +241,7 @@ public class ScheduledJobsController extends BaseController {
             // Return updated table with header to close modal
             return buildModalCloseResponse(getDefaultScheduledJobsTable());
         } catch (Exception e) {
-            log.errorf(e, "Error creating job");
+            LOG.errorf(e, "Error creating job");
             return buildErrorResponse("Error creating job: " + e.getMessage());
         }
     }
@@ -289,13 +261,13 @@ public class ScheduledJobsController extends BaseController {
             RoutingContext context) {
 
         try {
-            log.infof("Updating job %s - jobType=%s, jobName=%s, triggerType=%s, scheduledAt=%s",
+            LOG.infof("Updating job %s - jobType=%s, jobName=%s, triggerType=%s, scheduledAt=%s",
                     jobId, jobType, jobName, triggerType, scheduledAt);
-            log.infof("All form parameters: %s", allFormParams);
+            LOG.infof("All form parameters: %s", allFormParams);
 
             // Validate required fields
             if (jobType == null || jobType.isBlank()) {
-                log.warnf("Job type is empty");
+                LOG.warnf("Job type is empty");
                 return buildErrorResponse("Job type is required");
             }
 
@@ -304,7 +276,7 @@ public class ScheduledJobsController extends BaseController {
 
             Map<String, String> paramMap = extractParameterMap(allFormParams);
 
-            log.infof("Parameter map before update: %s", paramMap);
+            LOG.infof("Parameter map before update: %s", paramMap);
 
             // Update job
             updateJobUseCase.execute(jobId, jobType, jobName, paramMap, scheduledTime, isExternalTrigger);
@@ -312,7 +284,7 @@ public class ScheduledJobsController extends BaseController {
             // Return updated table with header to close modal
             return buildModalCloseResponse(getDefaultScheduledJobsTable());
         } catch (Exception e) {
-            log.errorf(e, "Error updating job %s", jobId);
+            LOG.errorf(e, "Error updating job %s", jobId);
             return buildErrorResponse("Error updating job: " + e.getMessage());
         }
     }

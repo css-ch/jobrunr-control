@@ -5,6 +5,12 @@ import java.util.List;
 /**
  * Represents a job parameter.
  * Contains metadata such as name, type, required status, and default value.
+ *
+ * @param name         Parameter name
+ * @param type         Parameter data type
+ * @param required     Whether parameter is required
+ * @param defaultValue Default value as string (null if none)
+ * @param enumValues   List of enum values (empty if not an enum type)
  */
 public record JobParameter(
         String name,

@@ -3,6 +3,10 @@ package ch.css.jobrunr.control.domain;
 /**
  * Represents the progress of a batch job.
  * Contains total count as well as the number of successful and failed subjobs.
+ *
+ * @param total     Total number of items
+ * @param succeeded Number of successful items
+ * @param failed    Number of failed items
  */
 public record BatchProgress(long total, long succeeded, long failed) {
 
@@ -15,14 +19,23 @@ public record BatchProgress(long total, long succeeded, long failed) {
         }
     }
 
+    /**
+     * Returns the number of pending items.
+     */
     public long getPending() {
         return total - succeeded - failed;
     }
 
+    /**
+     * Returns the number of processed items (succeeded + failed).
+     */
     public long getProcessed() {
         return succeeded + failed;
     }
 
+    /**
+     * Returns the progress as a percentage (0.0 to 100.0).
+     */
     public double getProgress() {
         if (total == 0) {
             return 0.0;

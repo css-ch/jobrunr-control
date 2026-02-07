@@ -21,7 +21,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class ParameterCleanupJobFilter implements ApplyStateFilter {
 
-    private static final Logger log = Logger.getLogger(ParameterCleanupJobFilter.class);
+    private static final Logger LOG = Logger.getLogger(ParameterCleanupJobFilter.class);
     private static final String PARAMETER_SET_ID_KEY = "__parameterSetId";
 
     private final ParameterStoragePort parameterStoragePort;
@@ -57,14 +57,14 @@ public class ParameterCleanupJobFilter implements ApplyStateFilter {
             if (paramSetIdObj != null) {
                 UUID parameterSetId = parseParameterSetId(paramSetIdObj);
                 if (parameterSetId != null) {
-                    log.debugf("Deleting external parameters for deleted job %s: %s",
+                    LOG.debugf("Deleting external parameters for deleted job %s: %s",
                             job.getId(), parameterSetId);
                     parameterStoragePort.deleteById(parameterSetId);
-                    log.infof("Deleted parameter set %s for job %s", parameterSetId, job.getId());
+                    LOG.infof("Deleted parameter set %s for job %s", parameterSetId, job.getId());
                 }
             }
         } catch (Exception e) {
-            log.warnf(e, "Failed to cleanup parameters for job %s", job.getId());
+            LOG.warnf(e, "Failed to cleanup parameters for job %s", job.getId());
             // Don't throw - we don't want to prevent job deletion
         }
     }
@@ -86,7 +86,7 @@ public class ParameterCleanupJobFilter implements ApplyStateFilter {
                 }
             }
         } catch (Exception e) {
-            log.debugf("Could not extract parameter set ID from job details: %s", e.getMessage());
+            LOG.debugf("Could not extract parameter set ID from job details: %s", e.getMessage());
         }
         return null;
     }
@@ -101,7 +101,7 @@ public class ParameterCleanupJobFilter implements ApplyStateFilter {
             try {
                 return UUID.fromString((String) paramSetIdObj);
             } catch (IllegalArgumentException e) {
-                log.warnf("Invalid UUID string: %s", paramSetIdObj);
+                LOG.warnf("Invalid UUID string: %s", paramSetIdObj);
                 return null;
             }
         }

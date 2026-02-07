@@ -15,7 +15,6 @@ public interface ParameterSetLoaderPort {
      *
      * @param jobId the job ID
      * @return the job parameters
-     * @throws ParameterSetNotFoundException if external reference not found
      */
     Map<String, Object> loadParameters(UUID jobId);
 
@@ -25,7 +24,6 @@ public interface ParameterSetLoaderPort {
      *
      * @param parameterSetId the parameter set ID
      * @return the parameters
-     * @throws ParameterSetNotFoundException if not found
      */
     Map<String, Object> loadParametersBySetId(UUID parameterSetId);
 }

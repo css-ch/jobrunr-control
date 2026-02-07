@@ -40,7 +40,7 @@ import java.util.UUID;
 @Consumes(MediaType.APPLICATION_JSON)
 public class JobControlResource {
 
-    private static final Logger log = Logger.getLogger(JobControlResource.class);
+    private static final Logger LOG = Logger.getLogger(JobControlResource.class);
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
     private final StartJobUseCase startJobUseCase;
@@ -99,14 +99,14 @@ public class JobControlResource {
             StartJobRequestDTO request) {
 
         if (jobId == null) {
-            log.errorf("Invalid request: jobId is required");
+            LOG.errorf("Invalid request: jobId is required");
             throw new BadRequestException("jobId is required");
         }
 
         String postfix = request != null ? request.postfix() : null;
         java.util.Map<String, Object> parameters = request != null ? request.parameters() : null;
 
-        log.infof("Starting job with ID: %s, postfix: %s, with %s parameter override(s)",
+        LOG.infof("Starting job with ID: %s, postfix: %s, with %s parameter override(s)",
                 jobId,
                 postfix != null ? postfix : "none",
                 parameters != null ? parameters.size() : 0);
@@ -122,7 +122,7 @@ public class JobControlResource {
                 message
         );
 
-        log.infof("Job started with ID: %s", resultJobId);
+        LOG.infof("Job started with ID: %s", resultJobId);
         return Response.ok(response).build();
     }
 
@@ -158,7 +158,7 @@ public class JobControlResource {
             @Parameter(description = "Job ID", required = true)
             @PathParam("jobId") UUID jobId) {
 
-        log.debugf("Getting status for job: %s", jobId);
+        LOG.debugf("Getting status for job: %s", jobId);
 
         JobExecutionInfo executionInfo = getJobExecutionByIdUseCase.execute(jobId);
 

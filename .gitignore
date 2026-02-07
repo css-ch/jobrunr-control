@@ -32,6 +32,11 @@ Thumbs.db
 coverage/
 jacoco.exec
 
+# PMD reports
+**/target/site/pmd.html
+**/target/site/cpd.html
+**/target/pmd/
+
 # Local dev
 *.local
 

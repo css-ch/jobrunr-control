@@ -17,7 +17,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class JobRunrParameterSetLoaderAdapter implements ParameterSetLoaderPort {
 
-    private static final Logger log = Logger.getLogger(JobRunrParameterSetLoaderAdapter.class);
+    private static final Logger LOG = Logger.getLogger(JobRunrParameterSetLoaderAdapter.class);
 
     private final StorageProvider storageProvider;
     private final ParameterStoragePort parameterStoragePort;
@@ -39,7 +39,7 @@ public class JobRunrParameterSetLoaderAdapter implements ParameterSetLoaderPort 
         if (parameters.containsKey("__parameterSetId")) {
             String paramSetIdStr = (String) parameters.get("__parameterSetId");
             UUID parameterSetId = UUID.fromString(paramSetIdStr);
-            log.debugf("Loading external parameters for job %s from parameter set %s", jobId, parameterSetId);
+            LOG.debugf("Loading external parameters for job %s from parameter set %s", jobId, parameterSetId);
             return loadParametersBySetId(parameterSetId);
         }
 

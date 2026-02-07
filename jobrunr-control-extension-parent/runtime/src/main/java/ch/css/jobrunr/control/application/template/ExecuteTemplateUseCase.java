@@ -15,7 +15,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class ExecuteTemplateUseCase {
 
-    private static final Logger log = Logger.getLogger(ExecuteTemplateUseCase.class);
+    private static final Logger LOG = Logger.getLogger(ExecuteTemplateUseCase.class);
 
     private final JobSchedulerPort jobSchedulerPort;
     private final TemplateCloneHelper templateCloneHelper;
@@ -49,7 +49,7 @@ public class ExecuteTemplateUseCase {
         // Start the job immediately
         jobSchedulerPort.executeJobNow(newJobId, parameterOverrides);
 
-        log.infof("Started cloned job %s", newJobId);
+        LOG.infof("Started cloned job %s", newJobId);
 
         return newJobId;
     }

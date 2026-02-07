@@ -10,7 +10,7 @@ import java.util.*;
  * parameter set references into their actual parameter values.
  * Used in UI controllers to display jobs with expanded parameters.
  */
-public class ScheduledJobInfoView {
+public final class ScheduledJobInfoView {
 
     private final UUID jobId;
     private final String jobName;

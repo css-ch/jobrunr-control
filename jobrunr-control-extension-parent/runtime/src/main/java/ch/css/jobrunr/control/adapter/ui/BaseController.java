@@ -1,15 +1,18 @@
 package ch.css.jobrunr.control.adapter.ui;
 
+import ch.css.jobrunr.control.domain.JobParameter;
+import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
+import org.jboss.logging.Logger;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Base controller providing common HTMX utilities and helper methods.
@@ -94,15 +97,15 @@ public abstract class BaseController {
 
     /**
      * Truncates large parameter values to prevent HTTP 413 errors.
-     * String values longer than MAX_STRING_LENGTH are truncated.
+     * String values longer than maxStringLength are truncated.
      * Collection/Map sizes are limited to prevent excessive data transfer.
      *
      * @param parameters the parameters to truncate
      * @return truncated parameter map
      */
     protected Map<String, Object> truncateParameterValues(Map<String, Object> parameters) {
-        final int MAX_STRING_LENGTH = 1000;
-        final int MAX_COLLECTION_SIZE = 100;
+        final int maxStringLength = 1000;
+        final int maxCollectionSize = 100;
 
         Map<String, Object> truncated = new HashMap<>();
 
@@ -110,19 +113,19 @@ public abstract class BaseController {
             Object value = entry.getValue();
 
             if (value instanceof String str) {
-                if (str.length() > MAX_STRING_LENGTH) {
-                    truncated.put(entry.getKey(), str.substring(0, MAX_STRING_LENGTH) + "... [truncated]");
+                if (str.length() > maxStringLength) {
+                    truncated.put(entry.getKey(), str.substring(0, maxStringLength) + "... [truncated]");
                 } else {
                     truncated.put(entry.getKey(), value);
                 }
             } else if (value instanceof java.util.Collection<?> collection) {
-                if (collection.size() > MAX_COLLECTION_SIZE) {
+                if (collection.size() > maxCollectionSize) {
                     truncated.put(entry.getKey(), String.format("[Collection with %d items - too large to display]", collection.size()));
                 } else {
                     truncated.put(entry.getKey(), value);
                 }
             } else if (value instanceof Map<?, ?> map) {
-                if (map.size() > MAX_COLLECTION_SIZE) {
+                if (map.size() > maxCollectionSize) {
                     truncated.put(entry.getKey(), String.format("[Map with %d entries - too large to display]", map.size()));
                 } else {
                     truncated.put(entry.getKey(), value);
@@ -147,4 +150,114 @@ public abstract class BaseController {
             throw new IllegalArgumentException(fieldName + " is required");
         }
     }
+
+    /**
+     * Filters, searches, sorts and paginates a list of scheduled jobs.
+     * Common logic shared between ScheduledJobsController and TemplatesController.
+     *
+     * @param jobs               the list of jobs to process
+     * @param jobType            optional job type filter
+     * @param search             optional search query
+     * @param sortBy             field to sort by
+     * @param sortOrder          sort order (asc/desc)
+     * @param page               page number
+     * @param size               page size
+     * @param comparatorSupplier function to get comparator for sorting
+     * @param <T>                the type extending ScheduledJobInfo
+     * @return pagination result with filtered, sorted and paginated jobs
+     */
+    protected <T extends ScheduledJobInfo> PaginationHelper.PaginationResult<T> filterSortAndPaginate(
+            List<T> jobs,
+            String jobType,
+            String search,
+            String sortBy,
+            String sortOrder,
+            int page,
+            int size,
+            Function<String, Comparator<T>> comparatorSupplier) {
+
+        // Apply job type filter
+        List<T> filteredJobs = jobs;
+        if (jobType != null && !jobType.isBlank() && !"all".equals(jobType)) {
+            filteredJobs = jobs.stream()
+                    .filter(job -> jobType.equals(job.getJobType()))
+                    .toList();
+        }
+
+        // Apply search
+        @SuppressWarnings("unchecked")
+        List<T> searchedJobs = (List<T>) JobSearchUtils.applySearchToScheduledJobs(search, (List<ScheduledJobInfo>) filteredJobs);
+
+        // Apply sorting
+        Comparator<T> comparator = comparatorSupplier.apply(sortBy);
+        if ("desc".equalsIgnoreCase(sortOrder)) {
+            comparator = comparator.reversed();
+        }
+        List<T> sortedJobs = searchedJobs.stream()
+                .sorted(comparator)
+                .collect(Collectors.toList());
+
+        // Apply pagination
+        return PaginationHelper.paginate(sortedJobs, page, size);
+    }
+
+    /**
+     * Result of resolving parameters and loading parameter definitions.
+     * Used to avoid code duplication in edit modals.
+     */
+    protected static class ResolvedJobData {
+        public final ScheduledJobInfo jobInfoWithResolvedParams;
+        public final List<JobParameter> parameters;
+
+        public ResolvedJobData(ScheduledJobInfo jobInfoWithResolvedParams, List<JobParameter> parameters) {
+            this.jobInfoWithResolvedParams = jobInfoWithResolvedParams;
+            this.parameters = parameters;
+        }
+    }
+
+    /**
+     * Resolves parameters and loads parameter definitions for a job.
+     * Common logic shared between edit modals.
+     *
+     * @param jobInfo           the job info
+     * @param resolveParameters function to resolve parameters
+     * @param getJobParameters  function to get job parameter definitions
+     * @param logger            logger for error logging
+     * @return resolved job data
+     */
+    protected ResolvedJobData resolveJobParameters(
+            ScheduledJobInfo jobInfo,
+            Function<Map<String, Object>, Map<String, Object>> resolveParameters,
+            Function<String, List<JobParameter>> getJobParameters,
+            Logger logger) {
+
+        // Resolve parameters (expand external parameter sets)
+        Map<String, Object> resolvedParameters = resolveParameters.apply(jobInfo.getParameters());
+
+        // Create a new ScheduledJobInfo with resolved parameters for the form
+        ScheduledJobInfo jobInfoWithResolvedParams = new ScheduledJobInfo(
+                jobInfo.getJobId(),
+                jobInfo.getJobName(),
+                jobInfo.getJobDefinition(),
+                jobInfo.getScheduledAt(),
+                resolvedParameters,
+                jobInfo.isExternallyTriggerable(),
+                jobInfo.getLabels()
+        );
+
+        // Load parameter definitions for this job type
+        List<JobParameter> parameters = Collections.emptyList();
+        try {
+            parameters = getJobParameters.apply(jobInfo.getJobType());
+            logger.infof("Loaded %s parameter definitions for job type '%s' in edit mode",
+                    parameters.size(), jobInfo.getJobType());
+        } catch (Exception e) {
+            logger.errorf("Error loading parameters for job type '%s': %s",
+                    jobInfo.getJobType(), e.getMessage(), e);
+        }
+
+        return new ResolvedJobData(jobInfoWithResolvedParams, parameters);
+    }
 }
+
+

@@ -22,7 +22,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class CreateScheduledJobUseCase {
 
-    private static final Logger log = Logger.getLogger(CreateScheduledJobUseCase.class);
+    private static final Logger LOG = Logger.getLogger(CreateScheduledJobUseCase.class);
 
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
     private final JobSchedulerPort jobSchedulerPort;

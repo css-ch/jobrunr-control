@@ -17,9 +17,9 @@ import java.util.UUID;
  * Handles both regular parameters and JobRequest objects.
  * Uses Jackson ObjectMapper to serialize JobRequest objects to Map.
  */
-public class JobParameterExtractor {
+public final class JobParameterExtractor {
 
-    private static final Logger log = Logger.getLogger(JobParameterExtractor.class);
+    private static final Logger LOG = Logger.getLogger(JobParameterExtractor.class);
 
     private JobParameterExtractor() {
         // Utility class
@@ -59,7 +59,7 @@ public class JobParameterExtractor {
                 return parameters;
             }
         } catch (Exception e) {
-            log.warnf(e, "Error extracting job parameters for job %s", job.getId());
+            LOG.warnf(e, "Error extracting job parameters for job %s", job.getId());
             return parameters;
         }
     }
@@ -93,7 +93,7 @@ public class JobParameterExtractor {
                     storageService.findById(UUID.fromString(parameterSetId));
 
             if (parameterSet.isEmpty()) {
-                log.warnf("Parameter set %s not found for job %s", parameterSetId, job.getId());
+                LOG.warnf("Parameter set %s not found for job %s", parameterSetId, job.getId());
                 return unwrapped;
             }
 
@@ -104,13 +104,13 @@ public class JobParameterExtractor {
             // Update last accessed
             storageService.updateLastAccessed(UUID.fromString(parameterSetId));
 
-            log.debugf("Enriched job %s with %d external parameters from set %s",
+            LOG.debugf("Enriched job %s with %d external parameters from set %s",
                     job.getId(), parameterSet.get().parameters().size(), parameterSetId);
 
             return combined;
 
         } catch (Exception e) {
-            log.warnf(e, "Failed to load external parameters for job %s", job.getId());
+            LOG.warnf(e, "Failed to load external parameters for job %s", job.getId());
             return unwrapped;
         }
     }

@@ -19,7 +19,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class StartJobUseCase {
 
-    private static final Logger log = Logger.getLogger(StartJobUseCase.class);
+    private static final Logger LOG = Logger.getLogger(StartJobUseCase.class);
 
     private final JobSchedulerPort jobSchedulerPort;
     private final TemplateCloneHelper templateCloneHelper;
@@ -50,7 +50,7 @@ public class StartJobUseCase {
         }
 
         if (jobInfo.isTemplate()) {
-            log.infof("Job %s is a template, cloning and starting", jobId);
+            LOG.infof("Job %s is a template, cloning and starting", jobId);
 
             // Clone the template job (without "template" label, as this is an executable job)
             UUID newJobId = templateCloneHelper.cloneTemplate(
@@ -63,10 +63,10 @@ public class StartJobUseCase {
             // Start the job immediately
             jobSchedulerPort.executeJobNow(newJobId, parameterOverrides);
 
-            log.infof("Started cloned job %s from template %s", newJobId, jobId);
+            LOG.infof("Started cloned job %s from template %s", newJobId, jobId);
             return newJobId;
         } else {
-            log.infof("Job %s is a regular scheduled job, starting directly", jobId);
+            LOG.infof("Job %s is a regular scheduled job, starting directly", jobId);
             jobSchedulerPort.executeJobNow(jobId, parameterOverrides);
             return jobId;
         }

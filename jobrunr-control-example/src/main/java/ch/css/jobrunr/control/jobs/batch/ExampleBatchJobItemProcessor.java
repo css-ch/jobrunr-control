@@ -29,7 +29,7 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
         // Check if this chunk has been attempted before using metadata
         boolean isFirstAttempt = !jobContext().getMetadata().containsKey("attempted");
 
-        if (request.simulateErrors() && isFirstAttempt && request.chunkId() % 2 == 1) {
+        if (request.simulateErrors() && isFirstAttempt && Math.abs(request.chunkId() % 2) == 1) {
             // Mark as attempted for next time
             jobContext().saveMetadata("attempted", true);
             jobContext().logger().error("Simulated transient error for chunk ID: " + request.chunkId() + " (will succeed when batch is re-run from dashboard)");

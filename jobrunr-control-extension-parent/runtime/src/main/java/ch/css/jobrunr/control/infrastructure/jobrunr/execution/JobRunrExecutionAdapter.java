@@ -22,7 +22,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class JobRunrExecutionAdapter implements JobExecutionPort {
 
-    private static final Logger log = Logger.getLogger(JobRunrExecutionAdapter.class);
+    private static final Logger LOG = Logger.getLogger(JobRunrExecutionAdapter.class);
 
     private final StorageProvider storageProvider;
     private final ConfigurableJobSearchAdapter configurableJobSearchAdapter;
@@ -69,7 +69,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                     .orElse(null);
             return Optional.of(mapToJobExecutionInfo(jobType, job));
         } catch (Exception e) {
-            log.errorf(e, "Error retrieving job %s", jobId);
+            LOG.errorf(e, "Error retrieving job %s", jobId);
             return Optional.empty();
         }
     }
@@ -93,7 +93,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
             // Return job info with status from chain evaluation
             return Optional.of(jobInfo.withStatus(chainStatus.overallStatus()));
         } catch (Exception e) {
-            log.errorf(e, "Error retrieving job chain %s", jobId);
+            LOG.errorf(e, "Error retrieving job chain %s", jobId);
             return Optional.empty();
         }
     }
@@ -157,7 +157,9 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         } catch (IllegalStateException e) {
             // Because batch job stats are only available when the batch job is started
             // Bug in JobRunr?
-            log.debug(e.getMessage());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(e.getMessage());
+            }
         }
         return null;
     }

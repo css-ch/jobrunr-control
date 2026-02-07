@@ -12,7 +12,7 @@ import org.jobrunr.jobs.states.*;
 @ApplicationScoped
 public class JobStateMapper {
 
-    private static final Logger log = Logger.getLogger(JobStateMapper.class);
+    private static final Logger LOG = Logger.getLogger(JobStateMapper.class);
 
     /**
      * Maps a JobRunr JobState to the domain JobStatus.
@@ -34,7 +34,7 @@ public class JobStateMapper {
             case NotApplicableState s -> JobStatus.NOT_APPLICABLE;
             case null -> JobStatus.ENQUEUED;
             default -> {
-                log.warnf("Unexpected job state: %s. Defaulting to ENQUEUED.", jobState.getName());
+                LOG.warnf("Unexpected job state: %s. Defaulting to ENQUEUED.", jobState.getName());
                 yield JobStatus.ENQUEUED;
             }
         };

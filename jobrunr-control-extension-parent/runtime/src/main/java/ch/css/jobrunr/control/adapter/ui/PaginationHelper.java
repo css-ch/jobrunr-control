@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * Helper class for pagination logic shared across UI controllers.
  */
-public class PaginationHelper {
+public final class PaginationHelper {
 
     private PaginationHelper() {
         // Utility class
@@ -23,17 +23,17 @@ public class PaginationHelper {
      */
     public static Map<String, Object> createPaginationMetadata(int page, int size, long totalElements) {
         int totalPages = (int) Math.ceil((double) totalElements / size);
-        page = Math.max(0, Math.min(page, totalPages - 1)); // Ensure page is in valid range
+        int validatedPage = Math.max(0, Math.min(page, totalPages - 1)); // Ensure page is in valid range
 
         Map<String, Object> pagination = new HashMap<>();
-        pagination.put("page", page);
+        pagination.put("page", validatedPage);
         pagination.put("size", size);
         pagination.put("totalElements", totalElements);
         pagination.put("totalPages", totalPages);
-        pagination.put("hasNext", page < totalPages - 1);
-        pagination.put("hasPrevious", page > 0);
-        pagination.put("nextPage", page < totalPages - 1 ? page + 1 : page);
-        pagination.put("previousPage", page > 0 ? page - 1 : 0);
+        pagination.put("hasNext", validatedPage < totalPages - 1);
+        pagination.put("hasPrevious", validatedPage > 0);
+        pagination.put("nextPage", validatedPage < totalPages - 1 ? validatedPage + 1 : validatedPage);
+        pagination.put("previousPage", validatedPage > 0 ? validatedPage - 1 : 0);
         pagination.put("lastPage", Math.max(0, totalPages - 1));
         pagination.put("isEmpty", totalElements == 0);
 

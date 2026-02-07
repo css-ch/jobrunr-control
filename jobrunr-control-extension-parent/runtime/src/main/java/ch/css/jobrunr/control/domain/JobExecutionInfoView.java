@@ -10,7 +10,7 @@ import java.util.*;
  * parameter set references into their actual parameter values.
  * Used in UI controllers to display execution history with expanded parameters.
  */
-public class JobExecutionInfoView {
+public final class JobExecutionInfoView {
 
     private final UUID jobId;
     private final String jobName;

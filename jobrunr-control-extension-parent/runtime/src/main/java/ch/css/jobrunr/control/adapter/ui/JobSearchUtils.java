@@ -50,20 +50,28 @@ public final class JobSearchUtils {
     }
 
     /**
-     * Checks if the search string matches any parameter in the map.
+     * Checks if the search string matches any key-value pair in the map.
      * If search contains "=", treats it as key=value and checks for exact match.
      */
-    private static boolean matchesParameters(String search, Map<String, Object> parameters) {
+    private static boolean matchesKeyValue(String search, Map<String, Object> map) {
         if (search.contains("=")) {
             String[] parts = search.split("=", 2);
             if (parts.length == 2) {
                 String key = parts[0].trim();
                 String value = parts[1].trim();
-                Object paramValue = parameters.get(key);
-                return paramValue != null && paramValue.toString().equalsIgnoreCase(value);
+                Object mapValue = map.get(key);
+                return mapValue != null && mapValue.toString().equalsIgnoreCase(value);
             }
         }
         return false;
+    }
+
+    /**
+     * Checks if the search string matches any parameter in the map.
+     * If search contains "=", treats it as key=value and checks for exact match.
+     */
+    private static boolean matchesParameters(String search, Map<String, Object> parameters) {
+        return matchesKeyValue(search, parameters);
     }
 
     /**
@@ -71,15 +79,6 @@ public final class JobSearchUtils {
      * If search contains "=", treats it as key=value and checks for exact match.
      */
     private static boolean matchesMetadata(String search, Map<String, Object> metadata) {
-        if (search.contains("=")) {
-            String[] parts = search.split("=", 2);
-            if (parts.length == 2) {
-                String key = parts[0].trim();
-                String value = parts[1].trim();
-                Object metadataValue = metadata.get(key);
-                return metadataValue != null && metadataValue.toString().equalsIgnoreCase(value);
-            }
-        }
-        return false;
+        return matchesKeyValue(search, metadata);
     }
 }

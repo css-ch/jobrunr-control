@@ -21,6 +21,9 @@ public class ValidationException extends RuntimeException {
         this.errors = new ArrayList<>(errors);
     }
 
+    /**
+     * Returns all validation error messages.
+     */
     public List<String> getErrors() {
         return Collections.unmodifiableList(errors);
     }

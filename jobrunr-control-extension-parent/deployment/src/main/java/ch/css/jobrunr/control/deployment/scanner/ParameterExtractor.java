@@ -16,7 +16,7 @@ import java.util.List;
  */
 public class ParameterExtractor {
 
-    private static final Logger log = Logger.getLogger(ParameterExtractor.class);
+    private static final Logger LOG = Logger.getLogger(ParameterExtractor.class);
 
     private static final DotName JOB_PARAMETER_SET = DotName.createSimple(JobParameterSet.class.getName());
 
@@ -62,10 +62,10 @@ public class ParameterExtractor {
             // EXTERNAL PARAMETERS: Extract from @JobParameterSet annotation
             parameters = extractExternalParameters(parameterSetComponent, recordClass);
 
-            log.infof("Analyzed %s external parameters from @JobParameterSet on component '%s' for job '%s'",
+            LOG.infof("Analyzed %s external parameters from @JobParameterSet on component '%s' for job '%s'",
                     parameters.size(), parameterSetComponent.name(), recordClass.simpleName());
             for (JobParameter param : parameters) {
-                log.infof("   - External parameter: %s (type=%s, required=%s, default='%s')",
+                LOG.infof("   - External parameter: %s (type=%s, required=%s, default='%s')",
                         param.name(), param.type(), param.required(), param.defaultValue());
             }
 
@@ -82,7 +82,7 @@ public class ParameterExtractor {
                 parameters.add(parameter);
             }
 
-            log.debugf("Analyzed %s inline parameters from record components", parameters.size());
+            LOG.debugf("Analyzed %s inline parameters from record components", parameters.size());
 
             return new AnalyzedParameters(
                     parameters,
@@ -147,7 +147,7 @@ public class ParameterExtractor {
 
         boolean required = defaultValue.equals(JobParameterDefinition.NO_DEFAULT_VALUE);
 
-        log.debugf("Extracted external parameter: name=%s, type=%s, required=%s", name, parameterType, required);
+        LOG.debugf("Extracted external parameter: name=%s, type=%s, required=%s", name, parameterType, required);
 
         return new JobParameter(name, parameterType, required, defaultValue, enumValues);
     }
@@ -185,7 +185,7 @@ public class ParameterExtractor {
             if (typeValue != null && !typeValue.asString().isEmpty()) {
                 String typeString = typeValue.asString();
                 parameterType = mapStringToParameterType(typeString);
-                log.debugf("Using explicit type '%s' for inline parameter '%s'", typeString, name);
+                LOG.debugf("Using explicit type '%s' for inline parameter '%s'", typeString, name);
             }
         }
 
@@ -205,10 +205,8 @@ public class ParameterExtractor {
         return switch (typeString) {
             case "java.lang.String" -> JobParameterType.STRING;
             case "MULTILINE" -> JobParameterType.MULTILINE;
-            case "java.lang.Integer", "int" -> JobParameterType.INTEGER;
-            case "java.lang.Long", "long" -> JobParameterType.INTEGER;
-            case "java.lang.Double", "double" -> JobParameterType.DOUBLE;
-            case "java.lang.Float", "float" -> JobParameterType.DOUBLE;
+            case "java.lang.Integer", "int", "java.lang.Long", "long" -> JobParameterType.INTEGER;
+            case "java.lang.Double", "double", "java.lang.Float", "float" -> JobParameterType.DOUBLE;
             case "java.lang.Boolean", "boolean" -> JobParameterType.BOOLEAN;
             case "java.time.LocalDate" -> JobParameterType.DATE;
             case "java.time.LocalDateTime" -> JobParameterType.DATETIME;
@@ -237,7 +235,7 @@ public class ParameterExtractor {
      */
     private JobParameterType mapToJobParameterType(Type type) {
         if (type == null || type.name() == null) {
-            log.debugf("Type is null or has no name; defaulting to STRING");
+            LOG.debugf("Type is null or has no name; defaulting to STRING");
             return JobParameterType.STRING;
         }
 
@@ -246,7 +244,7 @@ public class ParameterExtractor {
             ParameterizedType paramType = type.asParameterizedType();
             String paramTypeName = paramType.name().toString();
             if ("java.util.EnumSet".equals(paramTypeName)) {
-                log.debugf("Detected EnumSet type, mapping to MULTI_ENUM");
+                LOG.debugf("Detected EnumSet type, mapping to MULTI_ENUM");
                 return JobParameterType.MULTI_ENUM;
             }
         }
@@ -287,7 +285,7 @@ public class ParameterExtractor {
             }
         };
 
-        log.debugf("Mapped type '%s' to JobParameterType.%s", typeName, resolved.name());
+        LOG.debugf("Mapped type '%s' to JobParameterType.%s", typeName, resolved.name());
         return resolved;
     }
 
@@ -306,12 +304,12 @@ public class ParameterExtractor {
         ClassInfo enumClassInfo = index.getClassByName(enumDotName);
 
         if (enumClassInfo == null) {
-            log.warnf("Could not find enum class in index: %s", enumClassName);
+            LOG.warnf("Could not find enum class in index: %s", enumClassName);
             return List.of();
         }
 
         if (!enumClassInfo.isEnum()) {
-            log.warnf("Class %s is not an enum", enumClassName);
+            LOG.warnf("Class %s is not an enum", enumClassName);
             return List.of();
         }
 
@@ -333,23 +331,23 @@ public class ParameterExtractor {
             ParameterizedType paramType = type.asParameterizedType();
             if (!paramType.arguments().isEmpty()) {
                 enumType = paramType.arguments().getFirst();
-                log.debugf("Extracted enum type from EnumSet: %s", enumType.name());
+                LOG.debugf("Extracted enum type from EnumSet: %s", enumType.name());
             }
         }
 
         if (enumType == null || enumType.kind() != Type.Kind.CLASS) {
-            log.debugf("Type is not a CLASS, cannot extract enum values");
+            LOG.debugf("Type is not a CLASS, cannot extract enum values");
             return List.of();
         }
 
         ClassInfo enumClassInfo = index.getClassByName(enumType.name());
         if (enumClassInfo == null) {
-            log.debugf("Could not find class info for type: %s", enumType.name());
+            LOG.debugf("Could not find class info for type: %s", enumType.name());
             return List.of();
         }
 
         if (!enumClassInfo.isEnum()) {
-            log.debugf("Class %s is not an enum", enumType.name());
+            LOG.debugf("Class %s is not an enum", enumType.name());
             return List.of();
         }
 
@@ -367,7 +365,7 @@ public class ParameterExtractor {
             }
         }
 
-        log.debugf("Extracted %s enum values from %s: %s", enumValues.size(), enumClassInfo.name(), enumValues);
+        LOG.debugf("Extracted %s enum values from %s: %s", enumValues.size(), enumClassInfo.name(), enumValues);
         return enumValues;
     }
 

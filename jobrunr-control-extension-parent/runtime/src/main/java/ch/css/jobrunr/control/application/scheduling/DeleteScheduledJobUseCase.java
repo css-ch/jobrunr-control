@@ -16,7 +16,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class DeleteScheduledJobUseCase {
 
-    private static final Logger log = Logger.getLogger(DeleteScheduledJobUseCase.class);
+    private static final Logger LOG = Logger.getLogger(DeleteScheduledJobUseCase.class);
 
     private final JobSchedulerPort jobSchedulerPort;
     private final ParameterStoragePort parameterStoragePort;
@@ -44,13 +44,13 @@ public class DeleteScheduledJobUseCase {
             ScheduledJobInfo jobInfo = jobSchedulerPort.getScheduledJobById(jobId);
             if (jobInfo != null && jobInfo.hasExternalParameters()) {
                 jobInfo.getParameterSetId().ifPresent(paramSetId -> {
-                    log.debugf("Cleaning up external parameters for job %s: %s", jobId, paramSetId);
+                    LOG.debugf("Cleaning up external parameters for job %s: %s", jobId, paramSetId);
                     parameterStoragePort.deleteById(paramSetId);
-                    log.infof("Deleted parameter set: %s", paramSetId);
+                    LOG.infof("Deleted parameter set: %s", paramSetId);
                 });
             }
         } catch (Exception e) {
-            log.warnf("Failed to cleanup external parameters for job %s: %s", jobId, e.getMessage());
+            LOG.warnf("Failed to cleanup external parameters for job %s: %s", jobId, e.getMessage());
             // Continue with job deletion even if parameter cleanup fails
         }
 

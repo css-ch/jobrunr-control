@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class JobRunrSchedulerAdapter implements JobSchedulerPort {
 
-    private static final Logger log = Logger.getLogger(JobRunrSchedulerAdapter.class);
+    private static final Logger LOG = Logger.getLogger(JobRunrSchedulerAdapter.class);
     public static final Instant EXTERNAL_TRIGGER = Instant.parse("2999-12-31T23:59:59Z");
 
     private final JobScheduler jobScheduler;
@@ -72,9 +72,10 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
 
     private UUID createOrUpdateJob(UUID jobId, JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt, List<String> additionalLabels) {
         try {
+            Instant effectiveScheduledAt = scheduledAt;
             if (isExternalTrigger) {
                 // Set scheduled date to 31.12.2999 for externally triggerable jobs
-                scheduledAt = EXTERNAL_TRIGGER;
+                effectiveScheduledAt = EXTERNAL_TRIGGER;
             }
             // Create JobId and set job name
             JobId newJobId = jobInvoker.scheduleJob(
@@ -82,7 +83,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
                     jobName,
                     jobDefinition,
                     parameters,
-                    scheduledAt,
+                    effectiveScheduledAt,
                     additionalLabels
             );
 
@@ -92,15 +93,15 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
                 job.setJobName(jobName);
                 storageProvider.save(job);
             } catch (Exception e) {
-                log.warnf("Could not set job name for job %s: %s", jobId, e.getMessage());
+                LOG.warnf("Could not set job name for job %s: %s", jobId, e.getMessage());
             }
 
-            log.infof("Job scheduled: %s (ID: %s) for %s",
+            LOG.infof("Job scheduled: %s (ID: %s) for %s",
                     jobDefinition.jobType(), jobId, scheduledAt);
 
             return newJobId.asUUID();
         } catch (Exception e) {
-            log.errorf("Error scheduling job: %s", jobDefinition.jobType(), e);
+            LOG.errorf("Error scheduling job: %s", jobDefinition.jobType(), e);
             throw new JobSchedulingException("Error scheduling job: " + jobDefinition.jobType(), e);
         }
     }
@@ -110,9 +111,9 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
     public void deleteScheduledJob(UUID jobId) {
         try {
             jobScheduler.delete(jobId);
-            log.infof("Job deleted: %s", jobId);
+            LOG.infof("Job deleted: %s", jobId);
         } catch (Exception e) {
-            log.errorf(e, "Error deleting job: %s", jobId);
+            LOG.errorf(e, "Error deleting job: %s", jobId);
             throw new JobSchedulingException("Error deleting job: " + jobId, e);
         }
     }
@@ -136,7 +137,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
                     amountRequest
             );
 
-            log.debugf("Found scheduled jobs: %s", scheduledJobs.size());
+            LOG.debugf("Found scheduled jobs: %s", scheduledJobs.size());
 
             // Map to ScheduledJobInfo
             return scheduledJobs.stream()
@@ -144,7 +145,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
                     .collect(Collectors.toList());
 
         } catch (Exception e) {
-            log.errorf("Error retrieving scheduled jobs", e);
+            LOG.errorf("Error retrieving scheduled jobs", e);
             return new ArrayList<>();
         }
     }
@@ -158,7 +159,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
             }
             return null;
         } catch (Exception e) {
-            log.errorf("Error retrieving job: %s", jobId, e);
+            LOG.errorf("Error retrieving job: %s", jobId, e);
             return null;
         }
     }
@@ -224,7 +225,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
             // Get the existing job
             org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
             if (job == null) {
-                log.warnf("Job not found: %s", jobId);
+                LOG.warnf("Job not found: %s", jobId);
                 throw new JobNotFoundException("Job with ID '" + jobId + "' not found");
             }
 
@@ -234,7 +235,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
                 metadata.forEach((key, value) ->
                         job.getMetadata().put(key, value)
                 );
-                log.infof("Job %s will be executed with %s parameter override(s)", jobId, metadata.size());
+                LOG.infof("Job %s will be executed with %s parameter override(s)", jobId, metadata.size());
             }
 
             // Set job to ENQUEUED state for immediate execution
@@ -243,16 +244,16 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
             // Save the updated job
             storageProvider.save(job);
 
-            log.infof("Job is being executed immediately: %s", jobId);
+            LOG.infof("Job is being executed immediately: %s", jobId);
 
         } catch (JobNotFoundException e) {
             // Re-throw domain exception without wrapping
             throw e;
         } catch (JobSchedulingException e) {
-            log.errorf(e, "Error executing job immediately: %s", jobId);
+            LOG.errorf(e, "Error executing job immediately: %s", jobId);
             throw e;
         } catch (Exception e) {
-            log.errorf(e, "Error executing job immediately: %s", jobId);
+            LOG.errorf(e, "Error executing job immediately: %s", jobId);
             throw new JobSchedulingException("Error executing job immediately: " + jobId, e);
         }
     }

@@ -104,10 +104,12 @@ Use `@JobParameterSet` annotation on JobRequest to enable external storage. Requ
 
 ### Job Chain Status Evaluation
 
-For jobs with continuation chains (using `continueWith()` or `onFailure()`), the extension automatically evaluates the overall status of the entire chain:
+For jobs with continuation chains (using `continueWith()` or `onFailure()`), the extension automatically evaluates the
+overall status of the entire chain:
 
 - **Chain Status Determination**: The status reflects the state of all jobs in the chain, not just the parent job
-- **Completion Detection**: A chain is complete when all relevant leaf jobs have finished (SUCCEEDED, FAILED, or DELETED)
+- **Completion Detection**: A chain is complete when all relevant leaf jobs have finished (SUCCEEDED, FAILED, or
+  DELETED)
 - **In-Progress Tracking**: A chain is IN_PROGRESS when any leaf job is still running (ENQUEUED, PROCESSING, PROCESSED)
 - **Success Evaluation**: A chain SUCCEEDED when all executed leaf jobs succeeded
 - **Failure Evaluation**: A chain FAILED when any executed leaf job failed

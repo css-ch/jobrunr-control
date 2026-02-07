@@ -20,7 +20,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class ResolveParametersUseCase {
 
-    private static final Logger log = Logger.getLogger(ResolveParametersUseCase.class);
+    private static final Logger LOG = Logger.getLogger(ResolveParametersUseCase.class);
     private static final String PARAMETER_SET_ID_KEY = "__parameterSetId";
 
     private final ParameterStorageService parameterStorageService;
@@ -57,11 +57,11 @@ public class ResolveParametersUseCase {
                     .map(ParameterSet::parameters)
                     .map(HashMap::new)
                     .orElseGet(() -> {
-                        log.warnf("Parameter set %s not found, returning empty parameters", paramSetId);
+                        LOG.warnf("Parameter set %s not found, returning empty parameters", paramSetId);
                         return new HashMap<>();
                     });
         } catch (IllegalArgumentException e) {
-            log.errorf("Invalid parameter set ID format: %s", paramSetIdStr);
+            LOG.errorf("Invalid parameter set ID format: %s", paramSetIdStr);
             return new HashMap<>();
         }
     }
@@ -90,7 +90,7 @@ public class ResolveParametersUseCase {
             String paramSetIdStr = (String) parameters.get(PARAMETER_SET_ID_KEY);
             return UUID.fromString(paramSetIdStr);
         } catch (IllegalArgumentException e) {
-            log.errorf("Invalid parameter set ID format in parameters");
+            LOG.errorf("Invalid parameter set ID format in parameters");
             return null;
         }
     }

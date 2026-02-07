@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.infrastructure.persistence;
 
 import ch.css.jobrunr.control.domain.ParameterSet;
 import ch.css.jobrunr.control.domain.ParameterStoragePort;
+import ch.css.jobrunr.control.domain.exceptions.ParameterSerializationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,7 +25,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class JpaParameterStorageAdapter implements ParameterStoragePort {
 
-    private static final Logger log = Logger.getLogger(JpaParameterStorageAdapter.class);
+    private static final Logger LOG = Logger.getLogger(JpaParameterStorageAdapter.class);
 
     private final ObjectMapper objectMapper;
     private final Instance<EntityManager> entityManagerInstance;
@@ -56,9 +57,9 @@ public class JpaParameterStorageAdapter implements ParameterStoragePort {
             entity.lastAccessedAt = parameterSet.lastAccessedAt();
 
             getEntityManager().persist(entity);
-            log.debugf("Stored parameter set: %s", entity.id);
+            LOG.debugf("Stored parameter set: %s", entity.id);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize parameters", e);
+            throw new ParameterSerializationException("Failed to serialize parameters", e);
         }
     }
 
@@ -84,7 +85,7 @@ public class JpaParameterStorageAdapter implements ParameterStoragePort {
                     entity.lastAccessedAt
             ));
         } catch (JsonProcessingException e) {
-            log.errorf("Failed to deserialize parameters for set: %s", id, e);
+            LOG.errorf("Failed to deserialize parameters for set: %s", id, e);
             return Optional.empty();
         }
     }
@@ -96,7 +97,7 @@ public class JpaParameterStorageAdapter implements ParameterStoragePort {
         ParameterSetEntity entity = em.find(ParameterSetEntity.class, id);
         if (entity != null) {
             em.remove(entity);
-            log.debugf("Deleted parameter set: %s", id);
+            LOG.debugf("Deleted parameter set: %s", id);
         }
     }
 

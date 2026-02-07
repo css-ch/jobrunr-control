@@ -11,12 +11,19 @@ import java.lang.annotation.Target;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
+/**
+ * Marks a JobRequestHandler method as a configurable job.
+ * Provides metadata for job execution settings like retries, timeouts, and resource constraints.
+ */
 @Documented
 @Inherited
 @Retention(RUNTIME)
 @Target(METHOD)
 public @interface ConfigurableJob {
 
+    /**
+     * Display name for the job.
+     */
     String name() default "";
 
     /**
@@ -29,9 +36,14 @@ public @interface ConfigurableJob {
      */
     boolean isBatch() default false;
 
+    /**
+     * Sentinel value indicating retries not explicitly configured.
+     */
     int NBR_OF_RETRIES_NOT_PROVIDED = -1;
 
-
+    /**
+     * Number of retry attempts for failed jobs.
+     */
     int retries() default NBR_OF_RETRIES_NOT_PROVIDED;
 
     /**
@@ -41,6 +53,9 @@ public @interface ConfigurableJob {
      */
     String[] labels() default {};
 
+    /**
+     * Custom JobRunr filters to apply to this job.
+     */
     Class<? extends JobFilter>[] jobFilters() default {};
 
     /**
@@ -51,47 +66,38 @@ public @interface ConfigurableJob {
     String queue() default "";
 
     /**
-     * Allows to filter on which background job server the job will run. The given tag must match a background job server or it will never execute! It has a maximum length of 128 characters.
+     * Specifies which background job server should execute this job.
+     * Maximum length: 128 characters.
      */
     String runOnServerWithTag() default BackgroundJobServerConfiguration.DEFAULT_SERVER_TAG;
 
     /**
-     * Allows to limit concurrency for this job. It has a maximum length of 128 characters and <em>cannot</em> be combined with the rate limiter.
+     * Limits concurrency for this job. Cannot be combined with rateLimiter.
+     * Maximum length: 128 characters.
      */
     String mutex() default "";
 
     /**
-     * Allows to specify the rate limiter which allows to limit concurrency for this job. It has a maximum length of 128 characters and <em>cannot</em> be combined with the rate limiter.
+     * Specifies the rate limiter for concurrency control. Cannot be combined with mutex.
+     * Maximum length: 128 characters.
      */
     String rateLimiter() default "";
 
     /**
-     * Allows to specify the maximum process duration in <a href="https://en.wikipedia.org/wiki/ISO_8601#Durations">ISO Duration format</a> after which the job will be interrupted and move to the FAILED state.
-     * This time-out duration represents the time the Job is in the PROCESSING state.
-     * <p>
-     * An example is PT5M which means the job will be interrupted after 5 minutes
+     * Maximum processing duration in ISO-8601 format (e.g., PT5M for 5 minutes).
+     * Job moves to FAILED state when timeout is exceeded.
      */
     String processTimeOut() default "";
 
     /**
-     * Allows to specify the duration after which to delete succeeded jobs in the following format:
-     * <code>duration1((!)duration2)</code>
-     * where
-     * - duration 1 is the duration after which a succeeded job will move to the DELETED state
-     * - duration 2 is the duration after which a job in the DELETED state will be permanently deleted.
-     * <p>
-     * An example is PT5M!PT10H which means the job will move to the DELETED state 5 minutes after succeeding and will be deleted permanently 10 hours later
+     * Duration after which succeeded jobs are deleted.
+     * Format: duration1!duration2 (e.g., PT5M!PT10H).
      */
     String deleteOnSuccess() default "";
 
     /**
-     * Allows to specify the duration after which to delete failed jobs in the following format:
-     * <code>duration1((!)duration2)</code>
-     * where
-     * - duration 1 is the duration after which a failed job will move to the DELETED state
-     * - duration 2 is the duration after which a job in the DELETED state will be permanently deleted.
-     * <p>
-     * An example is PT5M!PT10H which means the job will move to the DELETED state 5 minutes after failing and will be deleted permanently 10 hours later
+     * Duration after which failed jobs are deleted.
+     * Format: duration1!duration2 (e.g., PT5M!PT10H).
      */
     String deleteOnFailure() default "";
 }

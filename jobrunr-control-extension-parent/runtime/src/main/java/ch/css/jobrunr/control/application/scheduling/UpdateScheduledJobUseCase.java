@@ -12,7 +12,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -80,18 +79,10 @@ public class UpdateScheduledJobUseCase {
                         Instant scheduledAt, boolean isExternalTrigger, java.util.List<String> additionalLabels) {
 
         // Load job definition
-        Optional<JobDefinition> jobDefOpt = jobDefinitionDiscoveryService.findJobByType(jobType);
-        if (jobDefOpt.isEmpty()) {
-            throw new JobNotFoundException("JobDefinition for type '" + jobType + "' not found");
-        }
-        JobDefinition jobDefinition = jobDefOpt.get();
-
-        // Validate parameters
-        Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
-
-        // Prepare job parameters (handles inline vs external storage)
-        Map<String, Object> jobParameters = parameterStorageHelper.prepareJobParameters(
-                jobDefinition, jobType, jobName, convertedParameters);
+        JobUpdateHelper.JobUpdateData jobUpdateData = JobUpdateHelper.prepareJobUpdateData(
+                jobType, jobName, parameters, jobDefinitionDiscoveryService, validator, parameterStorageHelper);
+        JobDefinition jobDefinition = jobUpdateData.jobDefinition();
+        Map<String, Object> jobParameters = jobUpdateData.jobParameters();
 
         // Determine time
         Instant effectiveScheduledAt = isExternalTrigger

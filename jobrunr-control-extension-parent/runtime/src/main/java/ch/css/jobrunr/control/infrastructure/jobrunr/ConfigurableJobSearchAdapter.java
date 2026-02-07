@@ -29,7 +29,7 @@ public class ConfigurableJobSearchAdapter {
     public record ConfigurableJobSearchResult(JobDefinition jobDefinition, Job job) {
     }
 
-    private static final Logger log = Logger.getLogger(ConfigurableJobSearchAdapter.class);
+    private static final Logger LOG = Logger.getLogger(ConfigurableJobSearchAdapter.class);
 
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
@@ -65,13 +65,13 @@ public class ConfigurableJobSearchAdapter {
                             }
                         }
                     } catch (Exception e) {
-                        log.warnf("Error retrieving jobs in state %s with type %s: %s", state, jobDefinition.jobType(), e.getMessage());
+                        LOG.warnf("Error retrieving jobs in state %s with type %s: %s", state, jobDefinition.jobType(), e.getMessage());
                     }
                 }
             }
             return configurableJob;
         } catch (Exception e) {
-            log.errorf("Error retrieving job executions", e);
+            LOG.errorf("Error retrieving job executions", e);
             throw new JobExecutionException("Error retrieving job executions", e);
         }
     }

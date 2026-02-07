@@ -28,7 +28,7 @@ public class JobDefinitionRecorder {
     /**
      * Singleton registry to hold job definitions and build-time configuration at runtime.
      */
-    public static class JobDefinitionRegistry {
+    public static final class JobDefinitionRegistry {
         public static final JobDefinitionRegistry INSTANCE = new JobDefinitionRegistry();
 
         private final Map<String, JobDefinition> definitionsByHandlerClass = new HashMap<>();

@@ -18,7 +18,7 @@ import java.util.UUID;
 @Provider
 public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
 
-    private static final Logger log = Logger.getLogger(GlobalExceptionMapper.class);
+    private static final Logger LOG = Logger.getLogger(GlobalExceptionMapper.class);
 
     @Override
     public Response toResponse(Exception exception) {
@@ -44,7 +44,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
      * This is a normal scenario (e.g., browser requesting favicon.ico, mistyped URLs)
      */
     private Response handleJaxRsNotFound(NotFoundException e, String correlationId) {
-        log.debugf("[%s] Route not found: %s", correlationId, e.getMessage());
+        LOG.debugf("[%s] Route not found: %s", correlationId, e.getMessage());
 
         return Response.status(Response.Status.NOT_FOUND)
                 .entity(new ErrorResponse(
@@ -60,7 +60,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
      * 404 Not Found
      */
     private Response handleNotFound(JobNotFoundException e, String correlationId) {
-        log.warnf("[%s] Job not found: %s", correlationId, e.getMessage());
+        LOG.warnf("[%s] Job not found: %s", correlationId, e.getMessage());
 
         return Response.status(Response.Status.NOT_FOUND)
                 .entity(new ErrorResponse(
@@ -76,7 +76,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
      * 400 Bad Request - Validation errors
      */
     private Response handleValidation(ValidationException e, String correlationId) {
-        log.warnf("[%s] Validation error: %s", correlationId, e.getMessage());
+        LOG.warnf("[%s] Validation error: %s", correlationId, e.getMessage());
 
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new ValidationErrorResponse(
@@ -92,7 +92,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
      * 400 Bad Request - Invalid arguments
      */
     private Response handleBadRequest(IllegalArgumentException e, String correlationId) {
-        log.warnf("[%s] Bad request: %s", correlationId, e.getMessage());
+        LOG.warnf("[%s] Bad request: %s", correlationId, e.getMessage());
 
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new ErrorResponse(
@@ -108,7 +108,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
      * 409 Conflict - State conflicts (e.g., job already running)
      */
     private Response handleConflict(IllegalStateException e, String correlationId) {
-        log.warnf("[%s] Conflict: %s", correlationId, e.getMessage());
+        LOG.warnf("[%s] Conflict: %s", correlationId, e.getMessage());
 
         return Response.status(Response.Status.CONFLICT)
                 .entity(new ErrorResponse(
@@ -124,7 +124,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
      * 503 Service Unavailable - JobRunr scheduling issues
      */
     private Response handleScheduling(JobSchedulingException e, String correlationId) {
-        log.errorf(e, "[%s] Job scheduling error", correlationId);
+        LOG.errorf(e, "[%s] Job scheduling error", correlationId);
 
         // Check if it's a transient error (retry-able)
         boolean isTransient = isTransientError(e);
@@ -146,7 +146,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
      * 500 Internal Server Error - Job execution failures
      */
     private Response handleExecution(JobExecutionException e, String correlationId) {
-        log.errorf(e, "[%s] Job execution error", correlationId);
+        LOG.errorf(e, "[%s] Job execution error", correlationId);
 
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(new ErrorResponse(
@@ -162,7 +162,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
      * 504 Gateway Timeout
      */
     private Response handleTimeout(TimeoutException e, String correlationId) {
-        log.warnf("[%s] Timeout: %s", correlationId, e.getMessage());
+        LOG.warnf("[%s] Timeout: %s", correlationId, e.getMessage());
 
         return Response.status(Response.Status.GATEWAY_TIMEOUT)
                 .entity(new ErrorResponse(
@@ -180,7 +180,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
      * SECURITY: Never expose stack traces or internal details!
      */
     private Response handleUnexpected(Exception e, String correlationId) {
-        log.errorf(e, "[%s] Unexpected error", correlationId);
+        LOG.errorf(e, "[%s] Unexpected error", correlationId);
 
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(new ErrorResponse(

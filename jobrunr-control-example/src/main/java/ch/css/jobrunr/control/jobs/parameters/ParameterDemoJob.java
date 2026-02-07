@@ -2,7 +2,7 @@ package ch.css.jobrunr.control.jobs.parameters;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.jobrunr.jobs.context.JobDashboardLogger;
+import org.jboss.logging.Logger;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
 /**
@@ -12,6 +12,8 @@ import org.jobrunr.jobs.lambdas.JobRequestHandler;
 @ApplicationScoped
 public class ParameterDemoJob implements JobRequestHandler<ParameterDemoJobRequest> {
 
+    private static final Logger LOG = Logger.getLogger(ParameterDemoJob.class);
+
     /**
      * Executes the parameter demo job, logging all provided parameters.
      *
@@ -20,16 +22,15 @@ public class ParameterDemoJob implements JobRequestHandler<ParameterDemoJobReque
     @Override
     @ConfigurableJob()
     public void run(ParameterDemoJobRequest request) {
-        JobDashboardLogger log = jobContext().logger();
-        log.info(String.format("String parameter: %s", request.stringParameter()));
-        log.info(String.format("Multiline parameter: %s", request.multilineParameter()));
-        log.info(String.format("Integer parameter: %s", request.integerParameter()));
-        log.info(String.format("Double parameter: %s", request.doubleParameter()));
-        log.info(String.format("Boolean parameter: %s", request.booleanParameter()));
-        log.info(String.format("Date parameter: %s", request.dateParameter()));
-        log.info(String.format("DateTime parameter: %s", request.dateTimeParameter()));
-        log.info(String.format("Enum parameter: %s", request.enumParameter()));
-        log.info(String.format("Multi-Enum parameter: %s", request.multiEnumParameter()));
+        LOG.infof("String parameter: %s", request.stringParameter());
+        LOG.infof("Multiline parameter: %s", request.multilineParameter());
+        LOG.infof("Integer parameter: %s", request.integerParameter());
+        LOG.infof("Double parameter: %s", request.doubleParameter());
+        LOG.infof("Boolean parameter: %s", request.booleanParameter());
+        LOG.infof("Date parameter: %s", request.dateParameter());
+        LOG.infof("DateTime parameter: %s", request.dateTimeParameter());
+        LOG.infof("Enum parameter: %s", request.enumParameter());
+        LOG.infof("Multi-Enum parameter: %s", request.multiEnumParameter());
     }
 }
 

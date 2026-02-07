@@ -11,7 +11,7 @@ import org.jobrunr.jobs.lambdas.JobRequestHandler;
  */
 public class JobRequestAnalyzer {
 
-    private static final Logger log = Logger.getLogger(JobRequestAnalyzer.class);
+    private static final Logger LOG = Logger.getLogger(JobRequestAnalyzer.class);
 
     private static final DotName JOB_REQUEST_HANDLER = DotName.createSimple(JobRequestHandler.class.getName());
     private static final DotName JOB_REQUEST = DotName.createSimple(JobRequest.class.getName());
@@ -37,7 +37,7 @@ public class JobRequestAnalyzer {
 
         ClassInfo requestClassInfo = index.getClassByName(jobRequestType.name());
         if (isValidJobRequest(requestClassInfo)) {
-            log.debugf("JobRequest type resolved: %s", jobRequestType.name());
+            LOG.debugf("JobRequest type resolved: %s", jobRequestType.name());
             return jobRequestType;
         }
 
