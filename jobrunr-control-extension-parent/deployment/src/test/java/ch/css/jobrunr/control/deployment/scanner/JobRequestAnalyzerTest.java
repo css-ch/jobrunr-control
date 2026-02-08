@@ -67,6 +67,7 @@ class JobRequestAnalyzerTest {
     public static class DirectHandlerImplementation implements JobRequestHandler<ValidRecordRequest> {
         @Override
         public void run(ValidRecordRequest jobRequest) {
+            // Empty implementation for testing
         }
     }
 
@@ -80,6 +81,7 @@ class JobRequestAnalyzerTest {
     public static class NotARecordHandler implements JobRequestHandler<NotARecordRequest> {
         @Override
         public void run(NotARecordRequest jobRequest) {
+            // Empty implementation for testing
         }
     }
 

@@ -46,33 +46,51 @@ public class ConfigurableJobSearchAdapter {
     public List<ConfigurableJobSearchResult> getConfigurableJob(List<StateName> statesToQuery) {
         List<ConfigurableJobSearchResult> configurableJob = new ArrayList<>();
         try {
-            AmountRequest amountRequest = new AmountRequest("updatedAt:DESC", 10000);
+            AmountRequest amountRequest = createAmountRequest();
 
             for (StateName state : statesToQuery) {
-                for (JobDefinition jobDefinition : jobDefinitionDiscoveryService.getAllJobDefinitions()) {
-                    try {
-                        JobSearchRequest searchRequest;
-                        if (jobDefinition.isBatchJob()) {
-                            searchRequest = ConfigurableJobSearchAdapter.createSearchRequestForStateAndJobTypeForBatch(state, jobDefinition.jobType());
-                        } else {
-                            searchRequest = ConfigurableJobSearchAdapter.createSearchRequestForStateAndJobType(state, jobDefinition.jobType());
-                        }
-
-                        List<Job> jobList = storageProvider.getJobList(searchRequest, amountRequest);
-                        for (Job job : jobList) {
-                            if (!isChildJobOfBatch(job, jobDefinition)) { // Check is necessary because JobRunr copies labels to child jobs
-                                configurableJob.add(new ConfigurableJobSearchResult(jobDefinition, job));
-                            }
-                        }
-                    } catch (Exception e) {
-                        LOG.warnf("Error retrieving jobs in state %s with type %s: %s", state, jobDefinition.jobType(), e.getMessage());
-                    }
-                }
+                collectJobsForState(state, amountRequest, configurableJob);
             }
             return configurableJob;
         } catch (Exception e) {
-            LOG.errorf("Error retrieving job executions", e);
+            LOG.errorf(e, "Error retrieving job executions");
             throw new JobExecutionException("Error retrieving job executions", e);
+        }
+    }
+
+    private AmountRequest createAmountRequest() {
+        return new AmountRequest("updatedAt:DESC", 10000);
+    }
+
+    private void collectJobsForState(StateName state, AmountRequest amountRequest, List<ConfigurableJobSearchResult> results) {
+        for (JobDefinition jobDefinition : jobDefinitionDiscoveryService.getAllJobDefinitions()) {
+            collectJobsForDefinition(state, jobDefinition, amountRequest, results);
+        }
+    }
+
+    private void collectJobsForDefinition(StateName state, JobDefinition jobDefinition, AmountRequest amountRequest, List<ConfigurableJobSearchResult> results) {
+        try {
+            JobSearchRequest searchRequest = createSearchRequest(state, jobDefinition);
+            List<Job> jobList = storageProvider.getJobList(searchRequest, amountRequest);
+            addNonChildJobs(jobList, jobDefinition, results);
+        } catch (Exception e) {
+            LOG.warnf(e, "Error retrieving jobs in state %s with type %s", state, jobDefinition.jobType());
+        }
+    }
+
+    private JobSearchRequest createSearchRequest(StateName state, JobDefinition jobDefinition) {
+        if (jobDefinition.isBatchJob()) {
+            return createSearchRequestForStateAndJobTypeForBatch(state, jobDefinition.jobType());
+        } else {
+            return createSearchRequestForStateAndJobType(state, jobDefinition.jobType());
+        }
+    }
+
+    private void addNonChildJobs(List<Job> jobList, JobDefinition jobDefinition, List<ConfigurableJobSearchResult> results) {
+        for (Job job : jobList) {
+            if (!isChildJobOfBatch(job, jobDefinition)) {
+                results.add(new ConfigurableJobSearchResult(jobDefinition, job));
+            }
         }
     }
 

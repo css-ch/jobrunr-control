@@ -104,51 +104,53 @@ public abstract class BaseController {
      * @return truncated parameter map
      */
     protected Map<String, Object> truncateParameterValues(Map<String, Object> parameters) {
-        final int maxStringLength = 1000;
-        final int maxCollectionSize = 100;
-
         Map<String, Object> truncated = new HashMap<>();
 
         for (Map.Entry<String, Object> entry : parameters.entrySet()) {
-            Object value = entry.getValue();
-
-            if (value instanceof String str) {
-                if (str.length() > maxStringLength) {
-                    truncated.put(entry.getKey(), str.substring(0, maxStringLength) + "... [truncated]");
-                } else {
-                    truncated.put(entry.getKey(), value);
-                }
-            } else if (value instanceof java.util.Collection<?> collection) {
-                if (collection.size() > maxCollectionSize) {
-                    truncated.put(entry.getKey(), String.format("[Collection with %d items - too large to display]", collection.size()));
-                } else {
-                    truncated.put(entry.getKey(), value);
-                }
-            } else if (value instanceof Map<?, ?> map) {
-                if (map.size() > maxCollectionSize) {
-                    truncated.put(entry.getKey(), String.format("[Map with %d entries - too large to display]", map.size()));
-                } else {
-                    truncated.put(entry.getKey(), value);
-                }
-            } else {
-                truncated.put(entry.getKey(), value);
-            }
+            Object truncatedValue = truncateValue(entry.getValue());
+            truncated.put(entry.getKey(), truncatedValue);
         }
 
         return truncated;
     }
 
-    /**
-     * Validates that a required string field is not null or blank.
-     *
-     * @param value     the value to validate
-     * @param fieldName the name of the field (for error messages)
-     * @throws IllegalArgumentException if validation fails
-     */
-    protected void validateRequired(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " is required");
+    private Object truncateValue(Object value) {
+        if (value instanceof String str) {
+            return truncateString(str);
+        } else if (value instanceof Collection<?> collection) {
+            return truncateCollection(collection);
+        } else if (value instanceof Map<?, ?> map) {
+            return truncateMap(map);
+        } else {
+            return value;
         }
+    }
+
+    private Object truncateString(String str) {
+        final int maxStringLength = 1000;
+
+        if (str.length() > maxStringLength) {
+            return str.substring(0, maxStringLength) + "... [truncated]";
+        }
+        return str;
+    }
+
+    private Object truncateCollection(Collection<?> collection) {
+        final int maxCollectionSize = 100;
+
+        if (collection.size() > maxCollectionSize) {
+            return String.format("[Collection with %d items - too large to display]", collection.size());
+        }
+        return collection;
+    }
+
+    private Object truncateMap(Map<?, ?> map) {
+        final int maxCollectionSize = 100;
+
+        if (map.size() > maxCollectionSize) {
+            return String.format("[Map with %d entries - too large to display]", map.size());
+        }
+        return map;
     }
 
     /**

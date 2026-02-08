@@ -35,8 +35,12 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
 
     private static final String METADATA_KEY_ENQUEUED = "children_enqueued";
 
+    private final ParameterStorageService parameterStorageService;
+
     @Inject
-    ParameterStorageService parameterStorageService;
+    public ExternalDataBatchJob(ParameterStorageService parameterStorageService) {
+        this.parameterStorageService = parameterStorageService;
+    }
 
     @ConfigurableJob(isBatch = true, labels = {"ExternalData"})
     @Transactional

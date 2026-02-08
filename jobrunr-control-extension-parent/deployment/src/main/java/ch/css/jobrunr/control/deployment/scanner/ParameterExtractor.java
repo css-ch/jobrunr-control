@@ -14,6 +14,7 @@ import java.util.List;
  * Extracts job parameters from record components or fields.
  * Handles both inline parameters (from record components) and external parameters (from @JobParameterSet).
  */
+@SuppressWarnings("java:S1192") // String literals are type names, duplicates are acceptable for clarity
 public class ParameterExtractor {
 
     private static final Logger LOG = Logger.getLogger(ParameterExtractor.class);
@@ -262,6 +263,9 @@ public class ParameterExtractor {
                 case "short", "S" -> typeName = "short";
                 case "byte", "B" -> typeName = "byte";
                 case "char", "C" -> typeName = "char";
+                default -> {
+                    // Unknown primitive type, keep original name
+                }
             }
         }
 

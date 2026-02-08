@@ -208,10 +208,10 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
 
         // Remove common sensitive patterns
         String sanitized = message
-                .replaceAll("java\\..*?Exception:", "Error:")
-                .replaceAll("at .*?\\(.*?\\)", "")
-                .replaceAll("/[a-zA-Z0-9/_-]+\\.java", "")
-                .replaceAll("SQL \\[.*?]", "Database error");
+                .replaceAll("java\\.[^:]*Exception:", "Error:")
+                .replaceAll("at [^\\(]*\\([^\\)]*\\)", "")
+                .replaceAll("/[a-zA-Z0-9/_-]++\\.java", "")
+                .replaceAll("SQL \\[[^]]*]", "Database error");
 
         return sanitized.trim();
     }

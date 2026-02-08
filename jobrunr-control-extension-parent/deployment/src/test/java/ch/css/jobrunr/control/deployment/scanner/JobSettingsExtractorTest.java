@@ -146,6 +146,7 @@ class JobSettingsExtractorTest {
     public static class MinimalConfiguredJob {
         @ConfigurableJob
         public void run() {
+            // Test method for batch job flag
         }
     }
 
@@ -165,38 +166,45 @@ class JobSettingsExtractorTest {
                 deleteOnFailure = "PT72H"
         )
         public void run() {
+            // Test method for batch job flag
         }
     }
 
     public static class BatchJob {
         @ConfigurableJob(isBatch = true)
         public void run() {
+            // Test method for batch job flag
         }
     }
 
     public static class JobWithRetries {
         @ConfigurableJob(retries = 10)
         public void run() {
+            // Test method for batch job flag
         }
     }
 
     public static class JobWithMultipleLabels {
         @ConfigurableJob(labels = {"label1", "label2", "label3"})
         public void run() {
+            // Test method for batch job flag
         }
     }
 
     public static class JobWithFilters {
         @ConfigurableJob(jobFilters = {DummyJobFilter.class})
         public void run() {
+            // Test method for batch job flag
         }
     }
 
     public static class DummyJobFilter implements JobFilter {
+        // Test implementation of JobFilter for annotation processing
     }
 
     public static class NoConfigurableJobAnnotation {
         public void run() {
+            // Test method for batch job flag
         }
     }
 

@@ -39,14 +39,19 @@ public class JobExecutionsController {
         public static native TemplateInstance batchProgress(BatchProgress progress);
     }
 
-    @Inject
-    GetJobExecutionHistoryUseCase getHistoryUseCase;
+    private final GetJobExecutionHistoryUseCase getHistoryUseCase;
+    private final ResolveParametersUseCase resolveParametersUseCase;
+    private final GetBatchProgressUseCase getBatchProgressUseCase;
 
     @Inject
-    ResolveParametersUseCase resolveParametersUseCase;
-
-    @Inject
-    GetBatchProgressUseCase getBatchProgressUseCase;
+    public JobExecutionsController(
+            GetJobExecutionHistoryUseCase getHistoryUseCase,
+            ResolveParametersUseCase resolveParametersUseCase,
+            GetBatchProgressUseCase getBatchProgressUseCase) {
+        this.getHistoryUseCase = getHistoryUseCase;
+        this.resolveParametersUseCase = resolveParametersUseCase;
+        this.getBatchProgressUseCase = getBatchProgressUseCase;
+    }
 
     @GET
     @RolesAllowed({"viewer", "configurator", "admin"})

@@ -6,7 +6,6 @@ import ch.css.jobrunr.control.adapter.rest.dto.StartJobRequestDTO;
 import ch.css.jobrunr.control.adapter.rest.dto.StartJobResponse;
 import ch.css.jobrunr.control.application.monitoring.GetJobExecutionByIdUseCase;
 import ch.css.jobrunr.control.application.scheduling.StartJobUseCase;
-import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
@@ -178,17 +177,14 @@ public class JobControlResource {
     }
 
     private static BatchProgressDTO getBatchProgressDTO(JobExecutionInfo executionInfo) {
-        BatchProgressDTO batchProgressDTO = null;
-        if (executionInfo.getBatchProgress().isPresent()) {
-            BatchProgress progress = executionInfo.getBatchProgress().get();
-            batchProgressDTO = new BatchProgressDTO(
-                    progress.total(),
-                    progress.succeeded(),
-                    progress.failed(),
-                    progress.getPending(),
-                    progress.getProgress()
-            );
-        }
-        return batchProgressDTO;
+        return executionInfo.getBatchProgress()
+                .map(progress -> new BatchProgressDTO(
+                        progress.total(),
+                        progress.succeeded(),
+                        progress.failed(),
+                        progress.getPending(),
+                        progress.getProgress()
+                ))
+                .orElse(null);
     }
 }

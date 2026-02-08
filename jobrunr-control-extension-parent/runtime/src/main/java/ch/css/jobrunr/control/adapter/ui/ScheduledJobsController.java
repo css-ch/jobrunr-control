@@ -5,7 +5,6 @@ import ch.css.jobrunr.control.application.discovery.GetJobParametersUseCase;
 import ch.css.jobrunr.control.application.monitoring.GetScheduledJobsUseCase;
 import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.application.scheduling.*;
-import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
@@ -33,6 +32,7 @@ import java.util.stream.Collectors;
  * Renders type-safe Qute templates and processes HTMX requests.
  */
 @Path("/q/jobrunr-control/scheduled")
+@SuppressWarnings("java:S1192") // "external" filter literal duplication is acceptable for query param clarity
 public class ScheduledJobsController extends BaseController {
 
     private static final Logger LOG = Logger.getLogger(ScheduledJobsController.class);
@@ -62,35 +62,38 @@ public class ScheduledJobsController extends BaseController {
                                                       List<JobParameter> parameters);
     }
 
-    @Inject
-    DiscoverJobsUseCase discoverJobsUseCase;
+    private final DiscoverJobsUseCase discoverJobsUseCase;
+    private final GetJobParametersUseCase getJobParametersUseCase;
+    private final ResolveParametersUseCase resolveParametersUseCase;
+    private final GetScheduledJobsUseCase getScheduledJobsUseCase;
+    private final GetScheduledJobByIdUseCase getScheduledJobByIdUseCase;
+    private final CreateScheduledJobUseCase createJobUseCase;
+    private final UpdateScheduledJobUseCase updateJobUseCase;
+    private final DeleteScheduledJobUseCase deleteJobUseCase;
+    private final ExecuteScheduledJobUseCase executeScheduledJobUseCase;
 
     @Inject
-    GetJobParametersUseCase getJobParametersUseCase;
+    public ScheduledJobsController(
+            DiscoverJobsUseCase discoverJobsUseCase,
+            GetJobParametersUseCase getJobParametersUseCase,
+            ResolveParametersUseCase resolveParametersUseCase,
+            GetScheduledJobsUseCase getScheduledJobsUseCase,
+            GetScheduledJobByIdUseCase getScheduledJobByIdUseCase,
+            CreateScheduledJobUseCase createJobUseCase,
+            UpdateScheduledJobUseCase updateJobUseCase,
+            DeleteScheduledJobUseCase deleteJobUseCase,
+            ExecuteScheduledJobUseCase executeScheduledJobUseCase) {
+        this.discoverJobsUseCase = discoverJobsUseCase;
+        this.getJobParametersUseCase = getJobParametersUseCase;
+        this.resolveParametersUseCase = resolveParametersUseCase;
+        this.getScheduledJobsUseCase = getScheduledJobsUseCase;
+        this.getScheduledJobByIdUseCase = getScheduledJobByIdUseCase;
+        this.createJobUseCase = createJobUseCase;
+        this.updateJobUseCase = updateJobUseCase;
+        this.deleteJobUseCase = deleteJobUseCase;
+        this.executeScheduledJobUseCase = executeScheduledJobUseCase;
 
-    @Inject
-    ResolveParametersUseCase resolveParametersUseCase;
-
-    @Inject
-    GetScheduledJobsUseCase getScheduledJobsUseCase;
-
-    @Inject
-    GetScheduledJobByIdUseCase getScheduledJobByIdUseCase;
-
-    @Inject
-    CreateScheduledJobUseCase createJobUseCase;
-
-    @Inject
-    UpdateScheduledJobUseCase updateJobUseCase;
-
-    @Inject
-    DeleteScheduledJobUseCase deleteJobUseCase;
-
-    @Inject
-    ExecuteScheduledJobUseCase executeScheduledJobUseCase;
-
-    @Inject
-    JobParameterValidator validator;
+    }
 
     @GET
     @RolesAllowed({"viewer", "configurator", "admin"})
@@ -176,8 +179,8 @@ public class ScheduledJobsController extends BaseController {
         // Use base controller helper to resolve parameters
         ResolvedJobData resolvedData = resolveJobParameters(
                 jobInfo,
-                params -> resolveParametersUseCase.execute(params),
-                jobType -> getJobParametersUseCase.execute(jobType),
+                resolveParametersUseCase::execute,
+                getJobParametersUseCase::execute,
                 LOG
         );
 

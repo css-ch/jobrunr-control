@@ -61,7 +61,7 @@ public class QuarkusExtensionBestPracticesTest {
 
         rule.check(importedClasses);
     }
-    
+
     /**
      * Runtime module should not contain build steps.
      * BuildStep methods should only be in the deployment module.
@@ -129,6 +129,8 @@ public class QuarkusExtensionBestPracticesTest {
     /**
      * Runtime configuration classes should use @ConfigMapping instead of @ConfigProperties.
      * ConfigMapping is the modern Quarkus approach with better type safety.
+     * <p>
+     * Note: Nested interfaces within @ConfigMapping classes are allowed and don't need their own annotation.
      */
     @Test
     @DisplayName("Configuration should use @ConfigMapping for type-safe config")
@@ -137,11 +139,13 @@ public class QuarkusExtensionBestPracticesTest {
                 .that().resideInAPackage("..infrastructure.config..")
                 .and().haveSimpleNameContaining("Config")
                 .and().areNotEnums()
+                .and().areNotNestedClasses() // Nested interfaces in @ConfigMapping are valid
                 .should().beAnnotatedWith("io.smallrye.config.ConfigMapping")
                 .orShould().beRecords()
-                .because("@ConfigMapping provides type-safe, build-time validated configuration");
+                .because("@ConfigMapping provides type-safe, build-time validated configuration. " +
+                        "Nested config interfaces within @ConfigMapping classes are allowed without annotation.");
 
-        //      rule.check(importedClasses);
+        rule.check(importedClasses);
     }
 
     /**

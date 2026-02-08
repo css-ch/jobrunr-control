@@ -26,7 +26,8 @@ public class JobTriggerForParameterDemoJobUITest extends JobTriggerUITestBase {
         submitJobCreationForm();
 
         scheduledJobId = extractJobIdFromScheduledJobsTable("Test Job - External Trigger");
-        System.out.println("Created scheduled job ID: " + scheduledJobId);
+        assertNotNull(scheduledJobId, "Scheduled job should be created and its ID extracted from the table");
+
     }
 
     @Test

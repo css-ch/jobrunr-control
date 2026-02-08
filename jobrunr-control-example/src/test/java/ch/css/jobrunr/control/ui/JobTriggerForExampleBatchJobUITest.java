@@ -26,7 +26,7 @@ public class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
         submitJobCreationForm();
 
         scheduledJobId = extractJobIdFromScheduledJobsTable("Test Batch Job - External Trigger");
-        System.out.println("Created scheduled batch job ID: " + scheduledJobId);
+        assertNotNull(scheduledJobId, "Scheduled job should be created and its ID extracted from the table");
     }
 
     @Test

@@ -58,35 +58,40 @@ public class TemplatesController extends BaseController {
                                                            List<JobParameter> parameters);
     }
 
-    @Inject
-    DiscoverJobsUseCase discoverJobsUseCase;
+    private final DiscoverJobsUseCase discoverJobsUseCase;
+    private final GetJobParametersUseCase getJobParametersUseCase;
+    private final ResolveParametersUseCase resolveParametersUseCase;
+    private final GetTemplatesUseCase getTemplatesUseCase;
+    private final GetTemplateByIdUseCase getTemplateByIdUseCase;
+    private final CreateTemplateUseCase createTemplateUseCase;
+    private final UpdateTemplateUseCase updateTemplateUseCase;
+    private final DeleteTemplateUseCase deleteTemplateUseCase;
+    private final CloneTemplateUseCase cloneTemplateUseCase;
+    private final StartJobUseCase startJobUseCase;
 
     @Inject
-    GetJobParametersUseCase getJobParametersUseCase;
-
-    @Inject
-    ResolveParametersUseCase resolveParametersUseCase;
-
-    @Inject
-    GetTemplatesUseCase getTemplatesUseCase;
-
-    @Inject
-    GetTemplateByIdUseCase getTemplateByIdUseCase;
-
-    @Inject
-    CreateTemplateUseCase createTemplateUseCase;
-
-    @Inject
-    UpdateTemplateUseCase updateTemplateUseCase;
-
-    @Inject
-    DeleteTemplateUseCase deleteTemplateUseCase;
-
-    @Inject
-    CloneTemplateUseCase cloneTemplateUseCase;
-
-    @Inject
-    StartJobUseCase startJobUseCase;
+    public TemplatesController(
+            DiscoverJobsUseCase discoverJobsUseCase,
+            GetJobParametersUseCase getJobParametersUseCase,
+            ResolveParametersUseCase resolveParametersUseCase,
+            GetTemplatesUseCase getTemplatesUseCase,
+            GetTemplateByIdUseCase getTemplateByIdUseCase,
+            CreateTemplateUseCase createTemplateUseCase,
+            UpdateTemplateUseCase updateTemplateUseCase,
+            DeleteTemplateUseCase deleteTemplateUseCase,
+            CloneTemplateUseCase cloneTemplateUseCase,
+            StartJobUseCase startJobUseCase) {
+        this.discoverJobsUseCase = discoverJobsUseCase;
+        this.getJobParametersUseCase = getJobParametersUseCase;
+        this.resolveParametersUseCase = resolveParametersUseCase;
+        this.getTemplatesUseCase = getTemplatesUseCase;
+        this.getTemplateByIdUseCase = getTemplateByIdUseCase;
+        this.createTemplateUseCase = createTemplateUseCase;
+        this.updateTemplateUseCase = updateTemplateUseCase;
+        this.deleteTemplateUseCase = deleteTemplateUseCase;
+        this.cloneTemplateUseCase = cloneTemplateUseCase;
+        this.startJobUseCase = startJobUseCase;
+    }
 
     @GET
     @RolesAllowed({"viewer", "configurator", "admin"})
@@ -153,8 +158,8 @@ public class TemplatesController extends BaseController {
         // Use base controller helper to resolve parameters
         ResolvedJobData resolvedData = resolveJobParameters(
                 jobInfo,
-                params -> resolveParametersUseCase.execute(params),
-                jobType -> getJobParametersUseCase.execute(jobType),
+                resolveParametersUseCase::execute,
+                getJobParametersUseCase::execute,
                 LOG
         );
 
@@ -275,10 +280,11 @@ public class TemplatesController extends BaseController {
 
 
     private Comparator<ScheduledJobInfo> getComparator(String sortBy) {
-        return switch (sortBy) {
-            case "jobType" -> Comparator.comparing(ScheduledJobInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
-            default -> Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
-        };
+        if ("jobType".equals(sortBy)) {
+            return Comparator.comparing(ScheduledJobInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
+        } else {
+            return Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
+        }
     }
 
     private List<JobDefinition> getSortedJobDefinitions() {

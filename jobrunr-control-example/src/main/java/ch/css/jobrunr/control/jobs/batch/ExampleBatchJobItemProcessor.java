@@ -7,6 +7,7 @@ import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
 @ApplicationScoped
+@SuppressWarnings("java:S1192") // "attempted" literal duplication is acceptable for metadata key clarity
 public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBatchJobItemProcessorRequest> {
 
     /**

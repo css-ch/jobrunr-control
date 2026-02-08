@@ -17,6 +17,8 @@ import java.util.Random;
 @ApplicationScoped
 public class ExternalDataBatchItemProcessor implements JobRequestHandler<ExternalDataBatchItemRequest> {
 
+    @SuppressWarnings("java:S2245")
+    // Not need for securre randomness in this context, just simulating occasional errors
     private static final Random RANDOM = new Random();
 
     /**

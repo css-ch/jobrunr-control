@@ -114,7 +114,8 @@
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     </systemPropertyVariables>
-                    <argLine>-XX:+EnableDynamicAgentLoading -Xshare:off --add-opens java.base/java.lang=ALL-UNNAMED
+                    <argLine>@{argLine} -XX:+EnableDynamicAgentLoading -Xshare:off --add-opens
+                        java.base/java.lang=ALL-UNNAMED
                     </argLine>
                 </configuration>
             </plugin>

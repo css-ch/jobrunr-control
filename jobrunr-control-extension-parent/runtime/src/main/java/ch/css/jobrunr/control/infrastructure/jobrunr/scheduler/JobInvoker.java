@@ -109,69 +109,73 @@ public class JobInvoker {
      * Applies all job settings from JobSettings to the JobBuilder.
      */
     private void applyJobSettings(JobBuilder jobBuilder, JobSettings settings, List<String> additionalLabels) {
-        // Apply name if provided
-        if (settings.name() != null && !settings.name().isEmpty()) {
+        applyName(jobBuilder, settings);
+        applyRetries(jobBuilder, settings);
+        applyLabels(jobBuilder, settings, additionalLabels);
+        applyQueue(jobBuilder, settings);
+        applyServerTag(settings);
+        applyMutex(jobBuilder, settings);
+        applyRateLimiter(jobBuilder, settings);
+        applyProcessTimeout(jobBuilder, settings);
+        applyDeleteOnSuccess(jobBuilder, settings);
+        applyDeleteOnFailure(jobBuilder, settings);
+    }
+
+    private void applyName(JobBuilder jobBuilder, JobSettings settings) {
+        if (isNotEmpty(settings.name())) {
             jobBuilder.withName(settings.name());
         }
+    }
 
-        // Apply retries if specified
+    private void applyRetries(JobBuilder jobBuilder, JobSettings settings) {
         if (settings.retries() != ConfigurableJob.NBR_OF_RETRIES_NOT_PROVIDED) {
             jobBuilder.withAmountOfRetries(settings.retries());
         }
+    }
 
-        // Apply labels if provided (merge settings labels with additional labels)
-        if ((settings.labels() != null && !settings.labels().isEmpty()) || (additionalLabels != null && !additionalLabels.isEmpty())) {
-            java.util.List<String> allLabels = new java.util.ArrayList<>();
-            if (settings.labels() != null) {
-                allLabels.addAll(settings.labels());
+    private void applyLabels(JobBuilder jobBuilder, JobSettings settings, List<String> additionalLabels) {
+        List<String> settingsLabels = settings.labels();
+        boolean hasSettingsLabels = settingsLabels != null && !settingsLabels.isEmpty();
+        boolean hasAdditionalLabels = additionalLabels != null && !additionalLabels.isEmpty();
+
+        if (hasSettingsLabels || hasAdditionalLabels) {
+            List<String> allLabels = new ArrayList<>();
+            if (hasSettingsLabels) {
+                allLabels.addAll(settingsLabels);
             }
-            if (additionalLabels != null) {
+            if (hasAdditionalLabels) {
                 allLabels.addAll(additionalLabels);
             }
             jobBuilder.withLabels(allLabels);
         }
+    }
 
-        // Apply job filters if provided
-        if (settings.jobFilters() != null && !settings.jobFilters().isEmpty()) {
-            // Note: JobBuilder.withJobFilter may not be available in all versions
-            // Load and apply job filter classes
-            for (String filterClassName : settings.jobFilters()) {
-                try {
-                    @SuppressWarnings("unchecked")
-                    Class<? extends org.jobrunr.jobs.filters.JobFilter> filterClass =
-                            (Class<? extends org.jobrunr.jobs.filters.JobFilter>)
-                                    Thread.currentThread().getContextClassLoader().loadClass(filterClassName);
-                    // jobBuilder.withJobFilter(filterClass); // Method may not exist in JobRunr 8.4.1
-                    LOG.warnf("JobFilter support not yet implemented: %s", filterClassName);
-                } catch (ClassNotFoundException e) {
-                    LOG.warnf("Could not load JobFilter class: %s", filterClassName, e);
-                }
-            }
-        }
-
-        // Apply queue if provided
-        if (settings.queue() != null && !settings.queue().isEmpty()) {
+    private void applyQueue(JobBuilder jobBuilder, JobSettings settings) {
+        if (isNotEmpty(settings.queue())) {
             jobBuilder.withQueue(settings.queue());
         }
+    }
 
-        // Apply server tag if provided
-        if (settings.runOnServerWithTag() != null && !settings.runOnServerWithTag().isEmpty()) {
-            // jobBuilder.runOnServerWithTag(settings.runOnServerWithTag()); // Method may not exist in JobRunr 8.4.1
+    private void applyServerTag(JobSettings settings) {
+        if (isNotEmpty(settings.runOnServerWithTag())) {
             LOG.warnf("Server tag support not yet implemented: %s", settings.runOnServerWithTag());
         }
+    }
 
-        // Apply mutex if provided
-        if (settings.mutex() != null && !settings.mutex().isEmpty()) {
+    private void applyMutex(JobBuilder jobBuilder, JobSettings settings) {
+        if (isNotEmpty(settings.mutex())) {
             jobBuilder.withMutex(settings.mutex());
         }
+    }
 
-        // Apply rate limiter if provided
-        if (settings.rateLimiter() != null && !settings.rateLimiter().isEmpty()) {
+    private void applyRateLimiter(JobBuilder jobBuilder, JobSettings settings) {
+        if (isNotEmpty(settings.rateLimiter())) {
             jobBuilder.withRateLimiter(settings.rateLimiter());
         }
+    }
 
-        // Apply process timeout if provided
-        if (settings.processTimeOut() != null && !settings.processTimeOut().isEmpty()) {
+    private void applyProcessTimeout(JobBuilder jobBuilder, JobSettings settings) {
+        if (isNotEmpty(settings.processTimeOut())) {
             try {
                 java.time.Duration timeout = java.time.Duration.parse(settings.processTimeOut());
                 jobBuilder.withProcessTimeOut(timeout);
@@ -179,15 +183,21 @@ public class JobInvoker {
                 LOG.warnf(e, "Invalid process timeout format: %s", settings.processTimeOut());
             }
         }
+    }
 
-        // Apply delete on success if provided
-        if (settings.deleteOnSuccess() != null && !settings.deleteOnSuccess().isEmpty()) {
+    private void applyDeleteOnSuccess(JobBuilder jobBuilder, JobSettings settings) {
+        if (isNotEmpty(settings.deleteOnSuccess())) {
             jobBuilder.withDeleteOnSuccess(settings.deleteOnSuccess());
         }
+    }
 
-        // Apply delete on failure if provided
-        if (settings.deleteOnFailure() != null && !settings.deleteOnFailure().isEmpty()) {
+    private void applyDeleteOnFailure(JobBuilder jobBuilder, JobSettings settings) {
+        if (isNotEmpty(settings.deleteOnFailure())) {
             jobBuilder.withDeleteOnFailure(settings.deleteOnFailure());
         }
+    }
+
+    private boolean isNotEmpty(String value) {
+        return value != null && !value.isEmpty();
     }
 }
