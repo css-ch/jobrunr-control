@@ -20,7 +20,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("JobRunrParameterSetLoaderAdapter")
@@ -84,22 +85,6 @@ class JobRunrParameterSetLoaderAdapterTest {
     }
 
     @Test
-    @DisplayName("should update last accessed timestamp when loading parameters")
-    void loadParametersBySetId_ValidId_UpdatesLastAccessed() {
-        // Arrange
-        UUID parameterSetId = UUID.randomUUID();
-        ParameterSet parameterSet = ParameterSet.create(parameterSetId, "TestJob", Map.of());
-
-        when(parameterStoragePort.findById(parameterSetId)).thenReturn(Optional.of(parameterSet));
-
-        // Act
-        adapter.loadParametersBySetId(parameterSetId);
-
-        // Assert
-        verify(parameterStoragePort).updateLastAccessed(parameterSetId);
-    }
-
-    @Test
     @DisplayName("should throw ParameterSetNotFoundException when parameter set not found")
     void loadParametersBySetId_NotFound_ThrowsException() {
         // Arrange
@@ -109,23 +94,6 @@ class JobRunrParameterSetLoaderAdapterTest {
         // Act & Assert
         assertThatThrownBy(() -> adapter.loadParametersBySetId(parameterSetId))
                 .isInstanceOf(ParameterSetNotFoundException.class);
-    }
-
-    @Test
-    @DisplayName("should not update last accessed when parameter set not found")
-    void loadParametersBySetId_NotFound_DoesNotUpdateLastAccessed() {
-        // Arrange
-        UUID parameterSetId = UUID.randomUUID();
-        when(parameterStoragePort.findById(parameterSetId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        try {
-            adapter.loadParametersBySetId(parameterSetId);
-        } catch (ParameterSetNotFoundException e) {
-            // Expected
-        }
-
-        verify(parameterStoragePort, never()).updateLastAccessed(any());
     }
 
     @Test

@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.application.scheduling;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ParameterStoragePort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -20,13 +21,16 @@ public class DeleteScheduledJobUseCase {
 
     private final JobSchedulerPort jobSchedulerPort;
     private final ParameterStoragePort parameterStoragePort;
+    private final AuditLoggerHelper auditLogger;
 
     @Inject
     public DeleteScheduledJobUseCase(
             JobSchedulerPort jobSchedulerPort,
-            ParameterStoragePort parameterStoragePort) {
+            ParameterStoragePort parameterStoragePort,
+            AuditLoggerHelper auditLogger) {
         this.jobSchedulerPort = jobSchedulerPort;
         this.parameterStoragePort = parameterStoragePort;
+        this.auditLogger = auditLogger;
     }
 
     /**
@@ -39,9 +43,12 @@ public class DeleteScheduledJobUseCase {
             throw new IllegalArgumentException("jobId must not be null");
         }
 
+        // Get job info before deletion for audit logging
+        ScheduledJobInfo jobInfo = jobSchedulerPort.getScheduledJobById(jobId);
+        String jobName = jobInfo != null ? jobInfo.getJobName() : "Unknown";
+
         // Before deleting job, check if it has external parameters and clean them up
         try {
-            ScheduledJobInfo jobInfo = jobSchedulerPort.getScheduledJobById(jobId);
             if (jobInfo != null && jobInfo.hasExternalParameters()) {
                 jobInfo.getParameterSetId().ifPresent(paramSetId -> {
                     LOG.debugf("Cleaning up external parameters for job %s: %s", jobId, paramSetId);
@@ -55,6 +62,9 @@ public class DeleteScheduledJobUseCase {
         }
 
         jobSchedulerPort.deleteScheduledJob(jobId);
+
+        // Audit log
+        auditLogger.logJobDeleted(jobName, jobId);
     }
 
     /**

@@ -5,6 +5,7 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -32,17 +33,20 @@ public class UpdateScheduledJobUseCase {
     private final JobSchedulerPort jobSchedulerPort;
     private final JobParameterValidator validator;
     private final ParameterStorageHelper parameterStorageHelper;
+    private final AuditLoggerHelper auditLogger;
 
     @Inject
     public UpdateScheduledJobUseCase(
             JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
             JobSchedulerPort jobSchedulerPort,
             JobParameterValidator validator,
-            ParameterStorageHelper parameterStorageHelper) {
+            ParameterStorageHelper parameterStorageHelper,
+            AuditLoggerHelper auditLogger) {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobSchedulerPort = jobSchedulerPort;
         this.validator = validator;
         this.parameterStorageHelper = parameterStorageHelper;
+        this.auditLogger = auditLogger;
     }
 
     /**
@@ -97,6 +101,9 @@ public class UpdateScheduledJobUseCase {
 
         // Update job directly (more efficient method)
         jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, jobParameters, isExternalTrigger, effectiveScheduledAt, additionalLabels);
+
+        // Audit log
+        auditLogger.logJobUpdated(jobName, jobId, jobParameters);
 
         // Return the original job ID
         return jobId;

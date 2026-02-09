@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.scheduling.BackgroundJobRequest;
+import org.jobrunr.server.runner.ThreadLocalJobContext;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -48,7 +49,7 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
     public void run(ExternalDataBatchJobRequest request) {
         // ✅ IDEMPOTENCY CHECK: Skip if child jobs already enqueued
         if (isAlreadyEnqueued()) {
-            jobContext().logger().info("Child jobs already enqueued, skipping to prevent duplicates");
+            ThreadLocalJobContext.getJobContext().logger().info("Child jobs already enqueued, skipping to prevent duplicates");
             return;
         }
 
@@ -73,7 +74,7 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
         EnumParameter enumParam = parameterSet.getEnum("enumExternalParameter", EnumParameter.class);
         EnumSet<EnumParameter> multiEnumParam = parameterSet.getEnumSet("multiEnumExternalParameter", EnumParameter.class);
 
-        jobContext().logger().info(String.format(
+        ThreadLocalJobContext.getJobContext().logger().info(String.format(
                 "Starting external data batch job with all parameter types:%n" +
                         "  Number of Child Jobs: %d%n" +
                         "  String: %s%n" +
@@ -108,17 +109,17 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
         markAsEnqueued(items.size());
 
         // Save metadata
-        jobContext().saveMetadata("numberOfChildJobs", numberOfChildJobs);
-        jobContext().saveMetadata("stringParameter", stringParam);
-        jobContext().saveMetadata("notesParameter", notesParam);
-        jobContext().saveMetadata("integerParameter", integerParam);
-        jobContext().saveMetadata("booleanParameter", booleanParam);
-        jobContext().saveMetadata("dateParameter", dateParam != null ? dateParam.toString() : "null");
-        jobContext().saveMetadata("dateTimeParameter", dateTimeParam != null ? dateTimeParam.toString() : "null");
-        jobContext().saveMetadata("enumParameter", enumParam != null ? enumParam.toString() : "null");
-        jobContext().saveMetadata("multiEnumParameter", multiEnumParam != null ? multiEnumParam.toString() : "null");
+        ThreadLocalJobContext.getJobContext().saveMetadata("numberOfChildJobs", numberOfChildJobs);
+        ThreadLocalJobContext.getJobContext().saveMetadata("stringParameter", stringParam);
+        ThreadLocalJobContext.getJobContext().saveMetadata("notesParameter", notesParam);
+        ThreadLocalJobContext.getJobContext().saveMetadata("integerParameter", integerParam);
+        ThreadLocalJobContext.getJobContext().saveMetadata("booleanParameter", booleanParam);
+        ThreadLocalJobContext.getJobContext().saveMetadata("dateParameter", dateParam != null ? dateParam.toString() : "null");
+        ThreadLocalJobContext.getJobContext().saveMetadata("dateTimeParameter", dateTimeParam != null ? dateTimeParam.toString() : "null");
+        ThreadLocalJobContext.getJobContext().saveMetadata("enumParameter", enumParam != null ? enumParam.toString() : "null");
+        ThreadLocalJobContext.getJobContext().saveMetadata("multiEnumParameter", multiEnumParam != null ? multiEnumParam.toString() : "null");
 
-        jobContext().logger().info(String.format(
+        ThreadLocalJobContext.getJobContext().logger().info(String.format(
                 "Enqueueing %d batch items for processing...", items.size()));
 
         // ✅ DETERMINISTIC UUIDs: Enqueue with deterministic job IDs
@@ -133,7 +134,7 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
      * @return true if children were already enqueued
      */
     private boolean isAlreadyEnqueued() {
-        var metadata = jobContext().getMetadata();
+        var metadata = ThreadLocalJobContext.getJobContext().getMetadata();
         return metadata.containsKey(METADATA_KEY_ENQUEUED) &&
                 Boolean.TRUE.equals(metadata.get(METADATA_KEY_ENQUEUED));
     }
@@ -147,9 +148,9 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
      * @param itemCount number of child jobs to be enqueued
      */
     private void markAsEnqueued(int itemCount) {
-        jobContext().saveMetadata(METADATA_KEY_ENQUEUED, true);
-        jobContext().saveMetadata("total_children", itemCount);
-        jobContext().saveMetadata("enqueued_at", java.time.Instant.now().toString());
+        ThreadLocalJobContext.getJobContext().saveMetadata(METADATA_KEY_ENQUEUED, true);
+        ThreadLocalJobContext.getJobContext().saveMetadata("total_children", itemCount);
+        ThreadLocalJobContext.getJobContext().saveMetadata("enqueued_at", java.time.Instant.now().toString());
     }
 
     /**
@@ -167,7 +168,7 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
         // Enqueue all items in a stream (JobRunr handles the scheduling)
         BackgroundJobRequest.enqueue(items.stream());
 
-        jobContext().logger().info(String.format(
+        ThreadLocalJobContext.getJobContext().logger().info(String.format(
                 "Enqueued %d child jobs (retry-safe via metadata check)", items.size()));
     }
 }

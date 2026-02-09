@@ -70,8 +70,6 @@ class JpaParameterStorageAdapterTest {
         assertThat(capturedEntity.id).isEqualTo(id);
         assertThat(capturedEntity.jobType).isEqualTo("TestJob");
         assertThat(capturedEntity.parametersJson).isEqualTo(jsonString);
-        assertThat(capturedEntity.createdAt).isEqualTo(now);
-        assertThat(capturedEntity.lastAccessedAt).isEqualTo(now);
     }
 
     @Test
@@ -102,7 +100,7 @@ class JpaParameterStorageAdapterTest {
         entity.jobType = "TestJob";
         entity.parametersJson = "{\"key\":\"value\"}";
         entity.createdAt = now;
-        entity.lastAccessedAt = now;
+        entity.updatedAt = now;
 
         Map<String, Object> expectedParams = Map.of("key", "value");
 
@@ -119,7 +117,7 @@ class JpaParameterStorageAdapterTest {
         assertThat(parameterSet.jobType()).isEqualTo("TestJob");
         assertThat(parameterSet.parameters()).containsEntry("key", "value");
         assertThat(parameterSet.createdAt()).isEqualTo(now);
-        assertThat(parameterSet.lastAccessedAt()).isEqualTo(now);
+        assertThat(parameterSet.updatedAt()).isEqualTo(now);
     }
 
     @Test
@@ -146,7 +144,7 @@ class JpaParameterStorageAdapterTest {
         entity.jobType = "TestJob";
         entity.parametersJson = "invalid-json";
         entity.createdAt = Instant.now();
-        entity.lastAccessedAt = Instant.now();
+        entity.updatedAt = Instant.now();
 
         when(entityManager.find(ParameterSetEntity.class, id)).thenReturn(entity);
         when(objectMapper.readValue(eq("invalid-json"), eq(Map.class)))
@@ -189,40 +187,6 @@ class JpaParameterStorageAdapterTest {
 
         // Assert
         verify(entityManager, never()).remove(any());
-    }
-
-    @Test
-    @DisplayName("should update last accessed timestamp")
-    void updateLastAccessed_ExistingId_UpdatesTimestamp() {
-        // Arrange
-        UUID id = UUID.randomUUID();
-        Instant oldTime = Instant.now().minusSeconds(3600);
-        ParameterSetEntity entity = new ParameterSetEntity();
-        entity.id = id;
-        entity.lastAccessedAt = oldTime;
-
-        when(entityManager.find(ParameterSetEntity.class, id)).thenReturn(entity);
-
-        // Act
-        adapter.updateLastAccessed(id);
-
-        // Assert
-        verify(entityManager).merge(entity);
-        assertThat(entity.lastAccessedAt).isAfter(oldTime);
-    }
-
-    @Test
-    @DisplayName("should do nothing when updating last accessed for non-existing ID")
-    void updateLastAccessed_NonExistingId_DoesNothing() {
-        // Arrange
-        UUID id = UUID.randomUUID();
-        when(entityManager.find(ParameterSetEntity.class, id)).thenReturn(null);
-
-        // Act
-        adapter.updateLastAccessed(id);
-
-        // Assert
-        verify(entityManager, never()).merge(any());
     }
 
     @Test

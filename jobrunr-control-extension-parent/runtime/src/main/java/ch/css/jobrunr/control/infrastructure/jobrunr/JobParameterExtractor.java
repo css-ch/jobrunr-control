@@ -101,9 +101,6 @@ public final class JobParameterExtractor {
             Map<String, Object> combined = new HashMap<>(parameterSet.get().parameters());
             combined.put(paramSetEntry.getKey(), parameterSetId);
 
-            // Update last accessed
-            storageService.updateLastAccessed(UUID.fromString(parameterSetId));
-
             LOG.debugf("Enriched job %s with %d external parameters from set %s",
                     job.getId(), parameterSet.get().parameters().size(), parameterSetId);
 

@@ -31,65 +31,100 @@ public class ParameterExtractor {
      * Analyzes record parameters and returns both the parameters and metadata about external parameter usage.
      */
     public AnalyzedParameters analyzeRecordParameters(ClassInfo recordClass) {
-        List<JobParameter> parameters = new ArrayList<>();
+        List<RecordComponentInfo> components = recordClass.recordComponents();
+        RecordComponentInfo parameterSetComponent = findParameterSetComponent(components, recordClass);
+
+        if (parameterSetComponent != null) {
+            return analyzeExternalParameters(parameterSetComponent, recordClass);
+        } else {
+            return analyzeInlineParameters(components);
+        }
+    }
+
+    /**
+     * Finds and validates the @JobParameterSet component.
+     */
+    private RecordComponentInfo findParameterSetComponent(List<RecordComponentInfo> components, ClassInfo recordClass) {
         RecordComponentInfo parameterSetComponent = null;
 
-        // Step 1: Scan record components for @JobParameterSet annotation
-        List<RecordComponentInfo> components = recordClass.recordComponents();
         for (RecordComponentInfo component : components) {
             if (component.hasAnnotation(JOB_PARAMETER_SET)) {
-                // Validation: Only one @JobParameterSet allowed
-                if (parameterSetComponent != null) {
-                    throw new IllegalStateException(
-                            "JobRequest " + recordClass.name() +
-                                    " has multiple @JobParameterSet annotations on components '" +
-                                    parameterSetComponent.name() + "' and '" + component.name() + "'. Only one is allowed.");
-                }
-
-                // Validation: Must be String type
-                if (!component.type().name().toString().equals("java.lang.String")) {
-                    throw new IllegalStateException(
-                            "JobRequest " + recordClass.name() +
-                                    " component '" + component.name() + "' has @JobParameterSet but is not of type String. " +
-                                    "Found: " + component.type().name());
-                }
-
+                validateParameterSetComponent(component, parameterSetComponent, recordClass);
                 parameterSetComponent = component;
             }
         }
 
-        // Step 2: Extract parameters based on strategy
-        if (parameterSetComponent != null) {
-            // EXTERNAL PARAMETERS: Extract from @JobParameterSet annotation
-            parameters = extractExternalParameters(parameterSetComponent, recordClass);
+        return parameterSetComponent;
+    }
 
-            LOG.infof("Analyzed %s external parameters from @JobParameterSet on component '%s' for job '%s'",
-                    parameters.size(), parameterSetComponent.name(), recordClass.simpleName());
+    /**
+     * Validates a @JobParameterSet component.
+     */
+    private void validateParameterSetComponent(RecordComponentInfo component,
+                                               RecordComponentInfo existingComponent,
+                                               ClassInfo recordClass) {
+        if (existingComponent != null) {
+            throw new IllegalStateException(
+                    "JobRequest " + recordClass.name() +
+                            " has multiple @JobParameterSet annotations on components '" +
+                            existingComponent.name() + "' and '" + component.name() + "'. Only one is allowed.");
+        }
+
+        if (!component.type().name().toString().equals("java.lang.String")) {
+            throw new IllegalStateException(
+                    "JobRequest " + recordClass.name() +
+                            " component '" + component.name() + "' has @JobParameterSet but is not of type String. " +
+                            "Found: " + component.type().name());
+        }
+    }
+
+    /**
+     * Analyzes external parameters from @JobParameterSet.
+     */
+    private AnalyzedParameters analyzeExternalParameters(RecordComponentInfo parameterSetComponent, ClassInfo recordClass) {
+        List<JobParameter> parameters = extractExternalParameters(parameterSetComponent, recordClass);
+        logExternalParameters(parameters, parameterSetComponent, recordClass);
+
+        return new AnalyzedParameters(
+                parameters,
+                true,
+                parameterSetComponent.name()
+        );
+    }
+
+    /**
+     * Analyzes inline parameters from record components.
+     */
+    private AnalyzedParameters analyzeInlineParameters(List<RecordComponentInfo> components) {
+        List<JobParameter> parameters = new ArrayList<>();
+
+        for (RecordComponentInfo component : components) {
+            JobParameter parameter = analyzeRecordComponent(component);
+            parameters.add(parameter);
+        }
+
+        LOG.debugf("Analyzed %s inline parameters from record components", parameters.size());
+
+        return new AnalyzedParameters(
+                parameters,
+                false,
+                null
+        );
+    }
+
+    /**
+     * Logs debug information about external parameters.
+     */
+    private void logExternalParameters(List<JobParameter> parameters,
+                                       RecordComponentInfo component,
+                                       ClassInfo recordClass) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debugf("Analyzed %s external parameters from @JobParameterSet on component '%s' for job '%s'",
+                    parameters.size(), component.name(), recordClass.simpleName());
             for (JobParameter param : parameters) {
-                LOG.infof("   - External parameter: %s (type=%s, required=%s, default='%s')",
+                LOG.debugf("   - External parameter: %s (type=%s, required=%s, default='%s')",
                         param.name(), param.type(), param.required(), param.defaultValue());
             }
-
-            return new AnalyzedParameters(
-                    parameters,
-                    true, // usesExternalParameters
-                    parameterSetComponent.name()
-            );
-
-        } else {
-            // INLINE PARAMETERS: Scan all record components
-            for (RecordComponentInfo component : components) {
-                JobParameter parameter = analyzeRecordComponent(component);
-                parameters.add(parameter);
-            }
-
-            LOG.debugf("Analyzed %s inline parameters from record components", parameters.size());
-
-            return new AnalyzedParameters(
-                    parameters,
-                    false, // usesExternalParameters
-                    null   // no parameter set field
-            );
         }
     }
 

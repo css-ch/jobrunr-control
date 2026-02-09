@@ -7,7 +7,7 @@ import ch.css.jobrunr.control.adapter.rest.dto.StartJobResponse;
 import ch.css.jobrunr.control.application.monitoring.GetJobExecutionByIdUseCase;
 import ch.css.jobrunr.control.application.scheduling.StartJobUseCase;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
-import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -64,7 +64,7 @@ public class JobControlResource {
      */
     @POST
     @Path("jobs/{jobId}/start")
-    @PermitAll
+    @RolesAllowed({"api-executor", "admin"})
     @Operation(
             summary = "Start a job",
             description = "Starts a job immediately. If the job is a template, it will be cloned and started. " +
@@ -110,7 +110,7 @@ public class JobControlResource {
                 postfix != null ? postfix : "none",
                 parameters != null ? parameters.size() : 0);
 
-        UUID resultJobId = startJobUseCase.execute(jobId, postfix, parameters);
+        UUID resultJobId = startJobUseCase.execute(jobId, postfix, parameters, true);
 
         // Determine if this was a template (ID changed) or a regular job (ID stayed the same)
         boolean wasTemplate = !resultJobId.equals(jobId);
@@ -133,7 +133,7 @@ public class JobControlResource {
      */
     @GET
     @Path("/jobs/{jobId}")
-    @PermitAll
+    @RolesAllowed({"api-reader", "api-executor", "admin"})
     @Operation(
             summary = "Get job status",
             description = "Returns the current status of a job execution. If the job is a batch job, includes progress information."

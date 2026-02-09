@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
+import org.jobrunr.server.runner.ThreadLocalJobContext;
 
 @ApplicationScoped
 public class ExampleBatchFailure implements JobRequestHandler<ExampleBatchFailureRequest> {
@@ -12,6 +13,6 @@ public class ExampleBatchFailure implements JobRequestHandler<ExampleBatchFailur
     @Override
     @Job(name = "Example Batch Failure Post-Processing Job", retries = 0)
     public void run(ExampleBatchFailureRequest jobRequest) {
-        LOG.infof("Starting example batch failure job. Parent job id: %s", jobContext().getAwaitedJob());
+        LOG.infof("Starting example batch failure job. Parent job id: %s", ThreadLocalJobContext.getJobContext().getAwaitedJob());
     }
 }

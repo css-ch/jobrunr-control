@@ -1,5 +1,5 @@
-Use MUST use the [technical-spec.md](../.spec/technical-spec.md).
-Use context7 for more information for libraries (version in technical-spec).
+Use MUST use the [arc42.md](../docs/arc42.md).
+Use context7 mcp for more information for libraries (version in arc42).
 
 # Documentation
 

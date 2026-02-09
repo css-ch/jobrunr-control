@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.application.template;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ParameterStoragePort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +27,9 @@ class DeleteTemplateUseCaseTest {
 
     @Mock
     private ParameterStoragePort parameterStoragePort;
+
+    @Mock
+    private AuditLoggerHelper auditLogger;
 
     @InjectMocks
     private DeleteTemplateUseCase useCase;

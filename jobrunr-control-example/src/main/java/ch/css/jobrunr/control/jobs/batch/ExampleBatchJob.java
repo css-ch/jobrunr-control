@@ -5,6 +5,7 @@ import ch.css.jobrunr.control.domain.exceptions.JobProcessingException;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.scheduling.BackgroundJobRequest;
+import org.jobrunr.server.runner.ThreadLocalJobContext;
 
 import java.util.List;
 import java.util.stream.IntStream;
@@ -33,12 +34,12 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
     @ConfigurableJob(isBatch = true, labels = {"Example", "Batch"})
     @Override
     public void run(ExampleBatchJobRequest request) {
-        jobContext().logger().info(String.format("Preparing batch job with numberOfChunks: %d, chunkSize: %d, simulateErrors: %b",
+        ThreadLocalJobContext.getJobContext().logger().info(String.format("Preparing batch job with numberOfChunks: %d, chunkSize: %d, simulateErrors: %b",
                 request.numberOfChunks(), request.chunkSize(), request.simulateErrors()));
 
         // ✅ IDEMPOTENCY CHECK: Skip if child jobs already enqueued
         if (isAlreadyEnqueued()) {
-            jobContext().logger().info("Child jobs already enqueued, skipping to prevent duplicates");
+            ThreadLocalJobContext.getJobContext().logger().info("Child jobs already enqueued, skipping to prevent duplicates");
             return;
         }
 
@@ -60,7 +61,7 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
         markAsEnqueued(items.size());
 
         // Extra metadata for the batch job (visible in the JobRunr Control UI)
-        jobContext().saveMetadata("hello", "ExampleBatchJob#run");
+        ThreadLocalJobContext.getJobContext().saveMetadata("hello", "ExampleBatchJob#run");
 
         // ✅ DETERMINISTIC UUIDs: Enqueue with deterministic job IDs
         // Same input → same UUID → JobRunr deduplicates automatically
@@ -75,7 +76,7 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
      * @return true if children were already enqueued
      */
     private boolean isAlreadyEnqueued() {
-        var metadata = jobContext().getMetadata();
+        var metadata = ThreadLocalJobContext.getJobContext().getMetadata();
         return metadata.containsKey(METADATA_KEY_ENQUEUED) &&
                 Boolean.TRUE.equals(metadata.get(METADATA_KEY_ENQUEUED));
     }
@@ -89,9 +90,9 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
      * @param itemCount number of child jobs to be enqueued
      */
     private void markAsEnqueued(int itemCount) {
-        jobContext().saveMetadata(METADATA_KEY_ENQUEUED, true);
-        jobContext().saveMetadata("total_children", itemCount);
-        jobContext().saveMetadata("enqueued_at", java.time.Instant.now().toString());
+        ThreadLocalJobContext.getJobContext().saveMetadata(METADATA_KEY_ENQUEUED, true);
+        ThreadLocalJobContext.getJobContext().saveMetadata("total_children", itemCount);
+        ThreadLocalJobContext.getJobContext().saveMetadata("enqueued_at", java.time.Instant.now().toString());
     }
 
     /**
@@ -109,7 +110,7 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
         // Enqueue all items in a stream (JobRunr handles the scheduling)
         BackgroundJobRequest.enqueue(items.stream());
 
-        jobContext().logger().info(String.format(
+        ThreadLocalJobContext.getJobContext().logger().info(String.format(
                 "Enqueued %d child jobs (retry-safe via metadata check)", items.size()));
     }
 }

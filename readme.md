@@ -68,11 +68,20 @@ Start your Quarkus application and navigate to:
 
 ### Role-Based Access Control (RBAC)
 
-Three roles control access to different features:
+Five roles control access to different features:
 
-- **viewer**: Read-only access to scheduled jobs and execution history
-- **configurator**: Can create, edit, and delete scheduled jobs
-- **admin**: Full access including immediate job execution
+**UI Roles:**
+
+- **viewer**: Read-only access to scheduled jobs and execution history via web UI
+- **configurator**: Can create, edit, and delete scheduled jobs via web UI
+- **admin**: Full access including immediate job execution via web UI
+
+**API Roles:**
+
+- **api-reader**: Read-only access to REST API endpoints (GET operations)
+- **api-executor**: Can execute jobs via REST API (POST operations)
+
+**Note:** The `admin` role has access to both UI and API endpoints.
 
 ### Supported Job Types
 

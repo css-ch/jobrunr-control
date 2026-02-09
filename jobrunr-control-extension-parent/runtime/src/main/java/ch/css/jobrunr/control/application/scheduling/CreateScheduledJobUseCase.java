@@ -5,6 +5,7 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -28,17 +29,20 @@ public class CreateScheduledJobUseCase {
     private final JobSchedulerPort jobSchedulerPort;
     private final JobParameterValidator validator;
     private final ParameterStorageHelper parameterStorageHelper;
+    private final AuditLoggerHelper auditLogger;
 
     @Inject
     public CreateScheduledJobUseCase(
             JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
             JobSchedulerPort jobSchedulerPort,
             JobParameterValidator validator,
-            ParameterStorageHelper parameterStorageHelper) {
+            ParameterStorageHelper parameterStorageHelper,
+            AuditLoggerHelper auditLogger) {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobSchedulerPort = jobSchedulerPort;
         this.validator = validator;
         this.parameterStorageHelper = parameterStorageHelper;
+        this.auditLogger = auditLogger;
     }
 
     /**
@@ -89,7 +93,12 @@ public class CreateScheduledJobUseCase {
                 jobDefinition, jobType, jobName, convertedParameters);
 
         // Schedule job
-        return jobSchedulerPort.scheduleJob(jobDefinition, jobName, jobParameters, isExternalTrigger, scheduledAt, additionalLabels);
+        UUID jobId = jobSchedulerPort.scheduleJob(jobDefinition, jobName, jobParameters, isExternalTrigger, scheduledAt, additionalLabels);
+
+        // Audit log
+        auditLogger.logJobCreated(jobName, jobId, jobParameters);
+
+        return jobId;
     }
 }
 

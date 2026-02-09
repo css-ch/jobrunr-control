@@ -50,7 +50,7 @@ class JobControlResourceTest {
         UUID resultId = UUID.randomUUID();
         StartJobRequestDTO request = new StartJobRequestDTO(null, Map.of());
 
-        when(startJobUseCase.execute(eq(jobId), any(), any())).thenReturn(resultId);
+        when(startJobUseCase.execute(eq(jobId), any(), any(), eq(true))).thenReturn(resultId);
 
         // Act
         Response response = resource.startJob(jobId, request);
@@ -70,7 +70,7 @@ class JobControlResourceTest {
         // Arrange
         UUID jobId = UUID.randomUUID();
 
-        when(startJobUseCase.execute(eq(jobId), any(), any()))
+        when(startJobUseCase.execute(eq(jobId), any(), any(), eq(true)))
                 .thenThrow(new JobNotFoundException("Job not found: " + jobId));
 
         // Act & Assert
@@ -88,7 +88,7 @@ class JobControlResourceTest {
         Map<String, Object> parameters = Map.of("param1", "value1", "param2", 42);
         StartJobRequestDTO request = new StartJobRequestDTO("test-postfix", parameters);
 
-        when(startJobUseCase.execute(eq(jobId), eq("test-postfix"), eq(parameters)))
+        when(startJobUseCase.execute(eq(jobId), eq("test-postfix"), eq(parameters), eq(true)))
                 .thenReturn(resultId);
 
         // Act
@@ -107,7 +107,7 @@ class JobControlResourceTest {
         UUID jobId = UUID.randomUUID();
         UUID differentResultId = UUID.randomUUID(); // Different ID indicates template was cloned
 
-        when(startJobUseCase.execute(eq(jobId), any(), any())).thenReturn(differentResultId);
+        when(startJobUseCase.execute(eq(jobId), any(), any(), eq(true))).thenReturn(differentResultId);
 
         // Act
         Response response = resource.startJob(jobId, new StartJobRequestDTO(null, Map.of()));
@@ -124,7 +124,7 @@ class JobControlResourceTest {
         UUID jobId = UUID.randomUUID();
         // Same ID indicates regular job (not a template)
 
-        when(startJobUseCase.execute(eq(jobId), any(), any())).thenReturn(jobId);
+        when(startJobUseCase.execute(eq(jobId), any(), any(), eq(true))).thenReturn(jobId);
 
         // Act
         Response response = resource.startJob(jobId, new StartJobRequestDTO(null, Map.of()));

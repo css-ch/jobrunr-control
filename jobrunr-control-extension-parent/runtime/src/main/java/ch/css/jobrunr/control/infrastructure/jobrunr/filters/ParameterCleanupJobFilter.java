@@ -6,6 +6,7 @@ import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.filters.ApplyStateFilter;
+import org.jobrunr.jobs.filters.JobServerFilter;
 import org.jobrunr.jobs.states.JobState;
 import org.jobrunr.jobs.states.StateName;
 
@@ -19,7 +20,7 @@ import java.util.UUID;
  * when a job transitions to DELETED state.
  */
 @ApplicationScoped
-public class ParameterCleanupJobFilter implements ApplyStateFilter {
+public class ParameterCleanupJobFilter implements ApplyStateFilter, JobServerFilter {
 
     private static final Logger LOG = Logger.getLogger(ParameterCleanupJobFilter.class);
     private static final String PARAMETER_SET_ID_KEY = "__parameterSetId";

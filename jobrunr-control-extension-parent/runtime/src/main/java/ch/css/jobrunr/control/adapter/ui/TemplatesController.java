@@ -183,7 +183,6 @@ public class TemplatesController extends BaseController {
             List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream()
                     .sorted(Comparator.comparing(JobParameter::name))
                     .toList();
-            LOG.infof("Found %s parameters for job type '%s'", parameters.size(), jobType);
             return ScheduledJobsController.Components.paramInputs(parameters, null);
         } catch (Exception e) {
             LOG.errorf("Error getting parameters for job type '%s': %s", jobType, e.getMessage(), e);
@@ -230,18 +229,14 @@ public class TemplatesController extends BaseController {
             MultivaluedMap<String, String> allFormParams) {
 
         try {
-            LOG.infof("Updating template %s - jobType=%s, jobName=%s", jobId, jobType, jobName);
-
+            LOG.debugf("Updating template %s - jobType=%s, jobName=%s", jobId, jobType, jobName);
             if (jobType == null || jobType.isBlank()) {
                 LOG.warnf("Job type is empty");
                 return buildErrorResponse("Job type is required");
             }
-
             Map<String, String> paramMap = extractParameterMap(allFormParams);
-
             // Update template job
             updateTemplateUseCase.execute(jobId, jobType, jobName, paramMap);
-
             return buildModalCloseResponse(getDefaultTemplatesTable());
         } catch (Exception e) {
             LOG.errorf(e, "Error updating template %s", jobId);
@@ -274,7 +269,7 @@ public class TemplatesController extends BaseController {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance startTemplate(@PathParam("id") UUID templateId) {
-        startJobUseCase.execute(templateId, null, null);
+        startJobUseCase.execute(templateId, null, null, false);
         return getDefaultTemplatesTable();
     }
 

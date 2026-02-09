@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
+import org.jobrunr.server.runner.ThreadLocalJobContext;
 
 import java.util.Random;
 
@@ -32,7 +33,7 @@ public class ExternalDataBatchItemProcessor implements JobRequestHandler<Externa
     @Transactional
     @Job(name = "External Data Processing: %0", retries = 2)
     public void run(ExternalDataBatchItemRequest request) {
-        jobContext().logger().info(String.format(
+        ThreadLocalJobContext.getJobContext().logger().info(String.format(
                 "Processing child job %d with parameter: %s",
                 request.childId(),
                 request.stringExternalParameter()));
@@ -41,7 +42,7 @@ public class ExternalDataBatchItemProcessor implements JobRequestHandler<Externa
             // Simulate data processing work
             Thread.sleep(100);
 
-            jobContext().logger().info(String.format(
+            ThreadLocalJobContext.getJobContext().logger().info(String.format(
                     "Child job %d: Processing data with parameter '%s'",
                     request.childId(),
                     request.stringExternalParameter()));
@@ -55,11 +56,11 @@ public class ExternalDataBatchItemProcessor implements JobRequestHandler<Externa
             }
 
             // Save processing metadata
-            jobContext().saveMetadata("childId", request.childId());
-            jobContext().saveMetadata("stringParameter", request.stringExternalParameter());
-            jobContext().saveMetadata("status", "success");
+            ThreadLocalJobContext.getJobContext().saveMetadata("childId", request.childId());
+            ThreadLocalJobContext.getJobContext().saveMetadata("stringParameter", request.stringExternalParameter());
+            ThreadLocalJobContext.getJobContext().saveMetadata("status", "success");
 
-            jobContext().logger().info(String.format(
+            ThreadLocalJobContext.getJobContext().logger().info(String.format(
                     "Child job %d completed successfully",
                     request.childId()));
 
@@ -67,11 +68,11 @@ public class ExternalDataBatchItemProcessor implements JobRequestHandler<Externa
             Thread.currentThread().interrupt();
             throw new JobProcessingException("Processing interrupted for child job " + request.childId(), e);
         } catch (JobProcessingException e) {
-            jobContext().logger().error(String.format(
+            ThreadLocalJobContext.getJobContext().logger().error(String.format(
                     "Error in child job %d: %s",
                     request.childId(),
                     e.getMessage()));
-            jobContext().saveMetadata("status", "failed");
+            ThreadLocalJobContext.getJobContext().saveMetadata("status", "failed");
             throw e;
         }
     }

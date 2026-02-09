@@ -31,12 +31,4 @@ public interface ParameterStoragePort {
      * @param id the parameter set ID
      */
     void deleteById(UUID id);
-
-
-    /**
-     * Updates last accessed timestamp for a parameter set.
-     *
-     * @param id the parameter set ID
-     */
-    void updateLastAccessed(UUID id);
 }

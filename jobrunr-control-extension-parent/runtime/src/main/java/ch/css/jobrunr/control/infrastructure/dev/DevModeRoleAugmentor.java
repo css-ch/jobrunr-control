@@ -18,8 +18,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * </p>
  * <p>
  * The roles to grant are configurable via the 'dev.test.roles' property, defaulting to
- * 'viewer,configurator,admin'. This allows easy testing of role-based UI features without
- * authentication setup.
+ * 'viewer,configurator,admin,api-reader,api-executor'. This allows easy testing of role-based
+ * UI and API features without authentication setup.
  * </p>
  * <p>
  * <strong>Security Note:</strong> This bean is build-time conditional and will not be present
@@ -30,7 +30,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @IfBuildProfile(anyOf = {"dev", "test"})
 public class DevModeRoleAugmentor implements SecurityIdentityAugmentor {
 
-    @ConfigProperty(name = "dev.test.roles", defaultValue = "viewer,configurator,admin")
+    @ConfigProperty(name = "dev.test.roles", defaultValue = "viewer,configurator,admin,api-reader,api-executor")
     String testRoles;
 
     @Override

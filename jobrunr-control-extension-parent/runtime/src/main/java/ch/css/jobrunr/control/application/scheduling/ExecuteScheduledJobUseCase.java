@@ -1,6 +1,8 @@
 package ch.css.jobrunr.control.application.scheduling;
 
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
+import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -15,10 +17,12 @@ import java.util.UUID;
 public class ExecuteScheduledJobUseCase {
 
     private final JobSchedulerPort jobSchedulerPort;
+    private final AuditLoggerHelper auditLogger;
 
     @Inject
-    public ExecuteScheduledJobUseCase(JobSchedulerPort jobSchedulerPort) {
+    public ExecuteScheduledJobUseCase(JobSchedulerPort jobSchedulerPort, AuditLoggerHelper auditLogger) {
         this.jobSchedulerPort = jobSchedulerPort;
+        this.auditLogger = auditLogger;
     }
 
     /**
@@ -41,7 +45,14 @@ public class ExecuteScheduledJobUseCase {
             throw new IllegalArgumentException("jobId must not be null");
         }
 
+        // Get job info for audit logging
+        ScheduledJobInfo jobInfo = jobSchedulerPort.getScheduledJobById(jobId);
+        String jobName = jobInfo != null ? jobInfo.getJobName() : "Unknown";
+
         jobSchedulerPort.executeJobNow(jobId, metadata);
+
+        // Audit log - this is always called from UI
+        auditLogger.logJobExecutedViaUI(jobName, jobId);
     }
 }
 

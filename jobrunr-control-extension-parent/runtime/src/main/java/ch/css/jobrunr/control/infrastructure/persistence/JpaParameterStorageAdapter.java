@@ -12,7 +12,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
-import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,8 +52,11 @@ public class JpaParameterStorageAdapter implements ParameterStoragePort {
             entity.id = parameterSet.id();
             entity.jobType = parameterSet.jobType();
             entity.parametersJson = objectMapper.writeValueAsString(parameterSet.parameters());
-            entity.createdAt = parameterSet.createdAt();
-            entity.lastAccessedAt = parameterSet.lastAccessedAt();
+
+            // Set timestamps explicitly (in case @PrePersist is not called, e.g., in tests)
+            //       Instant now = Instant.now();
+            //       entity.createdAt = parameterSet.createdAt() != null ? parameterSet.createdAt() : now;
+            //       entity.updatedAt = parameterSet.updatedAt() != null ? parameterSet.updatedAt() : now;
 
             getEntityManager().persist(entity);
             LOG.debugf("Stored parameter set: %s", entity.id);
@@ -82,7 +84,7 @@ public class JpaParameterStorageAdapter implements ParameterStoragePort {
                     entity.jobType,
                     parameters,
                     entity.createdAt,
-                    entity.lastAccessedAt
+                    entity.updatedAt
             ));
         } catch (JsonProcessingException e) {
             LOG.errorf("Failed to deserialize parameters for set: %s", id, e);
@@ -98,18 +100,6 @@ public class JpaParameterStorageAdapter implements ParameterStoragePort {
         if (entity != null) {
             em.remove(entity);
             LOG.debugf("Deleted parameter set: %s", id);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void updateLastAccessed(UUID id) {
-        EntityManager em = getEntityManager();
-        ParameterSetEntity entity = em.find(ParameterSetEntity.class, id);
-        if (entity != null) {
-            entity.lastAccessedAt = Instant.now();
-            em.merge(entity);
         }
     }
 }

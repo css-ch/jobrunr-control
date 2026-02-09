@@ -153,27 +153,37 @@ curl http://localhost:8080/api/external-trigger/batch/abc-123/progress
 
 ## REST API Endpoints
 
-| Method | Path                                             | Description        |
-|--------|--------------------------------------------------|--------------------|
-| POST   | `/api/external-trigger/trigger`                  | Trigger a job      |
-| GET    | `/api/external-trigger/batch/{batchId}/progress` | Get batch progress |
+| Method | Path                      | Roles Required                        | Description                 |
+|--------|---------------------------|---------------------------------------|-----------------------------|
+| POST   | `/api/jobs/{jobId}/start` | `api-executor`, `admin`               | Start a job immediately     |
+| GET    | `/api/jobs/{jobId}`       | `api-reader`, `api-executor`, `admin` | Get job status and progress |
+
+**Note:** All REST API endpoints require authentication and appropriate role assignment.
 
 ## Security
 
-The extension uses role-based access control:
+The extension uses role-based access control (RBAC):
 
-- **viewer**: Read-only access to UI
-- **configurator**: Can schedule and delete jobs
-- **admin**: Full access
+**UI Roles:**
 
-Configure roles in your Quarkus security setup.
+- **viewer**: Read-only access to web UI
+- **configurator**: Can schedule and delete jobs via web UI
+- **admin**: Full access to web UI and all API endpoints
+
+**API Roles:**
+
+- **api-reader**: Read-only access to REST API (GET operations)
+- **api-executor**: Can execute jobs via REST API (POST operations)
+
+Configure roles in your Quarkus security setup (e.g., OIDC, LDAP, database).
 
 ### Dev Mode
 
-For development, you can configure test roles:
+For development and testing, you can configure which roles are automatically granted:
 
 ```properties
-dev.test.roles=admin
+# Default includes all roles for easy testing
+dev.test.roles=viewer,configurator,admin,api-reader,api-executor
 ```
 
 ## Architecture

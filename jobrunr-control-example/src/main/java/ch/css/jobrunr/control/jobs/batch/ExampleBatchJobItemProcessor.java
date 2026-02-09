@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
+import org.jobrunr.server.runner.ThreadLocalJobContext;
 
 @ApplicationScoped
 @SuppressWarnings("java:S1192") // "attempted" literal duplication is acceptable for metadata key clarity
@@ -24,24 +25,24 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
     @Transactional
     @Job(name = "Processing example batch chunkId: %0", retries = 0)
     public void run(ExampleBatchJobItemProcessorRequest request) {
-        jobContext().logger().info(String.format("Processing chunkId: %s", request.chunkId()));
+        ThreadLocalJobContext.getJobContext().logger().info(String.format("Processing chunkId: %s", request.chunkId()));
 
         // Simulate transient errors: fail on first attempt, succeed on re-run
         // Check if this chunk has been attempted before using metadata
-        boolean isFirstAttempt = !jobContext().getMetadata().containsKey("attempted");
+        boolean isFirstAttempt = !ThreadLocalJobContext.getJobContext().getMetadata().containsKey("attempted");
 
         if (request.simulateErrors() && isFirstAttempt && Math.abs(request.chunkId() % 2) == 1) {
             // Mark as attempted for next time
-            jobContext().saveMetadata("attempted", true);
-            jobContext().logger().error("Simulated transient error for chunk ID: " + request.chunkId() + " (will succeed when batch is re-run from dashboard)");
+            ThreadLocalJobContext.getJobContext().saveMetadata("attempted", true);
+            ThreadLocalJobContext.getJobContext().logger().error("Simulated transient error for chunk ID: " + request.chunkId() + " (will succeed when batch is re-run from dashboard)");
             throw new JobProcessingException("Simulated transient error for chunk ID: " + request.chunkId());
         }
 
         // Mark as attempted even on success path
-        jobContext().saveMetadata("attempted", true);
+        ThreadLocalJobContext.getJobContext().saveMetadata("attempted", true);
 
         for (int i = 0; i < request.chunkSize(); i++) {
-            jobContext().logger().info(String.format("\tProcessing item in chunk: %s", i));
+            ThreadLocalJobContext.getJobContext().logger().info(String.format("\tProcessing item in chunk: %s", i));
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
@@ -49,6 +50,6 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
                 throw new JobProcessingException("Batch item processing was interrupted", e);
             }
         }
-        jobContext().logger().info("Processing done.");
+        ThreadLocalJobContext.getJobContext().logger().info("Processing done.");
     }
 }

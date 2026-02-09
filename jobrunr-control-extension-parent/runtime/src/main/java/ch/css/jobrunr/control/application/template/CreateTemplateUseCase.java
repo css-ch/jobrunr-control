@@ -6,6 +6,7 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -25,17 +26,20 @@ public class CreateTemplateUseCase {
     private final JobSchedulerPort jobSchedulerPort;
     private final JobParameterValidator validator;
     private final ParameterStorageHelper parameterStorageHelper;
+    private final AuditLoggerHelper auditLogger;
 
     @Inject
     public CreateTemplateUseCase(
             JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
             JobSchedulerPort jobSchedulerPort,
             JobParameterValidator validator,
-            ParameterStorageHelper parameterStorageHelper) {
+            ParameterStorageHelper parameterStorageHelper,
+            AuditLoggerHelper auditLogger) {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobSchedulerPort = jobSchedulerPort;
         this.validator = validator;
         this.parameterStorageHelper = parameterStorageHelper;
+        this.auditLogger = auditLogger;
     }
 
     /**
@@ -63,7 +67,7 @@ public class CreateTemplateUseCase {
                 jobDefinition, jobType, jobName, convertedParameters);
 
         // Template jobs are always external trigger with no scheduled time and have the "template" label
-        return jobSchedulerPort.scheduleJob(
+        UUID templateId = jobSchedulerPort.scheduleJob(
                 jobDefinition,
                 jobName,
                 jobParameters,
@@ -71,5 +75,10 @@ public class CreateTemplateUseCase {
                 null,                    // scheduledAt - templates have no schedule
                 List.of("template")      // labels
         );
+
+        // Audit log
+        auditLogger.logTemplateCreated(jobName, templateId, jobParameters);
+
+        return templateId;
     }
 }

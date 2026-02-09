@@ -15,7 +15,7 @@ import java.util.UUID;
         indexes = {
                 @Index(name = "idx_param_set_job_type", columnList = "job_type"),
                 @Index(name = "idx_param_set_created", columnList = "created_at"),
-                @Index(name = "idx_param_set_accessed", columnList = "last_accessed_at")
+                @Index(name = "idx_param_set_updated", columnList = "updated_at")
         })
 @RegisterForReflection
 public class ParameterSetEntity {
@@ -33,10 +33,26 @@ public class ParameterSetEntity {
     @Column(name = "created_at", nullable = false)
     public Instant createdAt;
 
-    @Column(name = "last_accessed_at", nullable = false)
-    public Instant lastAccessedAt;
+    @Column(name = "updated_at", nullable = false)
+    public Instant updatedAt;
 
     @Version
     @Column(name = "version")
     public Long version;
+
+    @PrePersist
+    protected void onCreate() {
+        Instant now = Instant.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        if (updatedAt == null) {
+            updatedAt = now;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }
