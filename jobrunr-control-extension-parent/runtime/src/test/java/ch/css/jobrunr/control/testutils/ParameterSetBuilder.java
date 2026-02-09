@@ -17,7 +17,7 @@ public class ParameterSetBuilder {
     private String jobType = "TestJob";
     private Map<String, Object> parameters = new HashMap<>();
     private Instant createdAt = Instant.now();
-    private Instant lastAccessedAt = Instant.now();
+    private Instant updatedAt = Instant.now();
 
     public ParameterSetBuilder withId(UUID id) {
         this.id = id;
@@ -44,13 +44,13 @@ public class ParameterSetBuilder {
         return this;
     }
 
-    public ParameterSetBuilder withLastAccessedAt(Instant lastAccessedAt) {
-        this.lastAccessedAt = lastAccessedAt;
+    public ParameterSetBuilder withUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
         return this;
     }
 
     public ParameterSet build() {
-        return new ParameterSet(id, jobType, parameters, createdAt, lastAccessedAt);
+        return new ParameterSet(id, jobType, parameters, createdAt, updatedAt);
     }
 
     /**

@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.deployment;
 import ch.css.jobrunr.control.adapter.ui.DashboardTemplateExtensions;
 import ch.css.jobrunr.control.adapter.ui.DashboardUrlUtils;
 import ch.css.jobrunr.control.infrastructure.discovery.JobDefinitionRecorder;
+import ch.css.jobrunr.control.infrastructure.jobrunr.filters.ParameterCleanupJobFilter;
 import ch.css.jobrunr.control.infrastructure.quarkus.BuildTimeConfigurationAdapter;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.Capabilities;
@@ -30,7 +31,8 @@ public class JobRunrControlProcessor {
                 .addBeanClasses(
                         DashboardUrlUtils.class,
                         DashboardTemplateExtensions.class,
-                        BuildTimeConfigurationAdapter.class
+                        BuildTimeConfigurationAdapter.class,
+                        ParameterCleanupJobFilter.class
                 )
                 .setUnremovable()
                 .build();

@@ -47,7 +47,7 @@
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.version>3.30.8</quarkus.platform.version>
-        <jobrunr.version>8.4.1</jobrunr.version>
+        <jobrunr.version>8.4.2</jobrunr.version>
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <jacoco-plugin.version>0.8.12</jacoco-plugin.version>
         <deploy-plugin.version>3.1.3</deploy-plugin.version>

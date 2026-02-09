@@ -7,6 +7,7 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -34,17 +35,20 @@ public class UpdateTemplateUseCase {
     private final JobSchedulerPort jobSchedulerPort;
     private final JobParameterValidator validator;
     private final ParameterStorageHelper parameterStorageHelper;
+    private final AuditLoggerHelper auditLogger;
 
     @Inject
     public UpdateTemplateUseCase(
             JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
             JobSchedulerPort jobSchedulerPort,
             JobParameterValidator validator,
-            ParameterStorageHelper parameterStorageHelper) {
+            ParameterStorageHelper parameterStorageHelper,
+            AuditLoggerHelper auditLogger) {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobSchedulerPort = jobSchedulerPort;
         this.validator = validator;
         this.parameterStorageHelper = parameterStorageHelper;
+        this.auditLogger = auditLogger;
     }
 
     /**
@@ -76,5 +80,8 @@ public class UpdateTemplateUseCase {
                 EXTERNAL_TRIGGER_DATE,   // External trigger uses special date
                 java.util.List.of("template") // Always add "template" label
         );
+
+        // Audit log
+        auditLogger.logTemplateUpdated(jobName, templateId, jobParameters);
     }
 }

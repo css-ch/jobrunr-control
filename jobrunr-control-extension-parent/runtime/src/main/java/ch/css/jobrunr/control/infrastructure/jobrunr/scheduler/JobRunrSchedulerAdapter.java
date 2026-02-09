@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * JobRunr-based implementation of JobSchedulerPort.
@@ -97,7 +96,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
             }
 
             LOG.infof("Job scheduled: %s (ID: %s) for %s",
-                    jobDefinition.jobType(), jobId, scheduledAt);
+                    jobDefinition.jobType(), newJobId, isExternalTrigger ? "external" : scheduledAt);
 
             return newJobId.asUUID();
         } catch (Exception e) {
@@ -142,7 +141,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
             // Map to ScheduledJobInfo
             return scheduledJobs.stream()
                     .map(this::mapToScheduledJobInfo)
-                    .collect(Collectors.toList());
+                    .toList();
 
         } catch (Exception e) {
             LOG.errorf("Error retrieving scheduled jobs", e);
@@ -183,8 +182,8 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
 
         // Get scheduledAt from ScheduledState
         Instant scheduledAt = job.getJobStates().stream()
-                .filter(state -> state instanceof ScheduledState)
-                .map(state -> (ScheduledState) state)
+                .filter(ScheduledState.class::isInstance)
+                .map(ScheduledState.class::cast)
                 .findFirst()
                 .map(ScheduledState::getScheduledAt)
                 .orElse(job.getCreatedAt());
@@ -235,7 +234,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
                 metadata.forEach((key, value) ->
                         job.getMetadata().put(key, value)
                 );
-                LOG.infof("Job %s will be executed with %s parameter override(s)", jobId, metadata.size());
+                LOG.debugf("Job %s will be executed with %s parameter override(s)", jobId, metadata.size());
             }
 
             // Set job to ENQUEUED state for immediate execution

@@ -23,7 +23,7 @@ class ParameterSetTest {
         assertEquals(jobType, paramSet.jobType());
         assertEquals(params, paramSet.parameters());
         assertNotNull(paramSet.createdAt());
-        assertNotNull(paramSet.lastAccessedAt());
+        assertNotNull(paramSet.updatedAt());
     }
 
     @Test
@@ -57,16 +57,16 @@ class ParameterSetTest {
     @Test
     void shouldMarkAccessed() throws InterruptedException {
         ParameterSet original = ParameterSet.create(UUID.randomUUID(), "TestJob", Map.of());
-        Instant originalAccessTime = original.lastAccessedAt();
+        Instant originalAccessTime = original.updatedAt();
 
         Thread.sleep(10); // Ensure time difference
 
-        ParameterSet updated = original.markAccessed();
+        ParameterSet updated = original.markUpdated();
 
         assertEquals(original.id(), updated.id());
         assertEquals(original.jobType(), updated.jobType());
         assertEquals(original.parameters(), updated.parameters());
         assertEquals(original.createdAt(), updated.createdAt());
-        assertTrue(updated.lastAccessedAt().isAfter(originalAccessTime));
+        assertTrue(updated.updatedAt().isAfter(originalAccessTime));
     }
 }

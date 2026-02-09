@@ -30,10 +30,4 @@ public class InlineParameterStorageAdapter implements ParameterStoragePort {
     public void deleteById(UUID id) {
         // No-op
     }
-
-
-    @Override
-    public void updateLastAccessed(UUID id) {
-        // No-op
-    }
 }

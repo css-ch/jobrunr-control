@@ -25,7 +25,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * UI Controller for scheduled jobs.
@@ -39,11 +38,21 @@ public class ScheduledJobsController extends BaseController {
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Templates {
+
+        private Templates() {
+            // Qute class
+        }
+
         public static native TemplateInstance scheduledJobs(List<String> availableJobTypes);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Components {
+
+        private Components() {
+            // Qute class
+        }
+
         public static native TemplateInstance scheduledJobsTable(List<ScheduledJobInfoView> jobs,
                                                                  Map<String, Object> pagination,
                                                                  List<TemplateExtensions.PageItem> pageRange,
@@ -56,6 +65,11 @@ public class ScheduledJobsController extends BaseController {
 
     @CheckedTemplate(basePath = "modals", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Modals {
+
+        private Modals() {
+            // Qute class
+        }
+
         public static native TemplateInstance jobForm(List<JobDefinition> jobDefinitions,
                                                       boolean isEdit,
                                                       ScheduledJobInfo job,
@@ -141,7 +155,7 @@ public class ScheduledJobsController extends BaseController {
         // Convert to view models with resolved parameters
         List<ScheduledJobInfoView> jobViews = paginationResult.getPageItems().stream()
                 .map(this::toView)
-                .collect(Collectors.toList());
+                .toList();
 
         return Components.scheduledJobsTable(
                 jobViews,
@@ -161,9 +175,7 @@ public class ScheduledJobsController extends BaseController {
     @RolesAllowed({"configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getNewJobModal() {
-        List<JobDefinition> jobDefinitions = getSortedJobDefinitions();
-
-        return Modals.jobForm(jobDefinitions, false, null, null);
+        return Modals.jobForm(getSortedJobDefinitions(), false, null, null);
     }
 
     @GET
@@ -202,10 +214,12 @@ public class ScheduledJobsController extends BaseController {
 
         try {
             List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream().sorted(Comparator.comparing(JobParameter::name)).toList();
-            LOG.infof("Found %s parameters for job type '%s'", parameters.size(), jobType);
-            for (JobParameter param : parameters) {
-                LOG.infof("  - Parameter: %s (type: %s, required: %s, defaultValue: '%s')",
-                        param.name(), param.type(), param.required(), param.defaultValue());
+            if (LOG.isDebugEnabled()) {
+                LOG.debugf("Found %s parameters for job type '%s'", parameters.size(), jobType);
+                for (JobParameter param : parameters) {
+                    LOG.debugf("  - Parameter: %s (type: %s, required: %s, defaultValue: '%s')",
+                            param.name(), param.type(), param.required(), param.defaultValue());
+                }
             }
             return Components.paramInputs(parameters, null);
         } catch (Exception e) {
@@ -266,7 +280,7 @@ public class ScheduledJobsController extends BaseController {
         try {
             LOG.infof("Updating job %s - jobType=%s, jobName=%s, triggerType=%s, scheduledAt=%s",
                     jobId, jobType, jobName, triggerType, scheduledAt);
-            LOG.infof("All form parameters: %s", allFormParams);
+            LOG.debugf("All form parameters: %s", allFormParams);
 
             // Validate required fields
             if (jobType == null || jobType.isBlank()) {
@@ -278,12 +292,8 @@ public class ScheduledJobsController extends BaseController {
             Instant scheduledTime = isExternalTrigger ? null : parseScheduledTime(scheduledAt);
 
             Map<String, String> paramMap = extractParameterMap(allFormParams);
-
-            LOG.infof("Parameter map before update: %s", paramMap);
-
             // Update job
             updateJobUseCase.execute(jobId, jobType, jobName, paramMap, scheduledTime, isExternalTrigger);
-
             // Return updated table with header to close modal
             return buildModalCloseResponse(getDefaultScheduledJobsTable());
         } catch (Exception e) {

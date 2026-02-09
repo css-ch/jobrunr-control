@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.application.scheduling;
 import ch.css.jobrunr.control.application.template.TemplateCloneHelper;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
@@ -23,13 +24,16 @@ public class StartJobUseCase {
 
     private final JobSchedulerPort jobSchedulerPort;
     private final TemplateCloneHelper templateCloneHelper;
+    private final AuditLoggerHelper auditLogger;
 
     @Inject
     public StartJobUseCase(
             JobSchedulerPort jobSchedulerPort,
-            TemplateCloneHelper templateCloneHelper) {
+            TemplateCloneHelper templateCloneHelper,
+            AuditLoggerHelper auditLogger) {
         this.jobSchedulerPort = jobSchedulerPort;
         this.templateCloneHelper = templateCloneHelper;
+        this.auditLogger = auditLogger;
     }
 
     /**
@@ -43,6 +47,21 @@ public class StartJobUseCase {
      * @throws NotFoundException if the job is not found
      */
     public UUID execute(UUID jobId, String postfix, Map<String, Object> parameterOverrides) {
+        return execute(jobId, postfix, parameterOverrides, false);
+    }
+
+    /**
+     * Starts a job. If the job is a template, it will be cloned and started.
+     * If it's a regular job, it will be started directly.
+     *
+     * @param jobId              ID of the job to start
+     * @param postfix            Optional postfix for template job names (ignored for regular jobs)
+     * @param parameterOverrides Optional parameters to override
+     * @param isRestCall         Whether the call originated from REST API (vs UI)
+     * @return UUID of the started job (same as input for regular jobs, new UUID for templates)
+     * @throws NotFoundException if the job is not found
+     */
+    public UUID execute(UUID jobId, String postfix, Map<String, Object> parameterOverrides, boolean isRestCall) {
         ScheduledJobInfo jobInfo = jobSchedulerPort.getScheduledJobById(jobId);
 
         if (jobInfo == null) {
@@ -64,10 +83,26 @@ public class StartJobUseCase {
             jobSchedulerPort.executeJobNow(newJobId, parameterOverrides);
 
             LOG.infof("Started cloned job %s from template %s", newJobId, jobId);
+
+            // Audit log
+            if (isRestCall) {
+                auditLogger.logTemplateExecutedViaRest(jobInfo.getJobName(), jobId, newJobId);
+            } else {
+                auditLogger.logTemplateExecutedViaUI(jobInfo.getJobName(), jobId, newJobId);
+            }
+
             return newJobId;
         } else {
             LOG.infof("Job %s is a regular scheduled job, starting directly", jobId);
             jobSchedulerPort.executeJobNow(jobId, parameterOverrides);
+
+            // Audit log
+            if (isRestCall) {
+                auditLogger.logJobExecutedViaRest(jobInfo.getJobName(), jobId);
+            } else {
+                auditLogger.logJobExecutedViaUI(jobInfo.getJobName(), jobId);
+            }
+
             return jobId;
         }
     }

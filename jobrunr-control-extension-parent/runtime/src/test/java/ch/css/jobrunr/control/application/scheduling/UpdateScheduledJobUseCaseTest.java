@@ -5,6 +5,7 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.testutils.JobDefinitionBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +40,9 @@ class UpdateScheduledJobUseCaseTest {
 
     @Mock
     private ParameterStorageHelper storageHelper;
+
+    @Mock
+    private AuditLoggerHelper auditLogger;
 
     @InjectMocks
     private UpdateScheduledJobUseCase useCase;

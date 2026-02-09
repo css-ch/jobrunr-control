@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.application.template;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ParameterStoragePort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -19,13 +20,16 @@ public class DeleteTemplateUseCase {
 
     private final JobSchedulerPort jobSchedulerPort;
     private final ParameterStoragePort parameterStoragePort;
+    private final AuditLoggerHelper auditLogger;
 
     @Inject
     public DeleteTemplateUseCase(
             JobSchedulerPort jobSchedulerPort,
-            ParameterStoragePort parameterStoragePort) {
+            ParameterStoragePort parameterStoragePort,
+            AuditLoggerHelper auditLogger) {
         this.jobSchedulerPort = jobSchedulerPort;
         this.parameterStoragePort = parameterStoragePort;
+        this.auditLogger = auditLogger;
     }
 
     /**
@@ -38,9 +42,12 @@ public class DeleteTemplateUseCase {
             throw new IllegalArgumentException("templateId must not be null");
         }
 
+        // Get job info before deletion for audit logging
+        ScheduledJobInfo jobInfo = jobSchedulerPort.getScheduledJobById(templateId);
+        String templateName = jobInfo != null ? jobInfo.getJobName() : "Unknown";
+
         // Before deleting job, check if it has external parameters and clean them up
         try {
-            ScheduledJobInfo jobInfo = jobSchedulerPort.getScheduledJobById(templateId);
             if (jobInfo != null && jobInfo.hasExternalParameters()) {
                 jobInfo.getParameterSetId().ifPresent(paramSetId -> {
                     LOG.debugf("Cleaning up external parameters for template %s: %s", templateId, paramSetId);
@@ -54,5 +61,8 @@ public class DeleteTemplateUseCase {
         }
 
         jobSchedulerPort.deleteScheduledJob(templateId);
+
+        // Audit log
+        auditLogger.logTemplateDeleted(templateName, templateId);
     }
 }

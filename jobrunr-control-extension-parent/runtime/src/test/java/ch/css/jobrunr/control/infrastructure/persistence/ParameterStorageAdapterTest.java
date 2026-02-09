@@ -183,37 +183,4 @@ class ParameterStorageAdapterTest {
         // Assert
         verify(jpaAdapter, never()).deleteById(any());
     }
-
-    @Test
-    @DisplayName("should delegate updateLastAccessed to JPA adapter when available")
-    void updateLastAccessed_ExternalStorageAvailable_DelegatesToJpaAdapter() {
-        // Arrange
-        UUID id = UUID.randomUUID();
-
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(true);
-        when(jpaAdapterInstance.get()).thenReturn(jpaAdapter);
-
-        // Act
-        adapter.updateLastAccessed(id);
-
-        // Assert
-        verify(jpaAdapter).updateLastAccessed(id);
-    }
-
-    @Test
-    @DisplayName("should do nothing when updating last accessed without available storage")
-    void updateLastAccessed_ExternalStorageNotAvailable_DoesNothing() {
-        // Arrange
-        UUID id = UUID.randomUUID();
-
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(false);
-
-        // Act
-        adapter.updateLastAccessed(id);
-
-        // Assert
-        verify(jpaAdapter, never()).updateLastAccessed(any());
-    }
 }

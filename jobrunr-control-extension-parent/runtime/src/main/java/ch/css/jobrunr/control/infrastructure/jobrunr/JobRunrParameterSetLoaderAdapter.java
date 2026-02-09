@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr;
 
+import ch.css.jobrunr.control.domain.ParameterSet;
 import ch.css.jobrunr.control.domain.ParameterSetLoaderPort;
 import ch.css.jobrunr.control.domain.ParameterStoragePort;
 import ch.css.jobrunr.control.domain.exceptions.ParameterSetNotFoundException;
@@ -49,11 +50,7 @@ public class JobRunrParameterSetLoaderAdapter implements ParameterSetLoaderPort 
     @Override
     public Map<String, Object> loadParametersBySetId(UUID parameterSetId) {
         return parameterStoragePort.findById(parameterSetId)
-                .map(paramSet -> {
-                    // Update last accessed timestamp
-                    parameterStoragePort.updateLastAccessed(parameterSetId);
-                    return paramSet.parameters();
-                })
+                .map(ParameterSet::parameters)
                 .orElseThrow(() -> new ParameterSetNotFoundException(parameterSetId));
     }
 }

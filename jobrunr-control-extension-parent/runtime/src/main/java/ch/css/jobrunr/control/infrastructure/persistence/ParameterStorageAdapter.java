@@ -85,18 +85,7 @@ public class ParameterStorageAdapter implements ParameterStorageService {
             LOG.debugf("Deleted parameter set: %s", id);
         }
     }
-
-    /**
-     * Updates last accessed timestamp for a parameter set.
-     *
-     * @param id the parameter set ID
-     */
-    public void updateLastAccessed(UUID id) {
-        if (isExternalStorageAvailable()) {
-            getExternalStorage().updateLastAccessed(id);
-        }
-    }
-
+    
     /**
      * Gets the external storage adapter.
      *

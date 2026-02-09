@@ -207,7 +207,8 @@ Jobs in progress are not affected.
 
 [TIP]
 ====
-Multi-Enum parameters allow selecting multiple enum values. Selected values are stored as a comma-separated list.
+Multi-Enum parameters allow selecting multiple enum values.
+Selected values are stored as a comma-separated list.
 ====
 
 === Default Values
@@ -531,6 +532,7 @@ Requires **configurator** or **admin** role.
 ** `recipients`: Default = sales-team@company.com
 
 .Execution
+
 [source,bash]
 ----
 POST /templates/{templateId}/start
@@ -554,6 +556,7 @@ Creates job: `Daily-Sales-Report-20240127`
 ** `batchSize`: Default = 1000
 
 .Execution
+
 [source,bash]
 ----
 POST /templates/{templateId}/start
@@ -796,3 +799,22 @@ The batch progress in JobRunr Control will update as child jobs complete.
 * Use role-based access control appropriately
 * Limit admin access to authorized personnel
 * Audit job executions through JobRunr Dashboard
+
+== Audit Logging
+
+All Template and Job operations are automatically logged for audit and compliance purposes.
+
+=== Log Format
+
+----
+AUDIT [username] [action] [entity-type] [name] [id] [details]
+----
+
+=== Audited Operations
+
+All create, update, delete, and execute operations for both templates and jobs are logged with:
+
+* Authenticated username (or "anonymous")
+* Full operation details including parameters
+* Template/Job name and UUID
+* For executions: source (REST/UI) and resulting job ID

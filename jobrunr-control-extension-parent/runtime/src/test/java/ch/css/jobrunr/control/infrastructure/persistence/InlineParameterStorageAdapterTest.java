@@ -58,16 +58,6 @@ class InlineParameterStorageAdapterTest {
     }
 
     @Test
-    @DisplayName("updateLastAccessed should do nothing (no-op implementation)")
-    void updateLastAccessed_AnyId_DoesNothing() {
-        // Arrange
-        UUID id = UUID.randomUUID();
-
-        // Act & Assert - should not throw any exception
-        assertDoesNotThrow(() -> adapter.updateLastAccessed(id));
-    }
-
-    @Test
     @DisplayName("should handle null UUID gracefully in findById")
     void findById_NullId_ReturnsEmpty() {
         // Act
@@ -94,7 +84,6 @@ class InlineParameterStorageAdapterTest {
         Optional<ParameterSet> result2 = adapter.findById(id2);
 
         assertDoesNotThrow(() -> adapter.deleteById(id1));
-        assertDoesNotThrow(() -> adapter.updateLastAccessed(id2));
 
         // Assert - all findById should return empty for inline storage
         assertThat(result1).isEmpty();

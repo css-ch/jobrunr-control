@@ -5,6 +5,7 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.ws.rs.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,11 +33,14 @@ class StartJobUseCaseTest {
     @Mock
     private TemplateCloneHelper templateCloneHelper;
 
+    @Mock
+    private AuditLoggerHelper auditLogger;
+
     private StartJobUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new StartJobUseCase(jobSchedulerPort, templateCloneHelper);
+        useCase = new StartJobUseCase(jobSchedulerPort, templateCloneHelper, auditLogger);
     }
 
     @Test

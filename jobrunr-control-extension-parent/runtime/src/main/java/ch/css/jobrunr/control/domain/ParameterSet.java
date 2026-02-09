@@ -9,18 +9,18 @@ import java.util.*;
  * Represents a set of job parameters stored externally.
  * Used when parameter storage strategy is EXTERNAL.
  *
- * @param id             Unique identifier
- * @param jobType        Job type name
- * @param parameters     Parameter values map
- * @param createdAt      Creation timestamp
- * @param lastAccessedAt Last access timestamp
+ * @param id          Unique identifier
+ * @param jobType     Job type name
+ * @param parameters  Parameter values map
+ * @param createdAt   Creation timestamp
+ * @param updatedAt   Last update timestamp
  */
 public record ParameterSet(
         UUID id,
         String jobType,
         Map<String, Object> parameters,
         Instant createdAt,
-        Instant lastAccessedAt
+        Instant updatedAt
 ) {
     public ParameterSet {
         if (id == null) throw new IllegalArgumentException("id must not be null");
@@ -38,9 +38,9 @@ public record ParameterSet(
     }
 
     /**
-     * Updates last accessed timestamp.
+     * Updates the updatedAt timestamp.
      */
-    public ParameterSet markAccessed() {
+    public ParameterSet markUpdated() {
         return new ParameterSet(id, jobType, parameters, createdAt, Instant.now());
     }
 
