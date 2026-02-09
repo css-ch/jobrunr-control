@@ -66,15 +66,12 @@ class CreateTemplateUseCaseTest {
         String jobName = "My Template";
         Map<String, String> parameters = Map.of("param1", "value1");
         Map<String, Object> convertedParams = Map.of("param1", "value1");
-        Map<String, Object> jobParams = Map.of("param1", "value1");
         UUID expectedId = UUID.randomUUID();
 
         when(discoveryService.findJobByType(jobType))
                 .thenReturn(Optional.of(testJobDefinition));
         when(validator.convertAndValidate(testJobDefinition, parameters))
                 .thenReturn(convertedParams);
-        when(storageHelper.prepareJobParameters(testJobDefinition, jobType, jobName, convertedParams))
-                .thenReturn(jobParams);
         when(schedulerPort.scheduleJob(any(), anyString(), any(), anyBoolean(), any(), anyList()))
                 .thenReturn(expectedId);
 
@@ -86,11 +83,10 @@ class CreateTemplateUseCaseTest {
 
         verify(discoveryService).findJobByType(jobType);
         verify(validator).convertAndValidate(testJobDefinition, parameters);
-        verify(storageHelper).prepareJobParameters(testJobDefinition, jobType, jobName, convertedParams);
         verify(schedulerPort).scheduleJob(
                 eq(testJobDefinition),
                 eq(jobName),
-                eq(jobParams),
+                eq(convertedParams),
                 eq(true),           // isExternalTrigger
                 isNull(),           // scheduledAt - templates have no schedule
                 eq(List.of("template"))
@@ -130,8 +126,6 @@ class CreateTemplateUseCaseTest {
                 .thenReturn(Optional.of(testJobDefinition));
         when(validator.convertAndValidate(testJobDefinition, parameters))
                 .thenReturn(Map.of());
-        when(storageHelper.prepareJobParameters(any(), any(), any(), any()))
-                .thenReturn(Map.of());
         when(schedulerPort.scheduleJob(any(), anyString(), any(), anyBoolean(), any(), anyList()))
                 .thenReturn(UUID.randomUUID());
 
@@ -151,15 +145,15 @@ class CreateTemplateUseCaseTest {
     }
 
     @Test
-    @DisplayName("should store external parameters when configured")
-    void shouldStoreExternalParametersWhenConfigured() {
+    @DisplayName("should use two-phase creation for external parameters")
+    void shouldUseTwoPhaseCreationForExternalParameters() {
         // Arrange
         String jobType = "TestJob";
         String jobName = "Template with External Params";
         Map<String, String> parameters = Map.of("param1", "value1", "param2", "value2");
         Map<String, Object> convertedParams = Map.of("param1", "value1", "param2", "value2");
-        UUID paramSetId = UUID.randomUUID();
-        Map<String, Object> jobParamsWithSetId = Map.of("_parameterSetId", paramSetId.toString());
+        UUID templateId = UUID.randomUUID();
+        Map<String, Object> paramReference = Map.of("parameterSetId", templateId.toString());
 
         JobDefinition externalParamJob = new JobDefinitionBuilder()
                 .withJobType("TestJob")
@@ -170,24 +164,70 @@ class CreateTemplateUseCaseTest {
                 .thenReturn(Optional.of(externalParamJob));
         when(validator.convertAndValidate(externalParamJob, parameters))
                 .thenReturn(convertedParams);
-        when(storageHelper.prepareJobParameters(externalParamJob, jobType, jobName, convertedParams))
-                .thenReturn(jobParamsWithSetId);
-        when(schedulerPort.scheduleJob(any(), anyString(), any(), anyBoolean(), any(), anyList()))
-                .thenReturn(UUID.randomUUID());
+        when(schedulerPort.scheduleJob(eq(externalParamJob), eq(jobName), eq(Map.of()), eq(true), isNull(), eq(List.of("template"))))
+                .thenReturn(templateId);
+        when(storageHelper.createParameterReference(templateId, externalParamJob))
+                .thenReturn(paramReference);
 
         // Act
         UUID result = useCase.execute(jobType, jobName, parameters);
 
         // Assert
-        assertThat(result).isNotNull();
-        verify(storageHelper).prepareJobParameters(externalParamJob, jobType, jobName, convertedParams);
+        assertThat(result).isEqualTo(templateId);
+
+        // Verify Phase 1: Create template with empty params
         verify(schedulerPort).scheduleJob(
-                any(),
-                any(),
-                eq(jobParamsWithSetId),
-                anyBoolean(),
-                any(),
-                anyList()
+                eq(externalParamJob),
+                eq(jobName),
+                eq(Map.of()),  // Empty params in phase 1
+                eq(true),
+                isNull(),
+                eq(List.of("template"))
         );
+
+        // Verify Phase 2: Store parameters with template UUID
+        verify(storageHelper).storeParametersForJob(templateId, externalParamJob, jobType, convertedParams);
+
+        // Verify Phase 3: Update template with parameter reference
+        verify(storageHelper).createParameterReference(templateId, externalParamJob);
+        verify(schedulerPort).updateJobParameters(templateId, paramReference);
+    }
+
+    @Test
+    @DisplayName("should use single-phase creation for inline parameters")
+    void shouldUseSinglePhaseCreationForInlineParameters() {
+        // Arrange
+        String jobType = "TestJob";
+        String jobName = "Template with Inline Params";
+        Map<String, String> parameters = Map.of("param1", "value1");
+        Map<String, Object> convertedParams = Map.of("param1", "value1");
+        UUID templateId = UUID.randomUUID();
+
+        when(discoveryService.findJobByType(jobType))
+                .thenReturn(Optional.of(testJobDefinition));
+        when(validator.convertAndValidate(testJobDefinition, parameters))
+                .thenReturn(convertedParams);
+        when(schedulerPort.scheduleJob(testJobDefinition, jobName, convertedParams, true, null, List.of("template")))
+                .thenReturn(templateId);
+
+        // Act
+        UUID result = useCase.execute(jobType, jobName, parameters);
+
+        // Assert
+        assertThat(result).isEqualTo(templateId);
+
+        // Verify single-phase: Create template with inline params directly
+        verify(schedulerPort).scheduleJob(
+                testJobDefinition,
+                jobName,
+                convertedParams,  // Inline params passed directly
+                true,
+                null,
+                List.of("template")
+        );
+
+        // Verify no external parameter storage
+        verify(storageHelper, never()).storeParametersForJob(any(), any(), any(), any());
+        verify(schedulerPort, never()).updateJobParameters(any(), any());
     }
 }

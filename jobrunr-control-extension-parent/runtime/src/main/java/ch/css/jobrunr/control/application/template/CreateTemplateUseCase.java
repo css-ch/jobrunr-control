@@ -1,14 +1,15 @@
 package ch.css.jobrunr.control.application.template;
 
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.application.scheduling.ParameterStorageHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
-import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,8 @@ import java.util.UUID;
  */
 @ApplicationScoped
 public class CreateTemplateUseCase {
+
+    private static final Logger LOG = Logger.getLogger(CreateTemplateUseCase.class);
 
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
     private final JobSchedulerPort jobSchedulerPort;
@@ -62,22 +65,46 @@ public class CreateTemplateUseCase {
         // Validate and convert parameters
         Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
 
-        // Prepare job parameters (handles inline vs external storage)
-        Map<String, Object> jobParameters = parameterStorageHelper.prepareJobParameters(
-                jobDefinition, jobType, jobName, convertedParameters);
+        UUID templateId;
 
-        // Template jobs are always external trigger with no scheduled time and have the "template" label
-        UUID templateId = jobSchedulerPort.scheduleJob(
-                jobDefinition,
-                jobName,
-                jobParameters,
-                true,                    // isExternalTrigger
-                null,                    // scheduledAt - templates have no schedule
-                List.of("template")      // labels
-        );
+        if (jobDefinition.usesExternalParameters()) {
+            // TWO-PHASE APPROACH: Create job first, then store parameters with job UUID
+            LOG.debugf("Using two-phase approach for template with external parameters: %s", jobType);
+
+            // Phase 1: Create template job with empty parameters
+            Map<String, Object> emptyParams = Map.of();
+            templateId = jobSchedulerPort.scheduleJob(
+                    jobDefinition,
+                    jobName,
+                    emptyParams,
+                    true,                    // isExternalTrigger
+                    null,                    // scheduledAt - templates have no schedule
+                    List.of("template")      // labels
+            );
+
+            // Phase 2: Store parameters using template UUID as parameter set ID
+            parameterStorageHelper.storeParametersForJob(templateId, jobDefinition, jobType, convertedParameters);
+
+            // Phase 3: Update template job with parameter reference
+            Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(templateId, jobDefinition);
+            jobSchedulerPort.updateJobParameters(templateId, paramReference);
+
+            LOG.infof("Created template with external parameters: %s (ID: %s)", jobType, templateId);
+        } else {
+            // SINGLE-PHASE APPROACH: Inline parameters
+            LOG.debugf("Using single-phase approach for template with inline parameters: %s", jobType);
+            templateId = jobSchedulerPort.scheduleJob(
+                    jobDefinition,
+                    jobName,
+                    convertedParameters,
+                    true,                    // isExternalTrigger
+                    null,                    // scheduledAt - templates have no schedule
+                    List.of("template")      // labels
+            );
+        }
 
         // Audit log
-        auditLogger.logTemplateCreated(jobName, templateId, jobParameters);
+        auditLogger.logTemplateCreated(jobName, templateId, convertedParameters);
 
         return templateId;
     }

@@ -4,15 +4,18 @@ import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
+import ch.css.jobrunr.control.domain.ParameterStorageService;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -22,6 +25,8 @@ import java.util.UUID;
  */
 @ApplicationScoped
 public class UpdateScheduledJobUseCase {
+
+    private static final Logger LOG = Logger.getLogger(UpdateScheduledJobUseCase.class);
 
     // Date for externally triggerable jobs (31.12.2999)
     private static final Instant EXTERNAL_TRIGGER_DATE =
@@ -33,6 +38,7 @@ public class UpdateScheduledJobUseCase {
     private final JobSchedulerPort jobSchedulerPort;
     private final JobParameterValidator validator;
     private final ParameterStorageHelper parameterStorageHelper;
+    private final ParameterStorageService parameterStorageService;
     private final AuditLoggerHelper auditLogger;
 
     @Inject
@@ -41,11 +47,13 @@ public class UpdateScheduledJobUseCase {
             JobSchedulerPort jobSchedulerPort,
             JobParameterValidator validator,
             ParameterStorageHelper parameterStorageHelper,
+            ParameterStorageService parameterStorageService,
             AuditLoggerHelper auditLogger) {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobSchedulerPort = jobSchedulerPort;
         this.validator = validator;
         this.parameterStorageHelper = parameterStorageHelper;
+        this.parameterStorageService = parameterStorageService;
         this.auditLogger = auditLogger;
     }
 
@@ -83,10 +91,15 @@ public class UpdateScheduledJobUseCase {
                         Instant scheduledAt, boolean isExternalTrigger, java.util.List<String> additionalLabels) {
 
         // Load job definition
-        JobUpdateHelper.JobUpdateData jobUpdateData = JobUpdateHelper.prepareJobUpdateData(
-                jobType, jobName, parameters, jobDefinitionDiscoveryService, validator, parameterStorageHelper);
-        JobDefinition jobDefinition = jobUpdateData.jobDefinition();
-        Map<String, Object> jobParameters = jobUpdateData.jobParameters();
+        Optional<JobDefinition> jobDefOpt = jobDefinitionDiscoveryService.findJobByType(jobType);
+        if (jobDefOpt.isEmpty()) {
+            throw new JobNotFoundException("Job type '" + jobType + "' not found");
+        }
+
+        JobDefinition jobDefinition = jobDefOpt.get();
+
+        // Validate and convert parameters
+        Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
 
         // Determine time
         Instant effectiveScheduledAt = isExternalTrigger
@@ -99,11 +112,36 @@ public class UpdateScheduledJobUseCase {
             );
         }
 
-        // Update job directly (more efficient method)
-        jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, jobParameters, isExternalTrigger, effectiveScheduledAt, additionalLabels);
+        if (jobDefinition.usesExternalParameters()) {
+            // THREE-PHASE UPDATE: Delete old params, update job, store new params
+            LOG.debugf("Using three-phase update for job with external parameters: %s (ID: %s)", jobType, jobId);
+
+            // Phase 1: Delete old parameter set (if exists)
+            if (parameterStorageService.isExternalStorageAvailable()) {
+                parameterStorageService.deleteById(jobId);
+                LOG.debugf("Deleted old parameter set for job: %s", jobId);
+            }
+
+            // Phase 2: Update job with empty parameters
+            Map<String, Object> emptyParams = Map.of();
+            jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, emptyParams, isExternalTrigger, effectiveScheduledAt, additionalLabels);
+
+            // Phase 3: Store new parameters with same job UUID
+            parameterStorageHelper.storeParametersForJob(jobId, jobDefinition, jobType, convertedParameters);
+
+            // Phase 4: Update job with parameter reference
+            Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(jobId, jobDefinition);
+            jobSchedulerPort.updateJobParameters(jobId, paramReference);
+
+            LOG.infof("Updated job with external parameters: %s (ID: %s)", jobType, jobId);
+        } else {
+            // SINGLE-PHASE UPDATE: Inline parameters
+            LOG.debugf("Using single-phase update for job with inline parameters: %s (ID: %s)", jobType, jobId);
+            jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, convertedParameters, isExternalTrigger, effectiveScheduledAt, additionalLabels);
+        }
 
         // Audit log
-        auditLogger.logJobUpdated(jobName, jobId, jobParameters);
+        auditLogger.logJobUpdated(jobName, jobId, convertedParameters);
 
         // Return the original job ID
         return jobId;

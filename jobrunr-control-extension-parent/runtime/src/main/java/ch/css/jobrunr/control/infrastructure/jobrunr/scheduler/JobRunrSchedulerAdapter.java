@@ -257,6 +257,61 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
         }
     }
 
+    @Override
+    public void updateJobParameters(UUID jobId, Map<String, Object> parameters) {
+        try {
+            // Get the existing job to extract its details
+            org.jobrunr.jobs.Job existingJob = storageProvider.getJobById(jobId);
+            if (existingJob == null) {
+                LOG.warnf("Job not found: %s", jobId);
+                throw new JobNotFoundException("Job with ID '" + jobId + "' not found");
+            }
+
+            // Extract job information
+            var jobDetails = existingJob.getJobDetails();
+            String jobName = existingJob.getJobName();
+
+            // Get scheduled time
+            Instant scheduledAt = null;
+            if (existingJob.getState() == StateName.SCHEDULED) {
+                scheduledAt = existingJob.getJobStates().stream()
+                        .filter(ScheduledState.class::isInstance)
+                        .map(ScheduledState.class::cast)
+                        .findFirst()
+                        .map(ScheduledState::getScheduledAt)
+                        .orElse(existingJob.getCreatedAt());
+            } else {
+                scheduledAt = existingJob.getCreatedAt();
+            }
+
+            // Get job definition by looking up the job type from existing parameters
+            // The job type should be extractable from the job's class name
+            String className = jobDetails.getClassName();
+            String simpleClassName = extractSimpleClassName(className);
+
+            JobDefinition jobDefinition = jobDefinitionDiscoveryService.findJobByType(simpleClassName)
+                    .orElseThrow(() -> new IllegalStateException("Job definition not found for: " + simpleClassName));
+
+            // Recreate the job with the same ID and updated parameters
+            // This uses JobRunr's createOrReplace which updates the existing job
+            jobInvoker.scheduleJob(
+                    jobId,
+                    jobName,
+                    jobDefinition,
+                    parameters,
+                    scheduledAt,
+                    new ArrayList<>(existingJob.getLabels())
+            );
+
+            LOG.infof("Updated parameters for job: %s", jobId);
+
+        } catch (JobNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            LOG.errorf(e, "Error updating job parameters: %s", jobId);
+            throw new JobSchedulingException("Error updating job parameters: " + jobId, e);
+        }
+    }
 
     private boolean isExternallyTriggerable(Instant scheduledAt) {
         // Year 2999 indicates external triggers

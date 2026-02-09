@@ -68,4 +68,21 @@ public class JobRunrScheduleAdapterMock implements JobSchedulerPort {
     public void executeJobNow(UUID jobId, java.util.Map<String, Object> parameterOverrides) {
         deleteScheduledJob(jobId);
     }
+
+    @Override
+    public void updateJobParameters(UUID jobId, Map<String, Object> parameters) {
+        ScheduledJobInfo existingJob = jobs.get(jobId);
+        if (existingJob != null) {
+            ScheduledJobInfo updatedJob = new ScheduledJobInfo(
+                    existingJob.jobId(),
+                    existingJob.jobName(),
+                    existingJob.jobDefinition(),
+                    existingJob.scheduledAt(),
+                    parameters,
+                    existingJob.isExternallyTriggerable(),
+                    existingJob.labels()
+            );
+            jobs.put(jobId, updatedJob);
+        }
+    }
 }

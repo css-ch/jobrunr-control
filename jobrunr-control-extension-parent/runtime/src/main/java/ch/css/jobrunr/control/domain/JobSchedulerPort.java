@@ -93,4 +93,13 @@ public interface JobSchedulerPort {
      * @param metadata Additional metadata
      */
     void executeJobNow(UUID jobId, Map<String, Object> metadata);
+
+    /**
+     * Updates only the parameters of an existing job.
+     * Used to link external parameter sets after job creation.
+     *
+     * @param jobId      The job UUID
+     * @param parameters The new parameters map (typically just a parameter set reference)
+     */
+    void updateJobParameters(UUID jobId, Map<String, Object> parameters);
 }

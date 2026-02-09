@@ -1,11 +1,11 @@
 package ch.css.jobrunr.control.application.scheduling;
 
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
-import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -88,15 +88,32 @@ public class CreateScheduledJobUseCase {
         // Validate and convert parameters
         Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
 
-        // Prepare job parameters (handles inline vs external storage)
-        Map<String, Object> jobParameters = parameterStorageHelper.prepareJobParameters(
-                jobDefinition, jobType, jobName, convertedParameters);
+        UUID jobId;
 
-        // Schedule job
-        UUID jobId = jobSchedulerPort.scheduleJob(jobDefinition, jobName, jobParameters, isExternalTrigger, scheduledAt, additionalLabels);
+        if (jobDefinition.usesExternalParameters()) {
+            // TWO-PHASE APPROACH: Create job first, then store parameters with job UUID
+            LOG.debugf("Using two-phase approach for job with external parameters: %s", jobType);
+
+            // Phase 1: Create job with empty parameters
+            Map<String, Object> emptyParams = Map.of();
+            jobId = jobSchedulerPort.scheduleJob(jobDefinition, jobName, emptyParams, isExternalTrigger, scheduledAt, additionalLabels);
+
+            // Phase 2: Store parameters using job UUID as parameter set ID
+            parameterStorageHelper.storeParametersForJob(jobId, jobDefinition, jobType, convertedParameters);
+
+            // Phase 3: Update job with parameter reference
+            Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(jobId, jobDefinition);
+            jobSchedulerPort.updateJobParameters(jobId, paramReference);
+
+            LOG.infof("Created job with external parameters: %s (ID: %s)", jobType, jobId);
+        } else {
+            // SINGLE-PHASE APPROACH: Inline parameters
+            LOG.debugf("Using single-phase approach for job with inline parameters: %s", jobType);
+            jobId = jobSchedulerPort.scheduleJob(jobDefinition, jobName, convertedParameters, isExternalTrigger, scheduledAt, additionalLabels);
+        }
 
         // Audit log
-        auditLogger.logJobCreated(jobName, jobId, jobParameters);
+        auditLogger.logJobCreated(jobName, jobId, convertedParameters);
 
         return jobId;
     }
