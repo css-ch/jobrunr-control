@@ -58,6 +58,17 @@ public class ParameterStorageAdapter implements ParameterStorageService {
         LOG.debugf("Stored parameter set: %s", parameterSet.id());
     }
 
+    @Override
+    public void update(ParameterSet parameterSet) {
+        if (!isExternalStorageAvailable()) {
+            throw new IllegalStateException(
+                    "External parameter storage not available. " +
+                            "Ensure Hibernate ORM is enabled (quarkus.hibernate-orm.enabled=true)");
+        }
+        getExternalStorage().update(parameterSet);
+        LOG.debugf("Updated parameter set: %s", parameterSet.id());
+    }
+
     /**
      * Finds a parameter set by ID.
      *

@@ -4,7 +4,6 @@ import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
-import ch.css.jobrunr.control.domain.ParameterStorageService;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.testutils.JobDefinitionBuilder;
@@ -41,9 +40,6 @@ class UpdateScheduledJobUseCaseTest {
 
     @Mock
     private ParameterStorageHelper storageHelper;
-
-    @Mock
-    private ParameterStorageService storageService;
 
     @Mock
     private AuditLoggerHelper auditLogger;
@@ -121,7 +117,7 @@ class UpdateScheduledJobUseCaseTest {
                 .hasMessageContaining(invalidJobType);
 
         verify(discoveryService).findJobByType(invalidJobType);
-        verifyNoInteractions(validator, storageHelper, storageService, schedulerPort);
+        verifyNoInteractions(validator, storageHelper, schedulerPort);
     }
 
     @Test
@@ -153,7 +149,7 @@ class UpdateScheduledJobUseCaseTest {
     }
 
     @Test
-    @DisplayName("should use three-phase update for external parameters")
+    @DisplayName("should update external parameters in-place")
     void shouldUpdateExternalParameters() {
         // Arrange
         UUID jobId = UUID.randomUUID();
@@ -173,8 +169,6 @@ class UpdateScheduledJobUseCaseTest {
                 .thenReturn(Optional.of(externalParamJob));
         when(validator.convertAndValidate(externalParamJob, parameters))
                 .thenReturn(convertedParams);
-        when(storageService.isExternalStorageAvailable())
-                .thenReturn(true);
         when(storageHelper.createParameterReference(jobId, externalParamJob))
                 .thenReturn(paramReference);
 
@@ -182,25 +176,19 @@ class UpdateScheduledJobUseCaseTest {
         useCase.execute(jobId, jobType, jobName, parameters, scheduledAt, false);
 
         // Assert
-        // Verify Phase 1: Delete old parameter set
-        verify(storageService).deleteById(jobId);
+        // Verify parameters updated in-place
+        verify(storageHelper).updateParametersForJob(jobId, externalParamJob, jobType, convertedParams);
 
-        // Verify Phase 2: Update job with empty params
+        // Verify job updated with parameter reference
+        verify(storageHelper).createParameterReference(jobId, externalParamJob);
         verify(schedulerPort).updateJob(
                 eq(jobId),
                 eq(externalParamJob),
                 eq(jobName),
-                eq(Map.of()),  // Empty params in phase 2
+                eq(paramReference),
                 eq(false),
                 eq(scheduledAt),
                 isNull()
         );
-
-        // Verify Phase 3: Store new parameters with same job UUID
-        verify(storageHelper).storeParametersForJob(jobId, externalParamJob, jobType, convertedParams);
-
-        // Verify Phase 4: Update job with parameter reference
-        verify(storageHelper).createParameterReference(jobId, externalParamJob);
-        verify(schedulerPort).updateJobParameters(jobId, paramReference);
     }
 }

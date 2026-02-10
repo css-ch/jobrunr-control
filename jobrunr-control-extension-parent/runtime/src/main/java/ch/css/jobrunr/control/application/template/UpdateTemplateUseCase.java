@@ -5,7 +5,6 @@ import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
-import ch.css.jobrunr.control.domain.ParameterStorageService;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -38,7 +37,6 @@ public class UpdateTemplateUseCase {
     private final JobSchedulerPort jobSchedulerPort;
     private final JobParameterValidator validator;
     private final ParameterStorageHelper parameterStorageHelper;
-    private final ParameterStorageService parameterStorageService;
     private final AuditLoggerHelper auditLogger;
 
     @Inject
@@ -47,13 +45,11 @@ public class UpdateTemplateUseCase {
             JobSchedulerPort jobSchedulerPort,
             JobParameterValidator validator,
             ParameterStorageHelper parameterStorageHelper,
-            ParameterStorageService parameterStorageService,
             AuditLoggerHelper auditLogger) {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobSchedulerPort = jobSchedulerPort;
         this.validator = validator;
         this.parameterStorageHelper = parameterStorageHelper;
-        this.parameterStorageService = parameterStorageService;
         this.auditLogger = auditLogger;
     }
 
@@ -78,33 +74,22 @@ public class UpdateTemplateUseCase {
         Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
 
         if (jobDefinition.usesExternalParameters()) {
-            // THREE-PHASE UPDATE: Delete old params, update job, store new params
-            LOG.debugf("Using three-phase update for template with external parameters: %s (ID: %s)", jobType, templateId);
+            LOG.debugf("Updating template with external parameters: %s (ID: %s)", jobType, templateId);
 
-            // Phase 1: Delete old parameter set (if exists)
-            if (parameterStorageService.isExternalStorageAvailable()) {
-                parameterStorageService.deleteById(templateId);
-                LOG.debugf("Deleted old parameter set for template: %s", templateId);
-            }
+            // Update external parameter set in-place (preserves version)
+            parameterStorageHelper.updateParametersForJob(templateId, jobDefinition, jobType, convertedParameters);
 
-            // Phase 2: Update template with empty parameters
-            Map<String, Object> emptyParams = Map.of();
+            // Update template metadata with parameter reference
+            Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(templateId, jobDefinition);
             jobSchedulerPort.updateJob(
                     templateId,
                     jobDefinition,
                     jobName,
-                    emptyParams,
+                    paramReference,
                     true,                              // isExternalTrigger
                     EXTERNAL_TRIGGER_DATE,             // External trigger uses special date
                     java.util.List.of("template")      // Always add "template" label
             );
-
-            // Phase 3: Store new parameters with same template UUID
-            parameterStorageHelper.storeParametersForJob(templateId, jobDefinition, jobType, convertedParameters);
-
-            // Phase 4: Update template with parameter reference
-            Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(templateId, jobDefinition);
-            jobSchedulerPort.updateJobParameters(templateId, paramReference);
 
             LOG.infof("Updated template with external parameters: %s (ID: %s)", jobType, templateId);
         } else {

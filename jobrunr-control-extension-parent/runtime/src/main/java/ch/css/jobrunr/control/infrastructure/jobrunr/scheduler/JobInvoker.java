@@ -139,14 +139,14 @@ public class JobInvoker {
         boolean hasAdditionalLabels = additionalLabels != null && !additionalLabels.isEmpty();
 
         if (hasSettingsLabels || hasAdditionalLabels) {
-            List<String> allLabels = new ArrayList<>();
+            var allLabels = new java.util.LinkedHashSet<String>();
             if (hasSettingsLabels) {
                 allLabels.addAll(settingsLabels);
             }
             if (hasAdditionalLabels) {
                 allLabels.addAll(additionalLabels);
             }
-            jobBuilder.withLabels(allLabels);
+            jobBuilder.withLabels(new ArrayList<>(allLabels));
         }
     }
 

@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
@@ -19,6 +20,8 @@ import java.util.stream.Collectors;
  * Reduces duplicate code across controllers by centralizing common patterns.
  */
 public abstract class BaseController {
+
+    private static final Logger LOG = Logger.getLogger(BaseController.class);
 
     /**
      * Builds a response that closes the modal and returns the updated content.
@@ -224,14 +227,12 @@ public abstract class BaseController {
      * @param jobInfo           the job info
      * @param resolveParameters function to resolve parameters
      * @param getJobParameters  function to get job parameter definitions
-     * @param logger            logger for error logging
      * @return resolved job data
      */
     protected ResolvedJobData resolveJobParameters(
             ScheduledJobInfo jobInfo,
-            Function<Map<String, Object>, Map<String, Object>> resolveParameters,
-            Function<String, List<JobParameter>> getJobParameters,
-            Logger logger) {
+            UnaryOperator<Map<String, Object>> resolveParameters,
+            Function<String, List<JobParameter>> getJobParameters) {
 
         // Resolve parameters (expand external parameter sets)
         Map<String, Object> resolvedParameters = resolveParameters.apply(jobInfo.getParameters());
@@ -251,10 +252,8 @@ public abstract class BaseController {
         List<JobParameter> parameters = Collections.emptyList();
         try {
             parameters = getJobParameters.apply(jobInfo.getJobType());
-            logger.infof("Loaded %s parameter definitions for job type '%s' in edit mode",
-                    parameters.size(), jobInfo.getJobType());
         } catch (Exception e) {
-            logger.errorf("Error loading parameters for job type '%s': %s",
+            LOG.errorf("Error loading parameters for job type '%s': %s",
                     jobInfo.getJobType(), e.getMessage(), e);
         }
 

@@ -27,6 +27,15 @@ public interface ParameterStorageService {
     void store(ParameterSet parameterSet);
 
     /**
+     * Updates an existing parameter set using external storage.
+     * If the parameter set does not exist, it will be created.
+     *
+     * @param parameterSet the parameter set to update
+     * @throws IllegalStateException if external storage not configured
+     */
+    void update(ParameterSet parameterSet);
+
+    /**
      * Finds a parameter set by ID.
      *
      * @param id the parameter set ID

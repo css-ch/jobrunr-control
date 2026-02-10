@@ -100,7 +100,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
 
             return newJobId.asUUID();
         } catch (Exception e) {
-            LOG.errorf("Error scheduling job: %s", jobDefinition.jobType(), e);
+            LOG.errorf(e, "Error scheduling job: %s", jobDefinition.jobType());
             throw new JobSchedulingException("Error scheduling job: " + jobDefinition.jobType(), e);
         }
     }
@@ -144,7 +144,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
                     .toList();
 
         } catch (Exception e) {
-            LOG.errorf("Error retrieving scheduled jobs", e);
+            LOG.errorf(e, "Error retrieving scheduled jobs");
             return new ArrayList<>();
         }
     }
@@ -158,7 +158,7 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
             }
             return null;
         } catch (Exception e) {
-            LOG.errorf("Error retrieving job: %s", jobId, e);
+            LOG.errorf(e, "Error retrieving job: %s", jobId);
             return null;
         }
     }

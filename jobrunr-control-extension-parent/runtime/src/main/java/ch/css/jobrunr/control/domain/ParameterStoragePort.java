@@ -26,6 +26,14 @@ public interface ParameterStoragePort {
     Optional<ParameterSet> findById(UUID id);
 
     /**
+     * Updates an existing parameter set.
+     * If the parameter set does not exist, it will be created.
+     *
+     * @param parameterSet the parameter set to update
+     */
+    void update(ParameterSet parameterSet);
+
+    /**
      * Deletes a parameter set by ID.
      *
      * @param id the parameter set ID

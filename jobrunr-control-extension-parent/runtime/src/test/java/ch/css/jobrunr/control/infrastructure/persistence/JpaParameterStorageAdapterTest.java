@@ -190,6 +190,70 @@ class JpaParameterStorageAdapterTest {
     }
 
     @Test
+    @DisplayName("should update existing parameter set in-place")
+    void update_ExistingParameterSet_UpdatesEntity() throws JsonProcessingException {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        Map<String, Object> newParams = Map.of("key1", "updated");
+        ParameterSet parameterSet = ParameterSet.create(id, "TestJob", newParams);
+        String newJson = "{\"key1\":\"updated\"}";
+
+        ParameterSetEntity existingEntity = new ParameterSetEntity();
+        existingEntity.id = id;
+        existingEntity.jobType = "TestJob";
+        existingEntity.parametersJson = "{\"key1\":\"old\"}";
+
+        when(entityManager.find(ParameterSetEntity.class, id)).thenReturn(existingEntity);
+        when(objectMapper.writeValueAsString(newParams)).thenReturn(newJson);
+
+        // Act
+        adapter.update(parameterSet);
+
+        // Assert - entity fields updated in-place, no persist called
+        assertThat(existingEntity.parametersJson).isEqualTo(newJson);
+        assertThat(existingEntity.jobType).isEqualTo("TestJob");
+        verify(entityManager, never()).persist(any());
+    }
+
+    @Test
+    @DisplayName("should fall back to store when updating non-existing parameter set")
+    void update_NonExistingParameterSet_FallsBackToStore() throws JsonProcessingException {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        Map<String, Object> params = Map.of("key1", "value1");
+        ParameterSet parameterSet = ParameterSet.create(id, "TestJob", params);
+        String jsonString = "{\"key1\":\"value1\"}";
+
+        when(entityManager.find(ParameterSetEntity.class, id)).thenReturn(null);
+        when(objectMapper.writeValueAsString(params)).thenReturn(jsonString);
+
+        // Act
+        adapter.update(parameterSet);
+
+        // Assert - falls back to persist
+        verify(entityManager).persist(any(ParameterSetEntity.class));
+    }
+
+    @Test
+    @DisplayName("should throw ParameterSerializationException when update serialization fails")
+    void update_SerializationFails_ThrowsException() throws JsonProcessingException {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        ParameterSet parameterSet = ParameterSet.create(id, "TestJob", Map.of("key", "value"));
+
+        ParameterSetEntity existingEntity = new ParameterSetEntity();
+        existingEntity.id = id;
+
+        when(entityManager.find(ParameterSetEntity.class, id)).thenReturn(existingEntity);
+        when(objectMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("Serialization error") {});
+
+        // Act & Assert
+        assertThatThrownBy(() -> adapter.update(parameterSet))
+                .isInstanceOf(ParameterSerializationException.class)
+                .hasMessageContaining("Failed to serialize parameters");
+    }
+
+    @Test
     @DisplayName("should throw IllegalStateException when EntityManager not available")
     void store_EntityManagerNotAvailable_ThrowsException() {
         // Arrange

@@ -192,8 +192,7 @@ public class ScheduledJobsController extends BaseController {
         ResolvedJobData resolvedData = resolveJobParameters(
                 jobInfo,
                 resolveParametersUseCase::execute,
-                getJobParametersUseCase::execute,
-                LOG
+                getJobParametersUseCase::execute
         );
 
         return Modals.jobForm(jobDefinitions, true,

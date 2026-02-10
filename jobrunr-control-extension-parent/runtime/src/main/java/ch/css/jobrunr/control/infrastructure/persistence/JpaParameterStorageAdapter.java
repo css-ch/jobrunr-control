@@ -66,6 +66,24 @@ public class JpaParameterStorageAdapter implements ParameterStoragePort {
     }
 
     @Override
+    @Transactional
+    public void update(ParameterSet parameterSet) {
+        try {
+            EntityManager em = getEntityManager();
+            ParameterSetEntity entity = em.find(ParameterSetEntity.class, parameterSet.id());
+            if (entity != null) {
+                entity.jobType = parameterSet.jobType();
+                entity.parametersJson = objectMapper.writeValueAsString(parameterSet.parameters());
+                LOG.debugf("Updated parameter set: %s", entity.id);
+            } else {
+                store(parameterSet);
+            }
+        } catch (JsonProcessingException e) {
+            throw new ParameterSerializationException("Failed to serialize parameters", e);
+        }
+    }
+
+    @Override
     public Optional<ParameterSet> findById(UUID id) {
         ParameterSetEntity entity = getEntityManager().find(ParameterSetEntity.class, id);
         if (entity == null) {

@@ -104,6 +104,38 @@ public class ParameterStorageHelper {
     }
 
     /**
+     * Updates parameters for an existing job.
+     * Used when updating a job that already has an external parameter set.
+     *
+     * @param jobId               The UUID of the job
+     * @param jobDefinition       The job definition
+     * @param jobType             The job type (for storage identification)
+     * @param convertedParameters The validated and converted parameters
+     */
+    public void updateParametersForJob(
+            UUID jobId,
+            JobDefinition jobDefinition,
+            String jobType,
+            Map<String, Object> convertedParameters) {
+
+        if (!jobDefinition.usesExternalParameters()) {
+            return; // Nothing to update
+        }
+
+        if (!parameterStorageService.isExternalStorageAvailable()) {
+            throw new IllegalStateException(
+                    "Job '" + jobType + "' requires external parameter storage (@JobParameterSet), " +
+                            "but external storage is not configured. " +
+                            "Enable Hibernate ORM: quarkus.hibernate-orm.enabled=true");
+        }
+
+        ParameterSet parameterSet = ParameterSet.create(jobId, jobType, convertedParameters);
+        parameterStorageService.update(parameterSet);
+
+        LOG.infof("Updated parameters externally with ID: %s (job UUID) for job type: %s", jobId, jobType);
+    }
+
+    /**
      * Prepares a reference map to the parameter set for jobs with external parameters.
      * Returns empty map for inline parameters, or a map with the parameter set field reference.
      *

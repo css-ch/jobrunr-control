@@ -4,7 +4,6 @@ import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
-import ch.css.jobrunr.control.domain.ParameterStorageService;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -38,7 +37,6 @@ public class UpdateScheduledJobUseCase {
     private final JobSchedulerPort jobSchedulerPort;
     private final JobParameterValidator validator;
     private final ParameterStorageHelper parameterStorageHelper;
-    private final ParameterStorageService parameterStorageService;
     private final AuditLoggerHelper auditLogger;
 
     @Inject
@@ -47,13 +45,11 @@ public class UpdateScheduledJobUseCase {
             JobSchedulerPort jobSchedulerPort,
             JobParameterValidator validator,
             ParameterStorageHelper parameterStorageHelper,
-            ParameterStorageService parameterStorageService,
             AuditLoggerHelper auditLogger) {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobSchedulerPort = jobSchedulerPort;
         this.validator = validator;
         this.parameterStorageHelper = parameterStorageHelper;
-        this.parameterStorageService = parameterStorageService;
         this.auditLogger = auditLogger;
     }
 
@@ -113,25 +109,14 @@ public class UpdateScheduledJobUseCase {
         }
 
         if (jobDefinition.usesExternalParameters()) {
-            // THREE-PHASE UPDATE: Delete old params, update job, store new params
-            LOG.debugf("Using three-phase update for job with external parameters: %s (ID: %s)", jobType, jobId);
+            LOG.debugf("Updating job with external parameters: %s (ID: %s)", jobType, jobId);
 
-            // Phase 1: Delete old parameter set (if exists)
-            if (parameterStorageService.isExternalStorageAvailable()) {
-                parameterStorageService.deleteById(jobId);
-                LOG.debugf("Deleted old parameter set for job: %s", jobId);
-            }
+            // Update external parameter set in-place (preserves version)
+            parameterStorageHelper.updateParametersForJob(jobId, jobDefinition, jobType, convertedParameters);
 
-            // Phase 2: Update job with empty parameters
-            Map<String, Object> emptyParams = Map.of();
-            jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, emptyParams, isExternalTrigger, effectiveScheduledAt, additionalLabels);
-
-            // Phase 3: Store new parameters with same job UUID
-            parameterStorageHelper.storeParametersForJob(jobId, jobDefinition, jobType, convertedParameters);
-
-            // Phase 4: Update job with parameter reference
+            // Update job metadata with parameter reference
             Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(jobId, jobDefinition);
-            jobSchedulerPort.updateJobParameters(jobId, paramReference);
+            jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, paramReference, isExternalTrigger, effectiveScheduledAt, additionalLabels);
 
             LOG.infof("Updated job with external parameters: %s (ID: %s)", jobType, jobId);
         } else {

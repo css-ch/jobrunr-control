@@ -152,6 +152,39 @@ class ParameterStorageAdapterTest {
     }
 
     @Test
+    @DisplayName("should delegate update operation to JPA adapter when available")
+    void update_ExternalStorageAvailable_DelegatesToJpaAdapter() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        ParameterSet parameterSet = ParameterSet.create(id, "TestJob", Map.of("key", "value"));
+
+        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
+        when(jpaAdapterInstance.isResolvable()).thenReturn(true);
+        when(jpaAdapterInstance.get()).thenReturn(jpaAdapter);
+
+        // Act
+        adapter.update(parameterSet);
+
+        // Assert
+        verify(jpaAdapter).update(parameterSet);
+    }
+
+    @Test
+    @DisplayName("should throw IllegalStateException when updating without available storage")
+    void update_ExternalStorageNotAvailable_ThrowsException() {
+        // Arrange
+        ParameterSet parameterSet = ParameterSet.create(UUID.randomUUID(), "TestJob", Map.of());
+
+        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
+        when(jpaAdapterInstance.isResolvable()).thenReturn(false);
+
+        // Act & Assert
+        assertThatThrownBy(() -> adapter.update(parameterSet))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("External parameter storage not available");
+    }
+
+    @Test
     @DisplayName("should delegate deleteById to JPA adapter when available")
     void deleteById_ExternalStorageAvailable_DelegatesToJpaAdapter() {
         // Arrange

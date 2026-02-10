@@ -159,8 +159,7 @@ public class TemplatesController extends BaseController {
         ResolvedJobData resolvedData = resolveJobParameters(
                 jobInfo,
                 resolveParametersUseCase::execute,
-                getJobParametersUseCase::execute,
-                LOG
+                getJobParametersUseCase::execute
         );
 
         return Modals.templateForm(jobDefinitions, true,

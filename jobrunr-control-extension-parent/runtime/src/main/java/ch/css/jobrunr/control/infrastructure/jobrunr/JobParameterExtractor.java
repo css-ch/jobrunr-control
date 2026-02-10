@@ -142,6 +142,7 @@ public final class JobParameterExtractor {
         @SuppressWarnings("unchecked")
         Map<String, Object> result = objectMapper.convertValue(jobRequest, Map.class);
         result.remove("jobRequestHandler");
+        result.values().removeIf(java.util.Objects::isNull);
         return result;
     }
 }

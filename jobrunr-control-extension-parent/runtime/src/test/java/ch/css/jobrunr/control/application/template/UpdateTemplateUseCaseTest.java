@@ -5,7 +5,6 @@ import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
-import ch.css.jobrunr.control.domain.ParameterStorageService;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.testutils.JobDefinitionBuilder;
@@ -41,9 +40,6 @@ class UpdateTemplateUseCaseTest {
 
     @Mock
     private ParameterStorageHelper storageHelper;
-
-    @Mock
-    private ParameterStorageService storageService;
 
     @Mock
     private AuditLoggerHelper auditLogger;
@@ -151,7 +147,7 @@ class UpdateTemplateUseCaseTest {
     }
 
     @Test
-    @DisplayName("should use three-phase update for external parameters")
+    @DisplayName("should update external parameters in-place")
     void shouldUpdateExternalParameters() {
         // Arrange
         UUID templateId = UUID.randomUUID();
@@ -170,8 +166,6 @@ class UpdateTemplateUseCaseTest {
                 .thenReturn(Optional.of(externalParamJob));
         when(validator.convertAndValidate(externalParamJob, parameters))
                 .thenReturn(convertedParams);
-        when(storageService.isExternalStorageAvailable())
-                .thenReturn(true);
         when(storageHelper.createParameterReference(templateId, externalParamJob))
                 .thenReturn(paramReference);
 
@@ -179,25 +173,19 @@ class UpdateTemplateUseCaseTest {
         useCase.execute(templateId, jobType, jobName, parameters);
 
         // Assert
-        // Verify Phase 1: Delete old parameter set
-        verify(storageService).deleteById(templateId);
+        // Verify parameters updated in-place
+        verify(storageHelper).updateParametersForJob(templateId, externalParamJob, jobType, convertedParams);
 
-        // Verify Phase 2: Update template with empty params
+        // Verify template updated with parameter reference
+        verify(storageHelper).createParameterReference(templateId, externalParamJob);
         verify(schedulerPort).updateJob(
                 eq(templateId),
                 eq(externalParamJob),
                 eq(jobName),
-                eq(Map.of()),  // Empty params in phase 2
+                eq(paramReference),
                 eq(true),
                 any(),
                 eq(List.of("template"))
         );
-
-        // Verify Phase 3: Store new parameters with same template UUID
-        verify(storageHelper).storeParametersForJob(templateId, externalParamJob, jobType, convertedParams);
-
-        // Verify Phase 4: Update template with parameter reference
-        verify(storageHelper).createParameterReference(templateId, externalParamJob);
-        verify(schedulerPort).updateJobParameters(templateId, paramReference);
     }
 }

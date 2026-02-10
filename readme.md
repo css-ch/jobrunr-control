@@ -63,6 +63,7 @@ Start your Quarkus application and navigate to:
 | [Programmer's Guide](docs/programmers.adoc)                | Developer guide for implementing jobs           |
 | [Dashboard Access Guide](docs/JOBRUNR_DASHBOARD_ACCESS.md) | Configuring access to JobRunr Pro Dashboard     |
 | [Error Handling Guide](docs/ERROR_HANDLING_GUIDE.md)       | Error handling patterns and best practices      |
+| [Contributor Guidance](docs/copilot-instructions.adoc)            | Copilot/contributor instructions and logging/documentation conventions |
 
 ## Key Features
 

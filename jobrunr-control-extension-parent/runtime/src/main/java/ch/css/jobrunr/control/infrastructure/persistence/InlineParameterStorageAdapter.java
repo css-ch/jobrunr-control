@@ -22,6 +22,11 @@ public class InlineParameterStorageAdapter implements ParameterStoragePort {
     }
 
     @Override
+    public void update(ParameterSet parameterSet) {
+        // No-op: parameters stored inline in job
+    }
+
+    @Override
     public Optional<ParameterSet> findById(UUID id) {
         return Optional.empty();
     }

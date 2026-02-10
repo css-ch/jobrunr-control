@@ -48,6 +48,17 @@ class InlineParameterStorageAdapterTest {
     }
 
     @Test
+    @DisplayName("update should do nothing (no-op implementation)")
+    void update_AnyParameterSet_DoesNothing() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        ParameterSet parameterSet = ParameterSet.create(id, "TestJob", Map.of("key", "value"));
+
+        // Act & Assert - should not throw any exception
+        assertDoesNotThrow(() -> adapter.update(parameterSet));
+    }
+
+    @Test
     @DisplayName("deleteById should do nothing (no-op implementation)")
     void deleteById_AnyId_DoesNothing() {
         // Arrange
