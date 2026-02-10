@@ -11,12 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class JobTriggerForParameterDemoJobUITest extends JobTriggerUITestBase {
+class JobTriggerForParameterDemoJobUITest extends JobTriggerUITestBase {
 
     @Test
     @Order(1)
     @DisplayName("Create a job with external trigger via UI")
-    public void testCreateJobWithExternalTrigger() {
+    void testCreateJobWithExternalTrigger() {
         navigateToScheduledJobsPage();
         openJobCreationDialog();
         selectJobType("ParameterDemoJob");
@@ -33,18 +33,17 @@ public class JobTriggerForParameterDemoJobUITest extends JobTriggerUITestBase {
     @Test
     @Order(2)
     @DisplayName("Trigger the job via REST API")
-    public void testTriggerJobViaRest() {
+    void testTriggerJobViaRest() {
         assertNotNull(scheduledJobId, "Job ID should be set from previous test");
 
         String response = triggerJobViaApi(scheduledJobId);
-        System.out.println("Trigger response: " + response);
         assertTrue(response.contains("Job started successfully"), "Job should be started successfully");
     }
 
     @Test
     @Order(3)
     @DisplayName("Check job execution in history")
-    public void testCheckJobExecutionInHistory() {
+    void testCheckJobExecutionInHistory() {
         assertNotNull(scheduledJobId, "Job ID should be set from previous test");
 
         navigateToHistory();

@@ -26,7 +26,7 @@ Add the extension to your Quarkus project:
 
 The extension automatically brings in:
 
-- JobRunr Pro 8.4.0
+- JobRunr Pro 8.4.2
 - Qute templates
 - htmx 2.0.8
 - Bootstrap 5.3.8
@@ -240,11 +240,11 @@ quarkus.cache.caffeine.job-definitions.expire-after-write=15M
 jobrunr.dashboard.url=http://localhost:8000
 ```
 
-## Requirements
+### Requirements
 
 - Java 21+
 - Quarkus 3.30.6
-- JobRunr Pro 8.4.0
+- JobRunr Pro 8.4.2
 - PostgreSQL (or H2 for dev/test)
 
 ## License

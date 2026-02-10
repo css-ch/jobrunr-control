@@ -232,7 +232,6 @@
                     </li>
                 </ul>
             </nav>
-
             <div>
                 <select class="form-select form-select-sm"
                         style="width: auto;"
@@ -242,10 +241,10 @@
                         hx-target="#history-table"
                         hx-swap="outerHTML"
                         name="pageSize">
-                    <option value="5" {#if pagination.size == 5}selected{/if}>5 pro Seite</option>
-                    <option value="10" {#if pagination.size == 10}selected{/if}>10 pro Seite</option>
-                    <option value="25" {#if pagination.size == 25}selected{/if}>25 pro Seite</option>
-                    <option value="50" {#if pagination.size == 50}selected{/if}>50 pro Seite</option>
+                    <option value="5" {#if pagination.size eq 5}selected{/if}>5 pro Seite</option>
+                    <option value="10" {#if pagination.size eq 10}selected{/if}>10 pro Seite</option>
+                    <option value="25" {#if pagination.size eq 25}selected{/if}>25 pro Seite</option>
+                    <option value="50" {#if pagination.size eq 50}selected{/if}>50 pro Seite</option>
                 </select>
             </div>
         </div>

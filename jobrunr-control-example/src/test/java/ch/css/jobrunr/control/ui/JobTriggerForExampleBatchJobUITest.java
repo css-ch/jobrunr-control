@@ -11,12 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
+class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
 
     @Test
     @Order(1)
     @DisplayName("Create a batch job with external trigger via UI")
-    public void testCreateJobWithExternalTrigger() {
+    void testCreateJobWithExternalTrigger() {
         navigateToScheduledJobsPage();
         openJobCreationDialog();
         selectJobType("ExampleBatchJob");
@@ -32,18 +32,17 @@ public class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
     @Test
     @Order(2)
     @DisplayName("Trigger the batch job via REST API")
-    public void testTriggerJobViaRest() {
+    void testTriggerJobViaRest() {
         assertNotNull(scheduledJobId, "Job ID should be set from previous test");
 
         String response = triggerJobViaApi(scheduledJobId);
-        System.out.println("Trigger response: " + response);
         assertTrue(response.contains("Job started successfully"), "Job should be started successfully");
     }
 
     @Test
     @Order(3)
     @DisplayName("Check batch job execution in history")
-    public void testCheckJobExecutionInHistory() {
+    void testCheckJobExecutionInHistory() {
         assertNotNull(scheduledJobId, "Job ID should be set from previous test");
 
         navigateToHistory();
@@ -54,7 +53,7 @@ public class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
     @Test
     @Order(4)
     @DisplayName("Verify job exists in JobRunr Pro Dashboard with correct signature")
-    public void testVerifyJobInJobRunrDashboard() {
+    void testVerifyJobInJobRunrDashboard() {
         assertNotNull(scheduledJobId, "Job ID should be set from previous test");
 
         navigateToJobRunrDashboard(scheduledJobId);

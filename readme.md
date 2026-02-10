@@ -19,7 +19,7 @@ provides:
 
 - Java 21+
 - Quarkus 3.30.8
-- JobRunr Pro 8.4.1 (License required)
+- JobRunr Pro 8.4.2 (License required)
 
 ## Quick Start
 

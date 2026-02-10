@@ -10,6 +10,7 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
 import java.net.URL;
 import java.time.LocalDate;
@@ -27,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @WithPlaywright
 //@WithPlaywright(browser = WithPlaywright.Browser.CHROMIUM, headless = false, slowMo = 1000)
-public abstract class JobTriggerUITestBase {
+abstract class JobTriggerUITestBase {
 
     @InjectPlaywright
     protected BrowserContext context;
@@ -43,12 +44,6 @@ public abstract class JobTriggerUITestBase {
         page = context.newPage();
     }
 
-    @AfterEach
-    public void tearDown() {
-        if (page != null) {
-            page.close();
-        }
-    }
 
     // Navigation methods
 
@@ -100,7 +95,6 @@ public abstract class JobTriggerUITestBase {
 
         String href = jobLink.getAttribute("href");
         assertNotNull(href, "Job link href should be present");
-        System.out.println("Job link href: " + href);
 
         String[] hrefParts = href.split("/");
         String jobIdString = hrefParts[hrefParts.length - 1];
@@ -143,7 +137,6 @@ public abstract class JobTriggerUITestBase {
         assertTrue(historyRow.isVisible(), "Job should appear in execution history");
 
         String rowText = historyRow.innerText();
-        System.out.println("Job execution history row: " + rowText);
         assertTrue(
                 rowText.contains("SUCCEEDED") || rowText.contains("PROCESSING") || rowText.contains("ENQUEUED"),
                 "Job should have a valid execution status"
@@ -191,7 +184,6 @@ public abstract class JobTriggerUITestBase {
 
         String href = templateLink.getAttribute("href");
         assertNotNull(href, "Template link href should be present");
-        System.out.println("Template link href: " + href);
 
         String[] hrefParts = href.split("/");
         String templateIdString = hrefParts[hrefParts.length - 1];
@@ -278,9 +270,6 @@ public abstract class JobTriggerUITestBase {
 
         // Also get HTML content for debugging
         String pageContent = page.content();
-        System.out.println("=== JobRunr Dashboard Page Text (visible content, first 2000 chars) ===");
-        System.out.println(pageText.substring(0, Math.min(2000, pageText.length())));
-        System.out.println("=== End of Page Text ===");
 
         // Check if the signature is in the page content
         // The signature might be formatted differently in the UI, so we check for key components
@@ -294,5 +283,57 @@ public abstract class JobTriggerUITestBase {
                         "Looking for: " + expectedJobSignature +
                         "\nMethod name found: " + containsMethodName +
                         "\nParameters found: " + containsParameters);
+    }
+
+    /**
+     * Waits for all HTMX requests to complete.
+     * This is a state-based wait that checks if HTMX has finished processing.
+     */
+    protected void waitForHtmxToComplete() {
+        page.waitForLoadState(com.microsoft.playwright.options.LoadState.NETWORKIDLE);
+        page.waitForFunction("!document.querySelector('body').classList.contains('htmx-request')");
+    }
+
+
+    @AfterEach
+    void captureScreenshotOnFailure(TestInfo testInfo) {
+        // Capture screenshot if test failed
+        if (testInfo.getTags().contains("FAILED") ||
+                (testInfo.getTestMethod().isPresent() && page != null)) {
+            try {
+                captureScreenshot("test-" + testInfo.getDisplayName().replaceAll("[^a-zA-Z0-9-]", "_"));
+            } catch (Exception e) {
+                System.err.println("Could not capture screenshot: " + e.getMessage());
+            }
+        }
+
+        if (page != null) {
+            page.close();
+        }
+    }
+
+    /**
+     * Captures a screenshot of the current page state.
+     * Screenshots are saved to target/screenshots/ directory.
+     *
+     * @param name descriptive name for the screenshot (without extension)
+     */
+    protected void captureScreenshot(String name) {
+        try {
+            String timestamp = java.time.LocalDateTime.now().format(
+                    java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS"));
+            String fileName = "target/screenshots/" + name + "-" + timestamp + ".png";
+
+            // Create screenshots directory if it doesn't exist
+            java.nio.file.Files.createDirectories(java.nio.file.Paths.get("target/screenshots"));
+
+            page.screenshot(new com.microsoft.playwright.Page.ScreenshotOptions()
+                    .setPath(java.nio.file.Paths.get(fileName))
+                    .setFullPage(true));
+
+            System.out.println("📸 Screenshot saved: " + fileName);
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to capture screenshot: " + e.getMessage());
+        }
     }
 }

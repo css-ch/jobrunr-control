@@ -1,8 +1,6 @@
 package ch.css.jobrunr.control.adapter.ui;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Helper class for pagination logic shared across UI controllers.
@@ -19,31 +17,55 @@ public final class PaginationHelper {
      * @param page          Current page number (0-based)
      * @param size          Page size
      * @param totalElements Total number of elements
-     * @return Map containing pagination metadata
+     * @return PaginationMetadata containing pagination information
      */
-    public static Map<String, Object> createPaginationMetadata(int page, int size, long totalElements) {
-        int totalPages = (int) Math.ceil((double) totalElements / size);
-        int validatedPage = Math.max(0, Math.min(page, totalPages - 1)); // Ensure page is in valid range
+    public static PaginationMetadata createPaginationMetadata(int page, int size, long totalElements) {
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalElements / size));
+        if (page > totalPages - 1) {
+            throw new IllegalArgumentException(String.format("page %d is greater than %d", page, totalPages));
+        }
 
-        Map<String, Object> pagination = new HashMap<>();
-        pagination.put("page", validatedPage);
-        pagination.put("size", size);
-        pagination.put("totalElements", totalElements);
-        pagination.put("totalPages", totalPages);
-        pagination.put("hasNext", validatedPage < totalPages - 1);
-        pagination.put("hasPrevious", validatedPage > 0);
-        pagination.put("nextPage", validatedPage < totalPages - 1 ? validatedPage + 1 : validatedPage);
-        pagination.put("previousPage", validatedPage > 0 ? validatedPage - 1 : 0);
-        pagination.put("lastPage", Math.max(0, totalPages - 1));
-        pagination.put("isEmpty", totalElements == 0);
+        int lastPage = Math.max(0, totalPages - 1);
+        boolean isEmpty = totalElements == 0;
+        boolean hasNext = page < lastPage;
+        boolean hasPrevious = page > 0;
 
         // Compute display values for pagination info (Qute doesn't support complex arithmetic)
-        int startItem = totalElements > 0 ? (page * size + 1) : 0;
-        int endItem = totalElements > 0 ? Math.min((page + 1) * size, (int) totalElements) : 0;
-        pagination.put("startItem", startItem);
-        pagination.put("endItem", endItem);
+        int startItem = isEmpty ? 0 : (page * size + 1);
+        int endItem = isEmpty ? 0 : Math.min((page + 1) * size, (int) totalElements);
 
-        return pagination;
+        return new PaginationMetadata(
+                page,
+                size,
+                totalElements,
+                totalPages,
+                hasNext,
+                hasPrevious,
+                hasNext ? page + 1 : page,
+                hasPrevious ? page - 1 : 0,
+                lastPage,
+                isEmpty,
+                startItem,
+                endItem
+        );
+    }
+
+    /**
+     * Pagination metadata containing all pagination-related information.
+     */
+    public record PaginationMetadata(
+            int page,
+            int size,
+            long totalElements,
+            int totalPages,
+            boolean hasNext,
+            boolean hasPrevious,
+            int nextPage,
+            int previousPage,
+            int lastPage,
+            boolean isEmpty,
+            int startItem,
+            int endItem) {
     }
 
     /**
@@ -51,28 +73,8 @@ public final class PaginationHelper {
      *
      * @param <T> Type of items being paginated
      */
-    public static class PaginationResult<T> {
-        private final List<T> pageItems;
-        private final Map<String, Object> metadata;
-        private final List<TemplateExtensions.PageItem> pageRange;
-
-        public PaginationResult(List<T> pageItems, Map<String, Object> metadata, List<TemplateExtensions.PageItem> pageRange) {
-            this.pageItems = pageItems;
-            this.metadata = metadata;
-            this.pageRange = pageRange;
-        }
-
-        public List<T> getPageItems() {
-            return pageItems;
-        }
-
-        public Map<String, Object> getMetadata() {
-            return metadata;
-        }
-
-        public List<TemplateExtensions.PageItem> getPageRange() {
-            return pageRange;
-        }
+    public record PaginationResult<T>(List<T> pageItems, PaginationMetadata metadata,
+                                      List<TemplateExtensions.PageItem> pageRange) {
     }
 
     /**
@@ -85,17 +87,12 @@ public final class PaginationHelper {
      * @return PaginationResult containing page items and metadata
      */
     public static <T> PaginationResult<T> paginate(List<T> items, int page, int size) {
-        long totalElements = items.size();
-        Map<String, Object> metadata = createPaginationMetadata(page, size, totalElements);
+        PaginationMetadata metadata = createPaginationMetadata(page, size, items.size());
 
-        // Extract the validated page number from metadata
-        int validatedPage = (int) metadata.get("page");
-
-        int start = Math.min(validatedPage * size, items.size());
-        int end = Math.min(start + size, items.size());
+        int start = Math.min(metadata.page() * metadata.size(), items.size());
+        int end = Math.min(start + metadata.size(), items.size());
         List<T> pageItems = items.subList(start, end);
 
-        // Compute page range for pagination controls
         List<TemplateExtensions.PageItem> pageRange = TemplateExtensions.computePageRange(metadata);
 
         return new PaginationResult<>(pageItems, metadata, pageRange);

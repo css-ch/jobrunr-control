@@ -14,7 +14,7 @@ You will learn how to create configurable jobs, define parameters, implement bat
 
 * Java 21+
 * Quarkus 3.30.8
-* JobRunr Pro 8.4.1 with valid license
+* JobRunr Pro 8.4.2 with valid license
 * JobRunr Control Extension dependency
 
 === Key Concepts
@@ -38,7 +38,7 @@ You will learn how to create configurable jobs, define parameters, implement bat
 <dependency>
     <groupId>org.jobrunr</groupId>
     <artifactId>quarkus-jobrunr-pro</artifactId>
-    <version>8.4.1</version>
+    <version>8.4.2</version>
 </dependency>
 ----
 
@@ -365,6 +365,7 @@ public record MyJobRequest(
 [IMPORTANT]
 ====
 For multiline text parameters, explicitly specify the type in `@JobParameterDefinition`:
+
 [source,java]
 ----
 @JobParameterDefinition(
@@ -615,6 +616,7 @@ public class LargeDataJobHandler implements JobRequestHandler<LargeDataJobReques
 [TIP]
 ====
 The extension provides a `ParameterSetLoaderPort` that you can inject to manually load parameter sets if needed:
+
 [source,java]
 ----
 @Inject
@@ -713,12 +715,14 @@ jobrunr.control.parameter-storage.cleanup.retention-days=30
 === Best Practices
 
 ==== Inline Storage
+
 * Keep parameter count low (< 10)
 * Limit string lengths (< 1000 chars)
 * Use for jobs with fixed parameter schemas
 * Prefer for simple configuration jobs
 
 ==== External Storage
+
 * Use for jobs with 10+ parameters
 * Ideal for template jobs with varying configs
 * Use MULTILINE type for large text fields
@@ -726,6 +730,7 @@ jobrunr.control.parameter-storage.cleanup.retention-days=30
 * Consider parameter set reuse for similar jobs
 
 ==== Type Annotations
+
 * Always specify `type` for external storage parameters
 * Use fully qualified class names for custom types
 * Mark multiline text explicitly with `type = "MULTILINE"`

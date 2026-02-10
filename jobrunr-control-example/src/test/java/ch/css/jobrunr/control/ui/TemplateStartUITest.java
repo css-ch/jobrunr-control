@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TemplateStartUITest extends JobTriggerUITestBase {
+class TemplateStartUITest extends JobTriggerUITestBase {
 
     private static UUID templateId;
     private static final String TEMPLATE_NAME = "Start Button Test Template";
@@ -26,7 +26,7 @@ public class TemplateStartUITest extends JobTriggerUITestBase {
     @Test
     @Order(1)
     @DisplayName("Create a template job for UI start test")
-    public void testCreateTemplate() {
+    void testCreateTemplate() {
         navigateToTemplatesPage();
         openTemplateCreationDialog();
         selectTemplateJobType("ParameterDemoJob");
@@ -35,14 +35,13 @@ public class TemplateStartUITest extends JobTriggerUITestBase {
         submitTemplateCreationForm();
 
         templateId = extractTemplateIdFromTemplatesTable(TEMPLATE_NAME);
-        System.out.println("Created template ID: " + templateId);
         assertNotNull(templateId, "Template ID should be extracted successfully");
     }
 
     @Test
     @Order(2)
     @DisplayName("Start template using UI Start button")
-    public void testStartTemplateViaUI() {
+    void testStartTemplateViaUI() {
         assertNotNull(templateId, "Template ID should be set from previous test");
 
         navigateToTemplatesPage();
@@ -57,7 +56,6 @@ public class TemplateStartUITest extends JobTriggerUITestBase {
 
         // Handle the confirmation dialog
         page.onDialog(dialog -> {
-            System.out.println("Confirmation dialog: " + dialog.message());
             assertTrue(dialog.message().contains(TEMPLATE_NAME),
                     "Confirmation should mention template name");
             dialog.accept();
@@ -75,7 +73,7 @@ public class TemplateStartUITest extends JobTriggerUITestBase {
     @Test
     @Order(3)
     @DisplayName("Verify started job appears in history")
-    public void testStartedJobInHistory() {
+    void testStartedJobInHistory() {
         assertNotNull(templateId, "Template ID should be set from previous test");
 
         navigateToHistory();
@@ -88,12 +86,10 @@ public class TemplateStartUITest extends JobTriggerUITestBase {
         jobRows.first().waitFor(new Locator.WaitForOptions().setTimeout(5000));
 
         int jobCount = jobRows.count();
-        System.out.println("Found " + jobCount + " job(s) in history with template name");
         assertTrue(jobCount >= 1, "At least one executed job should appear in history");
 
         // Verify the job has a valid status
         String firstJobRowText = jobRows.first().innerText();
-        System.out.println("First executed job in history: " + firstJobRowText);
         assertTrue(
                 firstJobRowText.contains("SUCCEEDED") ||
                         firstJobRowText.contains("PROCESSING") ||
@@ -105,7 +101,7 @@ public class TemplateStartUITest extends JobTriggerUITestBase {
     @Test
     @Order(4)
     @DisplayName("Verify template can be started multiple times via UI")
-    public void testStartTemplateMultipleTimes() {
+    void testStartTemplateMultipleTimes() {
         assertNotNull(templateId, "Template ID should be set from previous test");
 
         navigateToTemplatesPage();
@@ -128,14 +124,13 @@ public class TemplateStartUITest extends JobTriggerUITestBase {
         jobRows.first().waitFor(new Locator.WaitForOptions().setTimeout(5000));
 
         int jobCount = jobRows.count();
-        System.out.println("Found " + jobCount + " job(s) after second start");
         assertTrue(jobCount >= 2, "At least two executed jobs should appear in history after starting twice");
     }
 
     @Test
     @Order(5)
     @DisplayName("Verify template remains unchanged after multiple starts")
-    public void testTemplateUnchangedAfterStarts() {
+    void testTemplateUnchangedAfterStarts() {
         assertNotNull(templateId, "Template ID should be set from previous test");
 
         navigateToTemplatesPage();
@@ -144,7 +139,6 @@ public class TemplateStartUITest extends JobTriggerUITestBase {
         assertTrue(templateRow.isVisible(), "Template should still be visible");
 
         String rowText = templateRow.innerText();
-        System.out.println("Template row after multiple starts: " + rowText);
 
         // Verify template name is exactly as created
         Locator templateLink = page.locator("strong a:has-text('" + TEMPLATE_NAME + "')");

@@ -5,7 +5,6 @@ import ch.css.jobrunr.control.application.monitoring.GetJobExecutionHistoryUseCa
 import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
-import ch.css.jobrunr.control.domain.JobExecutionInfoView;
 import ch.css.jobrunr.control.domain.JobStatus;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
@@ -13,8 +12,12 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.jboss.logging.Logger;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * UI Controller for job execution history.
@@ -23,15 +26,27 @@ import java.util.*;
 @Path("/q/jobrunr-control/history")
 public class JobExecutionsController {
 
+    private static final Logger LOG = Logger.getLogger(JobExecutionsController.class);
+
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Templates {
+
+        private Templates() {
+            // Utility class
+        }
+
         public static native TemplateInstance executionHistory();
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Components {
+
+        private Components() {
+            // Utility class
+        }
+
         public static native TemplateInstance executionHistoryTable(List<JobExecutionInfo> executions,
-                                                                    Map<String, Object> pagination,
+                                                                    PaginationHelper.PaginationMetadata pagination,
                                                                     List<TemplateExtensions.PageItem> pageRange,
                                                                     String search, String statusFilter,
                                                                     String sortBy, String sortOrder);
@@ -72,6 +87,9 @@ public class JobExecutionsController {
             @QueryParam("sortBy") @DefaultValue("startedAt") String sortBy,
             @QueryParam("sortOrder") @DefaultValue("desc") String sortOrder) {
 
+        LOG.infof("getExecutionHistoryTable called with page=%d, size=%d, sortBy=%s, sortOrder=%s, search=%s, statusFilter=%s",
+                page, size, sortBy, sortOrder, search, statusFilter);
+
         List<JobExecutionInfo> executions = getHistoryUseCase.execute();
 
         // Filter nach Status
@@ -96,10 +114,12 @@ public class JobExecutionsController {
         // Pagination anwenden
         PaginationHelper.PaginationResult<JobExecutionInfo> paginationResult = PaginationHelper.paginate(executions, page, size);
 
+        LOG.infof("Returning %d executions to template (expected max: %d)", paginationResult.pageItems().size(), size);
+
         return Components.executionHistoryTable(
-                paginationResult.getPageItems(),
-                paginationResult.getMetadata(),
-                paginationResult.getPageRange(),
+                paginationResult.pageItems(),
+                paginationResult.metadata(),
+                paginationResult.pageRange(),
                 search != null ? search : "",
                 statusFilter,
                 sortBy,
@@ -131,15 +151,5 @@ public class JobExecutionsController {
             default -> Comparator.comparing(JobExecutionInfo::getStartedAt,
                     Comparator.nullsLast(Comparator.naturalOrder()));
         };
-    }
-
-    /**
-     * Converts JobExecutionInfo to JobExecutionInfoView with resolved parameters.
-     * If the job uses external parameter storage, the parameters are loaded from the parameter set.
-     */
-    private JobExecutionInfoView toView(JobExecutionInfo executionInfo) {
-        boolean usesExternal = resolveParametersUseCase.usesExternalStorage(executionInfo.getParameters());
-        Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(executionInfo.getParameters());
-        return JobExecutionInfoView.from(executionInfo, resolvedParameters, usesExternal);
     }
 }

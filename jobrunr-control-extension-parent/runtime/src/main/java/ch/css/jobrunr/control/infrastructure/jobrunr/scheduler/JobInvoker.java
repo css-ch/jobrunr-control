@@ -90,10 +90,10 @@ public class JobInvoker {
             LOG.debugf("Job scheduled successfully: %s (batch=%s) with JobId: %s", jobDefinition.jobSettings().name(), jobDefinition.jobType(), jobRequestId);
             return jobRequestId;
         } catch (ClassNotFoundException e) {
-            LOG.errorf("Failed to load JobRequest class: %s", jobDefinition.jobRequestTypeName(), e);
+            LOG.errorf(e, "Failed to load JobRequest class: %s", jobDefinition.jobRequestTypeName());
             throw new JobSchedulingException("JobRequest class not found: " + jobDefinition.jobRequestTypeName(), e);
         } catch (Exception e) {
-            LOG.errorf("Failed to schedule job: %s (batch=%s)", jobDefinition.jobSettings().name(), jobDefinition.jobType(), e);
+            LOG.errorf(e, "Failed to schedule job: %s (batch=%s)", jobDefinition.jobSettings().name(), jobDefinition.jobType());
             throw new JobSchedulingException("Failed to schedule job: " + jobDefinition.jobSettings().name(), e);
         }
     }

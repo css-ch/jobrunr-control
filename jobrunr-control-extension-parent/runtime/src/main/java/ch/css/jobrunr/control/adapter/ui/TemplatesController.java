@@ -23,7 +23,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * UI Controller for template jobs.
@@ -37,13 +36,21 @@ public class TemplatesController extends BaseController {
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Templates {
+        private Templates() {
+            // Utility class
+        }
+
         public static native TemplateInstance templates(List<String> availableJobTypes);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Components {
+        private Components() {
+            // Utility class
+        }
+
         public static native TemplateInstance templatesTable(List<ScheduledJobInfoView> jobs,
-                                                             Map<String, Object> pagination,
+                                                             PaginationHelper.PaginationMetadata pagination,
                                                              List<TemplateExtensions.PageItem> pageRange,
                                                              String search,
                                                              String jobType,
@@ -97,7 +104,7 @@ public class TemplatesController extends BaseController {
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getTemplatesView() {
-        List<String> availableJobTypes = getAvailableJobTypes();
+        List<String> availableJobTypes = getAvailableJobTypes(discoverJobsUseCase);
         return Templates.templates(availableJobTypes);
     }
 
@@ -121,14 +128,14 @@ public class TemplatesController extends BaseController {
                 filterSortAndPaginate(jobs, jobType, search, sortBy, sortOrder, page, size, this::getComparator);
 
         // Convert to view models with resolved parameters
-        List<ScheduledJobInfoView> jobViews = paginationResult.getPageItems().stream()
+        List<ScheduledJobInfoView> jobViews = paginationResult.pageItems().stream()
                 .map(this::toView)
-                .collect(Collectors.toList());
+                .toList();
 
         return Components.templatesTable(
                 jobViews,
-                paginationResult.getMetadata(),
-                paginationResult.getPageRange(),
+                paginationResult.metadata(),
+                paginationResult.pageRange(),
                 search != null ? search : "",
                 jobType != null ? jobType : "all",
                 sortBy,
@@ -141,7 +148,7 @@ public class TemplatesController extends BaseController {
     @RolesAllowed({"configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getNewTemplateModal() {
-        List<JobDefinition> jobDefinitions = getSortedJobDefinitions();
+        List<JobDefinition> jobDefinitions = getSortedJobDefinitions(discoverJobsUseCase);
         return Modals.templateForm(jobDefinitions, false, null, null);
     }
 
@@ -150,7 +157,7 @@ public class TemplatesController extends BaseController {
     @RolesAllowed({"configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getEditTemplateModal(@PathParam("id") UUID jobId) {
-        List<JobDefinition> jobDefinitions = getSortedJobDefinitions();
+        List<JobDefinition> jobDefinitions = getSortedJobDefinitions(discoverJobsUseCase);
 
         ScheduledJobInfo jobInfo = getTemplateByIdUseCase.execute(jobId)
                 .orElseThrow(() -> new NotFoundException("Template nicht gefunden: " + jobId));
@@ -184,7 +191,7 @@ public class TemplatesController extends BaseController {
                     .toList();
             return ScheduledJobsController.Components.paramInputs(parameters, null);
         } catch (Exception e) {
-            LOG.errorf("Error getting parameters for job type '%s': %s", jobType, e.getMessage(), e);
+            LOG.errorf(e, "Error getting parameters for job type '%s'", jobType);
             return ScheduledJobsController.Components.paramInputs(List.of(), null);
         }
     }
@@ -272,7 +279,6 @@ public class TemplatesController extends BaseController {
         return getDefaultTemplatesTable();
     }
 
-
     private Comparator<ScheduledJobInfo> getComparator(String sortBy) {
         if ("jobType".equals(sortBy)) {
             return Comparator.comparing(ScheduledJobInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
@@ -281,19 +287,6 @@ public class TemplatesController extends BaseController {
         }
     }
 
-    private List<JobDefinition> getSortedJobDefinitions() {
-        return discoverJobsUseCase.execute().stream()
-                .sorted(Comparator.comparing(JobDefinition::jobType))
-                .toList();
-    }
-
-    private List<String> getAvailableJobTypes() {
-        // Get all available job types from job definitions
-        return discoverJobsUseCase.execute().stream()
-                .map(JobDefinition::jobType)
-                .sorted(String.CASE_INSENSITIVE_ORDER)
-                .toList();
-    }
 
     private TemplateInstance getDefaultTemplatesTable() {
         return getTemplatesTable(null, null, 0, 10, "jobName", "asc");

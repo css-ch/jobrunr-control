@@ -1,0 +1,16 @@
+// AsciiDoc Attributes for Version Management
+// This file defines version variables used across documentation
+// Keep these in sync with pom.xml (single source of truth)
+
+:project-version: 1.2.1-SNAPSHOT
+:java-version: 21
+:quarkus-version: 3.30.8
+:jobrunr-pro-version: 8.4.2
+:maven-compiler-plugin-version: 3.14.1
+:surefire-plugin-version: 3.5.4
+
+// Build tool versions
+:jacoco-version: 0.8.12
+:spotbugs-version: 4.8.6.4
+:sonar-version: 5.5.0.6356
+

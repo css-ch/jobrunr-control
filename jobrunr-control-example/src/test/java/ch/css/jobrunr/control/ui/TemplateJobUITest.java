@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TemplateJobUITest extends JobTriggerUITestBase {
+class TemplateJobUITest extends JobTriggerUITestBase {
 
     private static UUID templateId;
     private static UUID executedJobId;
@@ -40,7 +40,6 @@ public class TemplateJobUITest extends JobTriggerUITestBase {
         submitTemplateCreationForm();
 
         templateId = extractTemplateIdFromTemplatesTable(TEMPLATE_NAME);
-        System.out.println("Created template ID: " + templateId);
         assertNotNull(templateId, "Template ID should be extracted successfully");
     }
 
@@ -56,7 +55,6 @@ public class TemplateJobUITest extends JobTriggerUITestBase {
         assertTrue(templateRow.isVisible(), "Template should be visible in templates table");
 
         String rowText = templateRow.innerText();
-        System.out.println("Template row: " + rowText);
         assertTrue(rowText.contains("ParameterDemoJob"), "Template should show correct job type");
     }
 
@@ -67,14 +65,12 @@ public class TemplateJobUITest extends JobTriggerUITestBase {
         assertNotNull(templateId, "Template ID should be set from previous test");
 
         String response = executeTemplateViaApi(templateId, EXECUTION_POSTFIX);
-        System.out.println("Template execution response: " + response);
 
         assertTrue(response.contains("Template job started successfully"),
                 "Template should be executed successfully");
 
         // Extract the new job ID from response
         executedJobId = extractJobIdFromResponse(response);
-        System.out.println("Executed job ID: " + executedJobId);
         assertNotNull(executedJobId, "Executed job ID should be present in response");
     }
 
@@ -92,7 +88,6 @@ public class TemplateJobUITest extends JobTriggerUITestBase {
         assertTrue(executedJobRow.isVisible(), "Executed job should appear in history");
 
         String rowText = executedJobRow.innerText();
-        System.out.println("Executed job in history: " + rowText);
         assertTrue(
                 rowText.contains("SUCCEEDED") || rowText.contains("PROCESSING") || rowText.contains("ENQUEUED"),
                 "Executed job should have a valid execution status"
@@ -111,7 +106,6 @@ public class TemplateJobUITest extends JobTriggerUITestBase {
         assertTrue(templateRow.isVisible(), "Template should still be visible after execution");
 
         String rowText = templateRow.innerText();
-        System.out.println("Template row after execution: " + rowText);
 
         // Verify template name is exactly as created (not changed with postfix)
         Locator templateLink = page.locator("strong a:has-text('" + TEMPLATE_NAME + "')");
@@ -134,7 +128,6 @@ public class TemplateJobUITest extends JobTriggerUITestBase {
                 "Template should be executable multiple times");
 
         UUID secondExecutedJobId = extractJobIdFromResponse(response);
-        System.out.println("Second execution job ID: " + secondExecutedJobId);
         assertNotNull(secondExecutedJobId, "Second execution should create a new job");
         assertNotEquals(executedJobId, secondExecutedJobId,
                 "Each execution should create a unique job");

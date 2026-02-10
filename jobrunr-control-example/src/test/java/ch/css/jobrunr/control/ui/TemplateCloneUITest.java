@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.ui;
 
+import com.microsoft.playwright.Dialog;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import io.quarkus.test.junit.QuarkusTest;
@@ -20,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TemplateCloneUITest extends JobTriggerUITestBase {
+class TemplateCloneUITest extends JobTriggerUITestBase {
 
     private static UUID originalTemplateId;
     private static UUID clonedTemplateId;
@@ -30,7 +31,7 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
     @Test
     @Order(1)
     @DisplayName("Create a template job via Templates UI")
-    public void testCreateTemplate() {
+    void testCreateTemplate() {
         navigateToTemplatesPage();
         openTemplateCreationDialog();
         selectTemplateJobType("ParameterDemoJob");
@@ -39,14 +40,13 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
         submitTemplateCreationForm();
 
         originalTemplateId = extractTemplateIdFromTemplatesTable(ORIGINAL_TEMPLATE_NAME);
-        System.out.println("Created original template ID: " + originalTemplateId);
         assertNotNull(originalTemplateId, "Original template ID should be extracted successfully");
     }
 
     @Test
     @Order(2)
     @DisplayName("Clone the template via UI")
-    public void testCloneTemplateViaUI() {
+    void testCloneTemplateViaUI() {
         assertNotNull(originalTemplateId, "Original template ID should be set from previous test");
 
         navigateToTemplatesPage();
@@ -61,7 +61,6 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
 
         // Handle the confirmation dialog
         page.onDialog(dialog -> {
-            System.out.println("Confirmation dialog: " + dialog.message());
             assertTrue(dialog.message().contains("wirklich klonen"), "Should show clone confirmation");
             dialog.accept();
         });
@@ -74,13 +73,12 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
         // Expected clone name should be original name + current date
         String datePostfix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         expectedClonedTemplateName = ORIGINAL_TEMPLATE_NAME + "-" + datePostfix;
-        System.out.println("Expected cloned template name: " + expectedClonedTemplateName);
     }
 
     @Test
     @Order(3)
     @DisplayName("Verify both original and cloned templates exist")
-    public void testBothTemplatesExist() {
+    void testBothTemplatesExist() {
         assertNotNull(originalTemplateId, "Original template ID should be set");
         assertNotNull(expectedClonedTemplateName, "Expected cloned template name should be set");
 
@@ -96,7 +94,6 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
 
         // Extract cloned template ID
         clonedTemplateId = extractTemplateIdFromTemplatesTable(expectedClonedTemplateName);
-        System.out.println("Cloned template ID: " + clonedTemplateId);
         assertNotNull(clonedTemplateId, "Cloned template ID should be extracted successfully");
 
         // Verify the two templates have different IDs
@@ -107,7 +104,7 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
     @Test
     @Order(4)
     @DisplayName("Verify cloned template has same job type as original")
-    public void testClonedTemplateHasSameJobType() {
+    void testClonedTemplateHasSameJobType() {
         assertNotNull(clonedTemplateId, "Cloned template ID should be set");
 
         navigateToTemplatesPage();
@@ -119,8 +116,6 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
         String originalRowText = originalRow.innerText();
         String clonedRowText = clonedRow.innerText();
 
-        System.out.println("Original template row: " + originalRowText);
-        System.out.println("Cloned template row: " + clonedRowText);
 
         assertTrue(originalRowText.contains("ParameterDemoJob"), "Original should have ParameterDemoJob type");
         assertTrue(clonedRowText.contains("ParameterDemoJob"), "Clone should have ParameterDemoJob type");
@@ -129,7 +124,7 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
     @Test
     @Order(5)
     @DisplayName("Verify cloned template can be edited and has same parameters")
-    public void testClonedTemplateHasSameParameters() {
+    void testClonedTemplateHasSameParameters() {
         assertNotNull(clonedTemplateId, "Cloned template ID should be set");
 
         navigateToTemplatesPage();
@@ -153,7 +148,6 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
         assertEquals("99", intParam, "Integer parameter should match original");
         assertEquals("true", boolParam, "Boolean parameter should match original");
 
-        System.out.println("Verified cloned template has same parameters as original");
 
         // Close the modal
         page.click("button[data-bs-dismiss='modal']");
@@ -164,7 +158,7 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
     @Test
     @Order(6)
     @DisplayName("Clone the cloned template to verify reusability")
-    public void testCloneTheClone() {
+    void testCloneTheClone() {
         assertNotNull(clonedTemplateId, "Cloned template ID should be set");
 
         navigateToTemplatesPage();
@@ -173,9 +167,7 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
         Locator clonedTemplateRow = page.locator("tr:has(strong a:has-text('" + expectedClonedTemplateName + "'))").first();
         Locator cloneButton = clonedTemplateRow.locator("button[title='Klonen']");
 
-        page.onDialog(dialog -> {
-            dialog.accept();
-        });
+        page.onDialog(Dialog::accept);
 
         cloneButton.click();
         page.waitForTimeout(1000);
@@ -191,7 +183,6 @@ public class TemplateCloneUITest extends JobTriggerUITestBase {
 
         // Verify at least 3 templates exist (original + first clone + second clone)
         int totalTemplatesVisible = page.locator("tbody tr").count();
-        System.out.println("Total templates visible: " + totalTemplatesVisible);
         assertTrue(totalTemplatesVisible >= 3, "Should have at least 3 templates (original + 2 clones)");
     }
 }

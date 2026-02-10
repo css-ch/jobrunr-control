@@ -2,7 +2,6 @@ package ch.css.jobrunr.control.adapter.ui;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Utility class for pagination calculations.
@@ -11,24 +10,13 @@ public class TemplateExtensions {
 
     /**
      * Represents a page in pagination controls.
+     *
+     * @param index 0-based page index
+     * @param label 1-based page label for display
      */
-    public static class PageItem {
-        private final int index; // 0-based
-        private final int label; // 1-based for display
-
+    public record PageItem(int index, int label) {
         public PageItem(int index) {
-            this.index = index;
-            this.label = index + 1;
-        }
-
-        @SuppressWarnings("unused") // Used in templates
-        public int getIndex() {
-            return index;
-        }
-
-        @SuppressWarnings("unused") // Used in templates
-        public int getLabel() {
-            return label;
+            this(index, index + 1);
         }
     }
 
@@ -36,12 +24,12 @@ public class TemplateExtensions {
      * Computes the page range to display in pagination controls.
      * Shows max 5 pages around the current page.
      *
-     * @param pagination Pagination metadata map containing 'page' and 'totalPages'
+     * @param metadata Pagination metadata containing page and totalPages
      * @return List of PageItem objects to display
      */
-    public static List<PageItem> computePageRange(Map<String, Object> pagination) {
-        int currentPage = (int) pagination.get("page");
-        int totalPages = (int) pagination.get("totalPages");
+    public static List<PageItem> computePageRange(PaginationHelper.PaginationMetadata metadata) {
+        int currentPage = metadata.page();
+        int totalPages = metadata.totalPages();
 
         List<PageItem> pages = new ArrayList<>();
 

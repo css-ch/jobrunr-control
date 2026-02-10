@@ -105,7 +105,7 @@ public class JpaParameterStorageAdapter implements ParameterStoragePort {
                     entity.updatedAt
             ));
         } catch (JsonProcessingException e) {
-            LOG.errorf("Failed to deserialize parameters for set: %s", id, e);
+            LOG.errorf(e, "Failed to deserialize parameters for set: %s", id);
             return Optional.empty();
         }
     }

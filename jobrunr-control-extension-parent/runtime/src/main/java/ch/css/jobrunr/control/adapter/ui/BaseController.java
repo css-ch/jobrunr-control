@@ -1,5 +1,7 @@
 package ch.css.jobrunr.control.adapter.ui;
 
+import ch.css.jobrunr.control.application.discovery.DiscoverJobsUseCase;
+import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import io.quarkus.qute.TemplateInstance;
@@ -13,7 +15,6 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 /**
  * Base controller providing common HTMX utilities and helper methods.
@@ -118,15 +119,12 @@ public abstract class BaseController {
     }
 
     private Object truncateValue(Object value) {
-        if (value instanceof String str) {
-            return truncateString(str);
-        } else if (value instanceof Collection<?> collection) {
-            return truncateCollection(collection);
-        } else if (value instanceof Map<?, ?> map) {
-            return truncateMap(map);
-        } else {
-            return value;
-        }
+        return switch (value) {
+            case String str -> truncateString(str);
+            case Collection<?> collection -> truncateCollection(collection);
+            case Map<?, ?> map -> truncateMap(map);
+            default -> value;
+        };
     }
 
     private Object truncateString(String str) {
@@ -168,21 +166,21 @@ public abstract class BaseController {
      * @param page               page number
      * @param size               page size
      * @param comparatorSupplier function to get comparator for sorting
-     * @param <T>                the type extending ScheduledJobInfo
      * @return pagination result with filtered, sorted and paginated jobs
      */
-    protected <T extends ScheduledJobInfo> PaginationHelper.PaginationResult<T> filterSortAndPaginate(
-            List<T> jobs,
+    @SuppressWarnings("java:S107")
+    protected PaginationHelper.PaginationResult<ScheduledJobInfo> filterSortAndPaginate(
+            List<ScheduledJobInfo> jobs,
             String jobType,
             String search,
             String sortBy,
             String sortOrder,
             int page,
             int size,
-            Function<String, Comparator<T>> comparatorSupplier) {
+            Function<String, Comparator<ScheduledJobInfo>> comparatorSupplier) {
 
         // Apply job type filter
-        List<T> filteredJobs = jobs;
+        List<ScheduledJobInfo> filteredJobs = jobs;
         if (jobType != null && !jobType.isBlank() && !"all".equals(jobType)) {
             filteredJobs = jobs.stream()
                     .filter(job -> jobType.equals(job.getJobType()))
@@ -190,17 +188,16 @@ public abstract class BaseController {
         }
 
         // Apply search
-        @SuppressWarnings("unchecked")
-        List<T> searchedJobs = (List<T>) JobSearchUtils.applySearchToScheduledJobs(search, (List<ScheduledJobInfo>) filteredJobs);
+        List<ScheduledJobInfo> searchedJobs = JobSearchUtils.applySearchToScheduledJobs(search, filteredJobs);
 
         // Apply sorting
-        Comparator<T> comparator = comparatorSupplier.apply(sortBy);
+        Comparator<ScheduledJobInfo> comparator = comparatorSupplier.apply(sortBy);
         if ("desc".equalsIgnoreCase(sortOrder)) {
             comparator = comparator.reversed();
         }
-        List<T> sortedJobs = searchedJobs.stream()
+        List<ScheduledJobInfo> sortedJobs = searchedJobs.stream()
                 .sorted(comparator)
-                .collect(Collectors.toList());
+                .toList();
 
         // Apply pagination
         return PaginationHelper.paginate(sortedJobs, page, size);
@@ -259,6 +256,31 @@ public abstract class BaseController {
 
         return new ResolvedJobData(jobInfoWithResolvedParams, parameters);
     }
+
+    /**
+     * Gets all job definitions sorted by job type.
+     * Common helper used by multiple controllers.
+     *
+     * @param discoverJobsUseCase the discovery use case
+     * @return sorted list of job definitions
+     */
+    protected List<JobDefinition> getSortedJobDefinitions(DiscoverJobsUseCase discoverJobsUseCase) {
+        return discoverJobsUseCase.execute().stream()
+                .sorted(Comparator.comparing(JobDefinition::jobType))
+                .toList();
+    }
+
+    /**
+     * Gets all available job types sorted alphabetically.
+     * Common helper used by multiple controllers.
+     *
+     * @param discoverJobsUseCase the discovery use case
+     * @return sorted list of job type strings
+     */
+    protected List<String> getAvailableJobTypes(DiscoverJobsUseCase discoverJobsUseCase) {
+        return discoverJobsUseCase.execute().stream()
+                .map(JobDefinition::jobType)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
 }
-
-
