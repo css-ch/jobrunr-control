@@ -8,7 +8,7 @@
     <parent>
         <groupId>ch.css.quarkus</groupId>
         <artifactId>quarkus-jobrunr-control-parent</artifactId>
-        <version>1.2.1-SNAPSHOT</version>
+        <version>1.3.0</version>
     </parent>
 
     <artifactId>quarkus-jobrunr-control-extension-parent</artifactId>
