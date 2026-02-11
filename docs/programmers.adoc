@@ -13,7 +13,7 @@ You will learn how to create configurable jobs, define parameters, implement bat
 === Prerequisites
 
 * Java 21+
-* Quarkus 3.30.8
+* Quarkus 3.31.2
 * JobRunr Pro 8.4.2 with valid license
 * JobRunr Control Extension dependency
 

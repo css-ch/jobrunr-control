@@ -243,7 +243,7 @@ jobrunr.dashboard.url=http://localhost:8000
 ### Requirements
 
 - Java 21+
-- Quarkus 3.30.6
+- Quarkus 3.31.2
 - JobRunr Pro 8.4.2
 - PostgreSQL (or H2 for dev/test)
 

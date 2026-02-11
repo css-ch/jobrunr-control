@@ -18,7 +18,7 @@ provides:
 ## Requirements
 
 - Java 21+
-- Quarkus 3.30.8
+- Quarkus 3.31.2
 - JobRunr Pro 8.4.2 (License required)
 
 ## Quick Start
@@ -56,14 +56,14 @@ Start your Quarkus application and navigate to:
 
 ## Documentation
 
-| Document                                                   | Description                                     |
-|------------------------------------------------------------|-------------------------------------------------|
-| [Architecture Documentation](docs/arc42.adoc)              | Technical architecture following arc42 template |
-| [User Guide](docs/user.adoc)                               | End-user guide for operating the dashboard      |
-| [Programmer's Guide](docs/programmers.adoc)                | Developer guide for implementing jobs           |
-| [Dashboard Access Guide](docs/JOBRUNR_DASHBOARD_ACCESS.md) | Configuring access to JobRunr Pro Dashboard     |
-| [Error Handling Guide](docs/ERROR_HANDLING_GUIDE.md)       | Error handling patterns and best practices      |
-| [Contributor Guidance](docs/copilot-instructions.adoc)            | Copilot/contributor instructions and logging/documentation conventions |
+| Document                                                   | Description                                                            |
+|------------------------------------------------------------|------------------------------------------------------------------------|
+| [Architecture Documentation](docs/arc42.adoc)              | Technical architecture following arc42 template                        |
+| [User Guide](docs/user.adoc)                               | End-user guide for operating the dashboard                             |
+| [Programmer's Guide](docs/programmers.adoc)                | Developer guide for implementing jobs                                  |
+| [Dashboard Access Guide](docs/JOBRUNR_DASHBOARD_ACCESS.md) | Configuring access to JobRunr Pro Dashboard                            |
+| [Error Handling Guide](docs/ERROR_HANDLING_GUIDE.md)       | Error handling patterns and best practices                             |
+| [Contributor Guidance](docs/copilot-instructions.adoc)     | Copilot/contributor instructions and logging/documentation conventions |
 
 ## Key Features
 

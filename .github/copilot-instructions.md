@@ -9,7 +9,7 @@ instructions to maintain architectural integrity and idiomatic consistency.
 
 - **Tech Stack:**
     - Java 21+
-    - Quarkus 3.30.8
+    - Quarkus 3.31.2
     - JobRunr Pro 8.4.2 (Community Edition is strictly forbidden)
 
 - **Library Metadata:** Use Context7 MCP to resolve library details for versions specified in `arc42.adoc`.

@@ -3,9 +3,10 @@ Use context7 MCP for library documentation (versions in arc42).
 
 # Project
 
-Quarkus extension for JobRunr Pro. Provides a web-based control dashboard and REST API for job scheduling, monitoring, batch processing, and external triggers.
+Quarkus extension for JobRunr Pro. Provides a web-based control dashboard and REST API for job scheduling, monitoring,
+batch processing, and external triggers.
 
-- Java 21, Quarkus 3.30.8, JobRunr Pro 8.4.2
+- Java 21, Quarkus 3.31.2, JobRunr Pro 8.4.2
 - Maven build with `./mvnw`
 - Server-side UI with Qute templates + HTMX
 
@@ -14,9 +15,11 @@ Quarkus extension for JobRunr Pro. Provides a web-based control dashboard and RE
 Clean Architecture (Hexagonal) — enforced by ArchUnit tests:
 
 - **Domain** (`domain/`): Records, ports (interfaces), exceptions. No framework dependencies.
-- **Application** (`application/`): Use cases with `execute()` method. Each operation is a separate `@ApplicationScoped` class.
+- **Application** (`application/`): Use cases with `execute()` method. Each operation is a separate `@ApplicationScoped`
+  class.
 - **Adapter** (`adapter/`): REST API (`adapter/rest/`) and UI (`adapter/ui/`).
-- **Infrastructure** (`infrastructure/`): Implements domain ports. JobRunr integration, JPA persistence, Flyway migrations.
+- **Infrastructure** (`infrastructure/`): Implements domain ports. JobRunr integration, JPA persistence, Flyway
+  migrations.
 
 # Build Commands
 
