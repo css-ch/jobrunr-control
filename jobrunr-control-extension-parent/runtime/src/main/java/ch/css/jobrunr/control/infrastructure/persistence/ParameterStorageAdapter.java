@@ -16,7 +16,7 @@ import java.util.UUID;
  * Infrastructure adapter for parameter storage operations.
  * Implements the domain port by checking availability and delegating to storage adapters.
  * <p>
- * This adapter checks if JpaParameterStorageAdapter is available (Hibernate ORM enabled)
+ * This adapter checks if JdbcParameterStorageAdapter is available (Agroal DataSource enabled)
  * and delegates operations to it. If not available, operations fail gracefully.
  */
 @ApplicationScoped
@@ -34,7 +34,7 @@ public class ParameterStorageAdapter implements ParameterStorageService {
     @Override
     public boolean isExternalStorageAvailable() {
         try {
-            return storageAdapters.select(JpaParameterStorageAdapter.class).isResolvable();
+            return storageAdapters.select(JdbcParameterStorageAdapter.class).isResolvable();
         } catch (Exception e) {
             LOG.debugf("External storage check failed: %s", e.getMessage());
             return false;
@@ -52,7 +52,7 @@ public class ParameterStorageAdapter implements ParameterStorageService {
         if (!isExternalStorageAvailable()) {
             throw new IllegalStateException(
                     "External parameter storage not available. " +
-                            "Ensure Hibernate ORM is enabled (quarkus.hibernate-orm.enabled=true)");
+                            "Ensure Agroal DataSource is configured and the database table exists.");
         }
         getExternalStorage().store(parameterSet);
         LOG.debugf("Stored parameter set: %s", parameterSet.id());
@@ -63,7 +63,7 @@ public class ParameterStorageAdapter implements ParameterStorageService {
         if (!isExternalStorageAvailable()) {
             throw new IllegalStateException(
                     "External parameter storage not available. " +
-                            "Ensure Hibernate ORM is enabled (quarkus.hibernate-orm.enabled=true)");
+                            "Ensure Agroal DataSource is configured and the database table exists.");
         }
         getExternalStorage().update(parameterSet);
         LOG.debugf("Updated parameter set: %s", parameterSet.id());
@@ -96,14 +96,14 @@ public class ParameterStorageAdapter implements ParameterStorageService {
             LOG.debugf("Deleted parameter set: %s", id);
         }
     }
-    
+
     /**
      * Gets the external storage adapter.
      *
-     * @return the JPA parameter storage adapter
+     * @return the JDBC parameter storage adapter
      * @throws IllegalStateException if not available
      */
     private ParameterStoragePort getExternalStorage() {
-        return storageAdapters.select(JpaParameterStorageAdapter.class).get();
+        return storageAdapters.select(JdbcParameterStorageAdapter.class).get();
     }
 }

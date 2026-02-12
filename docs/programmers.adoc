@@ -31,14 +31,9 @@ You will learn how to create configurable jobs, define parameters, implement bat
 [source,xml]
 ----
 <dependency>
-    <groupId>ch.css.jobrunr</groupId>
-    <artifactId>jobrunr-control-extension</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-</dependency>
-<dependency>
-    <groupId>org.jobrunr</groupId>
-    <artifactId>quarkus-jobrunr-pro</artifactId>
-    <version>8.4.2</version>
+    <groupId>ch.css.quarkus</groupId>
+    <artifactId>quarkus-jobrunr-control</artifactId>
+    <version>1.3.1</version>
 </dependency>
 ----
 
@@ -73,6 +68,185 @@ public class MyJobHandler implements JobRequestHandler<MyJobRequest> {
         jobContext().logger().info("Processing: " + request.message());
     }
 }
+----
+
+== Security Configuration
+
+The JobRunr Control extension provides role-based access control (RBAC) for both the Web UI and REST API.
+
+=== Role Overview
+
+The extension uses **two distinct role sets**:
+
+==== Web UI Roles
+
+The Web UI at `/q/jobrunr-control` uses these roles:
+
+[cols="1,3"]
+|===
+|Role |Permissions
+
+|`viewer`
+|Read-only access to scheduled jobs and execution history
+
+|`configurator`
+|All viewer permissions plus: create, edit, delete scheduled jobs
+
+|`admin`
+|All configurator permissions plus: execute jobs immediately
+|===
+
+==== REST API Roles
+
+The REST API at `/q/jobrunr-control/api` uses separate roles:
+
+[cols="1,3"]
+|===
+|Role |Permissions
+
+|`api-reader`
+|Read job status via GET endpoints (e.g., `GET /jobs/{jobId}`)
+
+|`api-executor`
+|All api-reader permissions plus: start jobs via POST endpoints (e.g., `POST /jobs/{jobId}/start`)
+
+|`admin`
+|Full access to all API operations (shared with UI)
+|===
+
+[NOTE]
+====
+**Why separate role sets?**
+
+This separation allows organizations to:
+
+* Grant operators UI access without exposing API credentials
+* Issue API keys to external systems (e.g., CI/CD pipelines) with narrower permissions
+* Apply different authentication mechanisms (form login for UI, bearer tokens for API)
+
+The `admin` role is shared across both surfaces for administrative operations.
+====
+
+=== Configuring Security
+
+==== Development Mode
+
+In development mode, grant all roles for easy testing:
+
+[source,properties]
+----
+# application.properties
+%dev.quarkus.security.users.embedded.enabled=true
+%dev.quarkus.security.users.embedded.plain-text=true
+%dev.quarkus.security.users.embedded.users.admin=admin
+%dev.quarkus.security.users.embedded.roles.admin=admin,viewer,configurator,api-reader,api-executor
+----
+
+==== Production Mode with OIDC
+
+For production, use OIDC/OAuth2 with role mapping:
+
+[source,properties]
+----
+# application.properties
+quarkus.oidc.auth-server-url=https://your-keycloak.com/realms/your-realm
+quarkus.oidc.client-id=jobrunr-control
+quarkus.oidc.credentials.secret=${OIDC_CLIENT_SECRET}
+
+# Map OIDC roles to application roles
+quarkus.oidc.roles.source=accesstoken
+quarkus.oidc.roles.role-claim-path=realm_access/roles
+----
+
+Configure your OIDC provider (Keycloak, Auth0, etc.) to issue the following roles:
+
+* For UI users: `viewer`, `configurator`, `admin`
+* For API clients: `api-reader`, `api-executor`, `admin`
+
+==== Production Mode with Basic Auth
+
+For simple deployments, use basic authentication:
+
+[source,properties]
+----
+# application.properties
+quarkus.security.users.embedded.enabled=true
+quarkus.security.users.embedded.plain-text=false
+
+# UI user with configurator role
+quarkus.security.users.embedded.users.operator=${OPERATOR_PASSWORD}
+quarkus.security.users.embedded.roles.operator=viewer,configurator
+
+# API client with executor role
+quarkus.security.users.embedded.users.api-client=${API_CLIENT_PASSWORD}
+quarkus.security.users.embedded.roles.api-client=api-reader,api-executor
+
+# Admin user with full access
+quarkus.security.users.embedded.users.admin=${ADMIN_PASSWORD}
+quarkus.security.users.embedded.roles.admin=admin,viewer,configurator,api-reader,api-executor
+----
+
+[WARNING]
+====
+In production, always use hashed passwords.
+Generate BCrypt hashes using:
+
+[source,bash]
+----
+./mvnw quarkus:generate-config -Dquarkus.security.users.embedded.password=your-password
+----
+====
+
+=== API Authentication Examples
+
+==== Using Basic Auth
+
+[source,bash]
+----
+curl -X POST \
+  -H "Authorization: Basic $(echo -n 'api-client:password' | base64)" \
+  -H "Content-Type: application/json" \
+  -d '{"parameters": {"customerId": "123"}}' \
+  https://your-server/q/jobrunr-control/api/jobs/{jobId}/start
+----
+
+==== Using Bearer Token (OIDC)
+
+[source,bash]
+----
+# 1. Obtain token from your OIDC provider
+TOKEN=$(curl -X POST https://your-keycloak.com/realms/your-realm/protocol/openid-connect/token \
+  -d "client_id=jobrunr-control" \
+  -d "client_secret=${CLIENT_SECRET}" \
+  -d "grant_type=client_credentials" \
+  | jq -r '.access_token')
+
+# 2. Use token to call API
+curl -X POST \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"parameters": {"customerId": "123"}}' \
+  https://your-server/q/jobrunr-control/api/jobs/{jobId}/start
+----
+
+=== Testing Security Configuration
+
+Verify your role configuration:
+
+[source,bash]
+----
+# Test UI access (should work with viewer role)
+curl -u viewer:password https://your-server/q/jobrunr-control
+
+# Test API read access (should work with api-reader role)
+curl -u api-client:password https://your-server/q/jobrunr-control/api/jobs/{jobId}
+
+# Test API execute access (should work with api-executor role)
+curl -X POST -u api-client:password \
+  https://your-server/q/jobrunr-control/api/jobs/{jobId}/start
+
+# Test admin access (should work for all endpoints)
+curl -u admin:password https://your-server/q/jobrunr-control/api/jobs/{jobId}
 ----
 
 == Discovery Mechanism
@@ -520,7 +694,23 @@ quarkus.datasource.username=myuser
 quarkus.datasource.password=mypass
 ----
 
-The extension automatically creates the `jobrunr_control_parameter_sets` table via Flyway migration.
+For **development with H2**, use standard H2 configuration:
+
+[source,properties]
+----
+# application.properties (H2 development setup)
+quarkus.datasource.db-kind=h2
+quarkus.datasource.jdbc.url=jdbc:h2:mem:devdb;DB_CLOSE_DELAY=-1
+----
+
+[IMPORTANT]
+====
+**H2 Compatibility Mode Not Supported:** H2 must run in standard mode (not Oracle, MySQL, or PostgreSQL modes) because JobRunr generates database-specific SQL.
+If you need Oracle compatibility testing, use an actual Oracle database.
+====
+
+You must create the `jobrunr_control_parameter_sets` table manually.
+See SQL scripts in `docs/sql/` directory for your database platform (PostgreSQL, Oracle, MySQL, or H2).
 
 ==== Step 2: Use @JobParameterSet Annotation
 
@@ -1258,9 +1448,12 @@ Response:
 
 === Executing a Template
 
+Templates are started via the same `/jobs/{jobId}/start` endpoint.
+The API detects that the job is a template, clones it, and executes the clone.
+
 [source,bash]
 ----
-POST /q/jobrunr-control/api/templates/{templateId}/start
+POST /q/jobrunr-control/api/jobs/{templateId}/start
 Content-Type: application/json
 
 {
@@ -1287,28 +1480,6 @@ Response:
 The returned `jobId` is the ID of the newly created job, not the template.
 The template remains unchanged and can be executed again.
 ====
-
-=== Cloning and Starting a Job (Deprecated)
-
-[NOTE]
-====
-This endpoint is deprecated.
-Use templates instead for better organization and management.
-====
-
-[source,bash]
-----
-POST /q/jobrunr-control/api/jobs
-Content-Type: application/json
-
-{
-  "cloneFromId": "550e8400-e29b-41d4-a716-446655440000",
-  "suffix": "20240126",
-  "parameters": {
-    "batchSize": 500
-  }
-}
-----
 
 === Getting Job Status
 
@@ -1408,3 +1579,5 @@ public void run(MyJobRequest request) throws Exception {
 * Check for circular dependencies in JobRequest
 * Verify all referenced classes are on the classpath
 * Review Quarkus build output for scanner warnings
+
+

@@ -152,7 +152,7 @@ The extension uses **JobRunr's persistence layer** and shares the same database.
 
 [NOTE]
 ====
-The `jobrunr_control_parameter_sets` table is only created when Hibernate ORM is enabled and at least one job uses external parameter storage via `@JobParameterSet` annotation.
+The `jobrunr_control_parameter_sets` table must be created manually using SQL scripts provided in `docs/sql/` directory when at least one job uses external parameter storage via `@JobParameterSet` annotation.
 ====
 
 === AD-3: Build-Time Job Discovery
@@ -196,7 +196,11 @@ The extension uses **Jackson ObjectMapper** for:
 
 === AD-6: Role-Based Access Control (RBAC)
 
-Three roles control access to dashboard features:
+The extension provides two distinct RBAC surfaces:
+
+==== Web UI Roles
+
+The Web UI (`/q/jobrunr-control`) uses three roles:
 
 [cols="1,3"]
 |===
@@ -212,22 +216,51 @@ Three roles control access to dashboard features:
 |All configurator permissions plus: execute jobs immediately
 |===
 
+==== REST API Roles
+
+The REST API (`/q/jobrunr-control/api`) uses separate roles to enable independent access control for programmatic clients:
+
+[cols="1,3"]
+|===
+|Role |Permissions
+
+|`api-reader`
+|Read job status via GET endpoints (e.g., `GET /jobs/{jobId}`)
+
+|`api-executor`
+|All api-reader permissions plus: start jobs via POST endpoints (e.g., `POST /jobs/{jobId}/start`)
+
+|`admin`
+|Full access to all API operations
+|===
+
+[NOTE]
+====
+**Why Two Role Sets?**
+
+Separating UI and API roles allows organizations to:
+
+* Grant operators UI access without exposing REST API credentials
+* Issue API keys to external systems with narrower permissions (e.g., `api-executor` for CI/CD pipelines)
+* Apply different authentication mechanisms (form login for UI, bearer tokens for API)
+
+The `admin` role is shared across both surfaces.
+====
+
 Security is enforced using Quarkus Security annotations:
 
 [source,java]
 ----
+// Web UI example
 @GET
 @RolesAllowed({"viewer", "configurator", "admin"})
 public TemplateInstance getScheduledJobsView() { ... }
 
+// REST API example
 @POST
-@RolesAllowed({"configurator", "admin"})
-public Response createJob(...) { ... }
-
-@POST
-@Path("/{id}/execute")
-@RolesAllowed({"admin"})
-public TemplateInstance executeJob(@PathParam("id") UUID jobId) { ... }
+@Path("jobs/{jobId}/start")
+@RolesAllowed({"api-executor", "admin"})
+public Response startJob(...) { ... }
 ----
 
 == System Scope and Context
@@ -498,11 +531,7 @@ Base path: `/q/jobrunr-control/api`
 
 |POST
 |`/jobs/{jobId}/start`
-|Start an externally triggerable job immediately
-
-|POST
-|`/templates/{templateId}/start`
-|Clone and execute a template job with optional parameter overrides
+|Start a job or template immediately. If the job is a template, it is cloned and the clone is executed.
 
 |GET
 |`/jobs/{jobId}`
@@ -645,7 +674,7 @@ participant "JobSchedulerPort" as port
 participant "JobRunrSchedulerAdapter" as adapter
 participant "JobRunr Pro" as jobrunr
 
-external -> api: POST /templates/{templateId}/start
+external -> api: POST /jobs/{templateId}/start
 api -> usecase: execute(templateId, postfix, paramOverrides)
 usecase -> port: getScheduledJobById(templateId)
 port --> usecase: ScheduledJobInfo (template)

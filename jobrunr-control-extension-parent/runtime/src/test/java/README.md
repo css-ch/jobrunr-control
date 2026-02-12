@@ -69,14 +69,14 @@ class CreateScheduledJobUseCaseTest {
 **Dependencies**: Real (in-memory DB, test containers)
 
 ```java
-
+```java
 @QuarkusTest
-class JpaParameterStorageAdapterTest {
+
+class JdbcParameterStorageAdapterTest {
     @Inject
-    JpaParameterStorageAdapter adapter;
+    JdbcParameterStorageAdapter adapter;
 
     @Test
-    @Transactional
     void shouldStoreAndLoadParameters() {
         // Test implementation
     }

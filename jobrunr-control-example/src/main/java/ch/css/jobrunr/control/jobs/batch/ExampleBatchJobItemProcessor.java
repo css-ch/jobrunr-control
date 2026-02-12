@@ -33,6 +33,7 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
 
         if (request.simulateErrors() && isFirstAttempt && Math.abs(request.chunkId() % 2) == 1) {
             // Mark as attempted for next time
+
             ThreadLocalJobContext.getJobContext().saveMetadata("attempted", true);
             ThreadLocalJobContext.getJobContext().logger().error("Simulated transient error for chunk ID: " + request.chunkId() + " (will succeed when batch is re-run from dashboard)");
             throw new JobProcessingException("Simulated transient error for chunk ID: " + request.chunkId());

@@ -27,10 +27,10 @@ class ParameterStorageAdapterTest {
     private Instance<ParameterStoragePort> storageAdapters;
 
     @Mock
-    private Instance<JpaParameterStorageAdapter> jpaAdapterInstance;
+    private Instance<JdbcParameterStorageAdapter> jdbcAdapterInstance;
 
     @Mock
-    private JpaParameterStorageAdapter jpaAdapter;
+    private JdbcParameterStorageAdapter jdbcAdapter;
 
     private ParameterStorageAdapter adapter;
 
@@ -41,10 +41,10 @@ class ParameterStorageAdapterTest {
 
     @Test
     @DisplayName("should return true when external storage is available")
-    void isExternalStorageAvailable_JpaAdapterAvailable_ReturnsTrue() {
+    void isExternalStorageAvailable_JdbcAdapterAvailable_ReturnsTrue() {
         // Arrange
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(true);
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class)).thenReturn(jdbcAdapterInstance);
+        when(jdbcAdapterInstance.isResolvable()).thenReturn(true);
 
         // Act
         boolean result = adapter.isExternalStorageAvailable();
@@ -57,8 +57,8 @@ class ParameterStorageAdapterTest {
     @DisplayName("should return false when external storage is not available")
     void isExternalStorageAvailable_JpaAdapterNotAvailable_ReturnsFalse() {
         // Arrange
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(false);
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class)).thenReturn(jdbcAdapterInstance);
+        when(jdbcAdapterInstance.isResolvable()).thenReturn(false);
 
         // Act
         boolean result = adapter.isExternalStorageAvailable();
@@ -71,7 +71,7 @@ class ParameterStorageAdapterTest {
     @DisplayName("should return false when checking storage availability throws exception")
     void isExternalStorageAvailable_ExceptionThrown_ReturnsFalse() {
         // Arrange
-        when(storageAdapters.select(JpaParameterStorageAdapter.class))
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class))
                 .thenThrow(new RuntimeException("Storage check failed"));
 
         // Act
@@ -82,21 +82,21 @@ class ParameterStorageAdapterTest {
     }
 
     @Test
-    @DisplayName("should delegate store operation to JPA adapter when available")
+    @DisplayName("should delegate store operation to JDBC adapter when available")
     void store_ExternalStorageAvailable_DelegatesToJpaAdapter() {
         // Arrange
         UUID id = UUID.randomUUID();
         ParameterSet parameterSet = ParameterSet.create(id, "TestJob", Map.of("key", "value"));
 
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(true);
-        when(jpaAdapterInstance.get()).thenReturn(jpaAdapter);
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class)).thenReturn(jdbcAdapterInstance);
+        when(jdbcAdapterInstance.isResolvable()).thenReturn(true);
+        when(jdbcAdapterInstance.get()).thenReturn(jdbcAdapter);
 
         // Act
         adapter.store(parameterSet);
 
         // Assert
-        verify(jpaAdapter).store(parameterSet);
+        verify(jdbcAdapter).store(parameterSet);
     }
 
     @Test
@@ -105,8 +105,8 @@ class ParameterStorageAdapterTest {
         // Arrange
         ParameterSet parameterSet = ParameterSet.create(UUID.randomUUID(), "TestJob", Map.of());
 
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(false);
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class)).thenReturn(jdbcAdapterInstance);
+        when(jdbcAdapterInstance.isResolvable()).thenReturn(false);
 
         // Act & Assert
         assertThatThrownBy(() -> adapter.store(parameterSet))
@@ -115,23 +115,23 @@ class ParameterStorageAdapterTest {
     }
 
     @Test
-    @DisplayName("should delegate findById to JPA adapter when available")
+    @DisplayName("should delegate findById to JDBC adapter when available")
     void findById_ExternalStorageAvailable_DelegatesToJpaAdapter() {
         // Arrange
         UUID id = UUID.randomUUID();
         ParameterSet expectedSet = ParameterSet.create(id, "TestJob", Map.of("key", "value"));
 
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(true);
-        when(jpaAdapterInstance.get()).thenReturn(jpaAdapter);
-        when(jpaAdapter.findById(id)).thenReturn(Optional.of(expectedSet));
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class)).thenReturn(jdbcAdapterInstance);
+        when(jdbcAdapterInstance.isResolvable()).thenReturn(true);
+        when(jdbcAdapterInstance.get()).thenReturn(jdbcAdapter);
+        when(jdbcAdapter.findById(id)).thenReturn(Optional.of(expectedSet));
 
         // Act
         Optional<ParameterSet> result = adapter.findById(id);
 
         // Assert
         assertThat(result).isPresent().contains(expectedSet);
-        verify(jpaAdapter).findById(id);
+        verify(jdbcAdapter).findById(id);
     }
 
     @Test
@@ -140,33 +140,33 @@ class ParameterStorageAdapterTest {
         // Arrange
         UUID id = UUID.randomUUID();
 
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(false);
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class)).thenReturn(jdbcAdapterInstance);
+        when(jdbcAdapterInstance.isResolvable()).thenReturn(false);
 
         // Act
         Optional<ParameterSet> result = adapter.findById(id);
 
         // Assert
         assertThat(result).isEmpty();
-        verify(jpaAdapter, never()).findById(any());
+        verify(jdbcAdapter, never()).findById(any());
     }
 
     @Test
-    @DisplayName("should delegate update operation to JPA adapter when available")
+    @DisplayName("should delegate update operation to JDBC adapter when available")
     void update_ExternalStorageAvailable_DelegatesToJpaAdapter() {
         // Arrange
         UUID id = UUID.randomUUID();
         ParameterSet parameterSet = ParameterSet.create(id, "TestJob", Map.of("key", "value"));
 
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(true);
-        when(jpaAdapterInstance.get()).thenReturn(jpaAdapter);
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class)).thenReturn(jdbcAdapterInstance);
+        when(jdbcAdapterInstance.isResolvable()).thenReturn(true);
+        when(jdbcAdapterInstance.get()).thenReturn(jdbcAdapter);
 
         // Act
         adapter.update(parameterSet);
 
         // Assert
-        verify(jpaAdapter).update(parameterSet);
+        verify(jdbcAdapter).update(parameterSet);
     }
 
     @Test
@@ -175,8 +175,8 @@ class ParameterStorageAdapterTest {
         // Arrange
         ParameterSet parameterSet = ParameterSet.create(UUID.randomUUID(), "TestJob", Map.of());
 
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(false);
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class)).thenReturn(jdbcAdapterInstance);
+        when(jdbcAdapterInstance.isResolvable()).thenReturn(false);
 
         // Act & Assert
         assertThatThrownBy(() -> adapter.update(parameterSet))
@@ -185,20 +185,20 @@ class ParameterStorageAdapterTest {
     }
 
     @Test
-    @DisplayName("should delegate deleteById to JPA adapter when available")
+    @DisplayName("should delegate deleteById to JDBC adapter when available")
     void deleteById_ExternalStorageAvailable_DelegatesToJpaAdapter() {
         // Arrange
         UUID id = UUID.randomUUID();
 
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(true);
-        when(jpaAdapterInstance.get()).thenReturn(jpaAdapter);
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class)).thenReturn(jdbcAdapterInstance);
+        when(jdbcAdapterInstance.isResolvable()).thenReturn(true);
+        when(jdbcAdapterInstance.get()).thenReturn(jdbcAdapter);
 
         // Act
         adapter.deleteById(id);
 
         // Assert
-        verify(jpaAdapter).deleteById(id);
+        verify(jdbcAdapter).deleteById(id);
     }
 
     @Test
@@ -207,13 +207,13 @@ class ParameterStorageAdapterTest {
         // Arrange
         UUID id = UUID.randomUUID();
 
-        when(storageAdapters.select(JpaParameterStorageAdapter.class)).thenReturn(jpaAdapterInstance);
-        when(jpaAdapterInstance.isResolvable()).thenReturn(false);
+        when(storageAdapters.select(JdbcParameterStorageAdapter.class)).thenReturn(jdbcAdapterInstance);
+        when(jdbcAdapterInstance.isResolvable()).thenReturn(false);
 
         // Act
         adapter.deleteById(id);
 
         // Assert
-        verify(jpaAdapter, never()).deleteById(any());
+        verify(jdbcAdapter, never()).deleteById(any());
     }
 }

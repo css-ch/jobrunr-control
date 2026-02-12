@@ -125,11 +125,6 @@
                         </execution>
                     </executions>
                 </plugin>
-                <plugin>
-                    <groupId>org.sonarsource.scanner.maven</groupId>
-                    <artifactId>sonar-maven-plugin</artifactId>
-                    <version>${sonar-plugin.version}</version>
-                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>

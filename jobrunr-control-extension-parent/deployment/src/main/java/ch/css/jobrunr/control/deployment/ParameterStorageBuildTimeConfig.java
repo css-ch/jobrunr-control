@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.deployment;
 
+import ch.css.jobrunr.control.domain.ParameterStorageStrategy;
 import io.quarkus.runtime.annotations.ConfigPhase;
 import io.quarkus.runtime.annotations.ConfigRoot;
 import io.smallrye.config.ConfigMapping;
@@ -13,9 +14,9 @@ import io.smallrye.config.WithDefault;
 public interface ParameterStorageBuildTimeConfig {
 
     /**
-     * Persistence unit name for external parameter storage.
-     * Default: &lt;default&gt; (Hibernate ORM default persistence unit)
+     * Parameter storage strategy (INLINE or EXTERNAL).
+     * Default: INLINE
      */
-    @WithDefault("<default>")
-    String persistenceUnitName();
+    @WithDefault("INLINE")
+    ParameterStorageStrategy strategy();
 }

@@ -20,7 +20,12 @@ http://your-server:port/q/jobrunr-control
 
 === Roles and Permissions
 
-Access to features depends on your assigned role:
+Access to features depends on your assigned role.
+The extension uses different role sets for the Web UI and REST API.
+
+==== Web UI Roles
+
+If you access the dashboard through your browser at `/q/jobrunr-control`, the following roles apply:
 
 [cols="1,3"]
 |===
@@ -35,6 +40,36 @@ Access to features depends on your assigned role:
 |**admin**
 |All permissions, including immediate job execution
 |===
+
+==== REST API Roles
+
+If you use the REST API at `/q/jobrunr-control/api` (for external systems or automation), the following roles apply:
+
+[cols="1,3"]
+|===
+|Role |Permissions
+
+|**api-reader**
+|Read job status via GET endpoints
+
+|**api-executor**
+|All api-reader permissions, plus start jobs via POST endpoints
+
+|**admin**
+|Full access to all API operations
+|===
+
+[NOTE]
+====
+**Why separate roles?**
+
+The separate role sets allow you to:
+
+* Give team members Web UI access without exposing API credentials
+* Issue API keys to external systems (e.g., CI/CD pipelines) with limited permissions
+* Use different authentication methods for UI (form login) vs.
+API (bearer tokens)
+====
 
 == Dashboard Overview
 
@@ -263,8 +298,8 @@ The job only stores a reference ID to the parameter set.
 
 [NOTE]
 ====
-External storage requires Hibernate ORM to be enabled in your Quarkus application.
-The extension automatically creates the required database table (`jobrunr_control_parameter_sets`).
+External storage requires a database connection to be configured in your Quarkus application.
+You must manually create the required database table (`jobrunr_control_parameter_sets`) using the SQL scripts provided in the `docs/sql/` directory.
 ====
 
 .Parameter Set Cleanup
@@ -399,7 +434,7 @@ External systems can execute templates programmatically:
 
 [source,bash]
 ----
-POST /q/jobrunr-control/api/templates/{templateId}/start
+POST /q/jobrunr-control/api/jobs/{templateId}/start
 Content-Type: application/json
 
 {
@@ -535,7 +570,7 @@ Requires **configurator** or **admin** role.
 
 [source,bash]
 ----
-POST /templates/{templateId}/start
+POST /q/jobrunr-control/api/jobs/{templateId}/start
 {
   "postfix": "20240127",
   "parameters": {
@@ -559,7 +594,7 @@ Creates job: `Daily-Sales-Report-20240127`
 
 [source,bash]
 ----
-POST /templates/{templateId}/start
+POST /q/jobrunr-control/api/jobs/{templateId}/start
 {
   "postfix": "customer-12345",
   "parameters": {
@@ -818,3 +853,4 @@ All create, update, delete, and execute operations for both templates and jobs a
 * Full operation details including parameters
 * Template/Job name and UUID
 * For executions: source (REST/UI) and resulting job ID
+

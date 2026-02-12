@@ -1,54 +1,36 @@
 package ch.css.jobrunr.control.deployment;
 
-import ch.css.jobrunr.control.infrastructure.persistence.ParameterSetEntity;
+import ch.css.jobrunr.control.domain.ParameterStorageStrategy;
 import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
-import io.quarkus.deployment.builditem.IndexDependencyBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
-import io.quarkus.hibernate.orm.deployment.spi.AdditionalJpaModelBuildItem;
+import org.jboss.logging.Logger;
 
-import java.util.Set;
-
+/**
+ * Build processor for external parameter storage validation.
+ * Validates that required dependencies (Agroal DataSource) are present when using external parameter storage.
+ */
 public class ExternalParameterStorageProcessor {
 
-    /**
-     * Ensure the extension's runtime module is indexed by Jandex.
-     * This is required for JPA entity discovery.
-     */
-    @BuildStep
-    void indexExtensionRuntime(BuildProducer<IndexDependencyBuildItem> index) {
-        index.produce(new IndexDependencyBuildItem("ch.css.jobrunr", "jobrunr-control-extension"));
-    }
+    private static final Logger LOG = Logger.getLogger(ExternalParameterStorageProcessor.class);
 
     /**
-     * Register the JPA entity with Hibernate ORM.
-     * This ensures the entity is properly discovered during build time.
-     * Only registers if Hibernate ORM capability is present.
+     * Validate that Agroal DataSource is available when using external parameter storage.
+     * Logs a warning if the capability is not present, as it's required for JDBC operations.
      */
     @BuildStep
-    void registerEntity(Capabilities capabilities,
-                        ParameterStorageBuildTimeConfig config,
-                        BuildProducer<AdditionalJpaModelBuildItem> producer) {
-        if (capabilities.isPresent(Capability.HIBERNATE_ORM)) {
-            producer.produce(new AdditionalJpaModelBuildItem(
-                    ParameterSetEntity.class.getName(),
-                    Set.of(config.persistenceUnitName())
-            ));
-        }
-    }
-
-    /**
-     * Register the entity for reflection (needed for native builds).
-     * Only registers if Hibernate ORM capability is present.
-     */
-    @BuildStep
-    void registerForReflection(Capabilities capabilities, BuildProducer<ReflectiveClassBuildItem> producer) {
-        if (capabilities.isPresent(Capability.HIBERNATE_ORM)) {
-            producer.produce(ReflectiveClassBuildItem.builder(
-                    ParameterSetEntity.class.getName()
-            ).methods().fields().build());
+    void validateDataSource(Capabilities capabilities,
+                            ParameterStorageBuildTimeConfig config,
+                            BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
+        if (config.strategy() == ParameterStorageStrategy.EXTERNAL) {
+            if (!capabilities.isPresent(Capability.AGROAL)) {
+                LOG.warnf("External parameter storage is configured but Agroal DataSource is not available. " +
+                        "Ensure 'quarkus-agroal' dependency is included and datasource is configured.");
+            } else {
+                LOG.infof("External parameter storage enabled with JDBC-based storage");
+            }
         }
     }
 }
