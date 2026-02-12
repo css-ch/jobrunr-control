@@ -38,9 +38,9 @@ The extension automatically brings in:
 
 ```properties
 # Enable/disable UI (default: true)
-jobrunr.control.ui.enabled=true
+quarkus.jobrunr-control.ui.enabled=true
 # Enable/disable REST API (default: true)
-jobrunr.control.api.enabled=true
+quarkus.jobrunr-control.api.enabled=true
 ```
 
 ### Base Path Configuration
@@ -209,18 +209,55 @@ Configure parameter storage strategy and persistence:
 
 ```properties
 # Storage strategy: INLINE (default) or EXTERNAL
-jobrunr.control.parameter-storage.strategy=INLINE
+quarkus.jobrunr-control.parameter-storage.strategy=INLINE
 # Persistence unit for external parameter storage (build-time config)
 # Default: <default> (Hibernate ORM default persistence unit)
-jobrunr.control.parameter-storage.persistence-unit-name=<default>
+quarkus.jobrunr-control.parameter-storage.persistence-unit-name=<default>
 # Cleanup configuration for external parameter storage
-jobrunr.control.parameter-storage.cleanup.enabled=true
-jobrunr.control.parameter-storage.cleanup.retention-days=30
+quarkus.jobrunr-control.parameter-storage.cleanup.enabled=true
+quarkus.jobrunr-control.parameter-storage.cleanup.retention-days=30
 ```
 
 **Note:** The `persistence-unit-name` is a build-time configuration that determines which Hibernate ORM persistence unit
 is used for storing external parameter sets. If you have multiple persistence units configured, you can specify which
 one to use for JobRunr Control's parameter storage.
+
+### Flyway Migrations
+
+JobRunr Control uses Flyway to manage database schema for external parameter storage. The extension provides
+database-specific migrations:
+
+```properties
+# Enable or disable Flyway migrations (default: true)
+quarkus.jobrunr-control.flyway.enabled=true
+# Database type (optional, auto-detected from quarkus.datasource.db-kind)
+# Supported: postgresql, h2, oracle
+# The extension validates migrations exist for your database
+quarkus.jobrunr-control.flyway.db-type=postgresql
+# Table prefix (optional, future feature)
+quarkus.jobrunr-control.flyway.table-prefix=myapp_
+# Named datasource (optional, default: <default>)
+quarkus.jobrunr-control.flyway.datasource-name=<default>
+```
+
+**Flyway Locations Configuration:**
+
+You must configure `quarkus.flyway.locations` to include **both JobRunr Pro migrations and JobRunr Control migrations**:
+
+```properties
+# For PostgreSQL - includes JobRunr Pro + JobRunr Control migrations
+quarkus.flyway.locations=classpath:org/jobrunr/database/migrations/common,classpath:org/jobrunr/database/migrations/postgresql,classpath:db/migration/jobrunr-control/postgresql
+# For H2 (testing) - includes JobRunr Pro + JobRunr Control migrations
+%test.quarkus.flyway.locations=classpath:org/jobrunr/database/migrations/common,classpath:org/jobrunr/database/migrations/h2,classpath:db/migration/jobrunr-control/h2
+# For Oracle - includes JobRunr Pro + JobRunr Control migrations
+# quarkus.flyway.locations=classpath:org/jobrunr/database/migrations/common,classpath:org/jobrunr/database/migrations/oracle,classpath:db/migration/jobrunr-control/oracle
+```
+
+**Important:** JobRunr Pro creates the main `jobrunr_*` tables, while JobRunr Control creates the
+`jobrunr_control_parameter_sets` table for external parameter storage. Both sets of migrations are required.
+
+The extension validates at build-time that migrations exist for your configured or detected database type, providing
+helpful error messages if misconfigured.
 
 ### Batch Progress Timeout
 

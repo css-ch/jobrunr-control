@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * Runtime configuration for JobRunr Control Flyway migrations.
  */
-@ConfigMapping(prefix = "jobrunr.control.flyway")
+@ConfigMapping(prefix = "quarkus.jobrunr-control.flyway")
 public interface FlywayRuntimeConfig {
 
     /**

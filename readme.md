@@ -3,6 +3,10 @@
 A Quarkus extension providing a web-based control dashboard and REST API for managing and monitoring jobs in JobRunr
 Pro.
 
+> **📢 Configuration Update:** Properties have been renamed to follow Quarkus conventions (
+`quarkus.jobrunr-control.*`).  
+> See [Configuration Migration Guide](CONFIGURATION_MIGRATION.md) for upgrade instructions.
+
 ## Overview
 
 JobRunr Control extends the standard JobRunr Pro Dashboard with advanced scheduling and monitoring capabilities. It

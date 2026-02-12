@@ -101,8 +101,8 @@ See `src/main/resources/application.properties` for all configuration options.
 
 ```properties
 # Extension
-jobrunr.control.ui.enabled=true
-jobrunr.control.api.enabled=true
+quarkus.jobrunr-control.ui.enabled=true
+quarkus.jobrunr-control.api.enabled=true
 # JobRunr
 quarkus.jobrunr.background-job-server.enabled=true
 quarkus.jobrunr.dashboard.enabled=true

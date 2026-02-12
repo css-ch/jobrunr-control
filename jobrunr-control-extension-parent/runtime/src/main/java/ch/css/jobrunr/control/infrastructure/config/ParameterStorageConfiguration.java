@@ -7,7 +7,7 @@ import io.smallrye.config.WithDefault;
 /**
  * Configuration for parameter storage.
  */
-@ConfigMapping(prefix = "jobrunr.control.parameter-storage")
+@ConfigMapping(prefix = "quarkus.jobrunr-control.parameter-storage")
 public interface ParameterStorageConfiguration {
 
     /**

@@ -8,7 +8,7 @@ import io.smallrye.config.WithDefault;
 /**
  * Build-time configuration for parameter storage.
  */
-@ConfigMapping(prefix = "jobrunr.control.parameter-storage")
+@ConfigMapping(prefix = "quarkus.jobrunr-control.parameter-storage")
 @ConfigRoot(phase = ConfigPhase.BUILD_TIME)
 public interface ParameterStorageBuildTimeConfig {
 

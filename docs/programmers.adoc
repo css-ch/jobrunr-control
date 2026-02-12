@@ -669,10 +669,10 @@ The extension provides automatic cleanup of orphaned parameter sets:
 # application.properties
 
 # Enable automatic cleanup
-jobrunr.control.parameter-storage.cleanup.enabled=true
+quarkus.jobrunr-control.parameter-storage.cleanup.enabled=true
 
 # Retention period (days) before cleanup
-jobrunr.control.parameter-storage.cleanup.retention-days=30
+quarkus.jobrunr-control.parameter-storage.cleanup.retention-days=30
 ----
 
 .Cleanup Behavior

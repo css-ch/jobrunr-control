@@ -270,7 +270,7 @@ The extension automatically creates the required database table (`jobrunr_contro
 .Parameter Set Cleanup
 The extension provides automatic cleanup of orphaned parameter sets:
 
-* Configured via `jobrunr.control.parameter-storage.cleanup.enabled`
+* Configured via `quarkus.jobrunr-control.parameter-storage.cleanup.enabled`
 * Default retention period: 30 days
 * Runs periodically to remove unused parameter sets
 
