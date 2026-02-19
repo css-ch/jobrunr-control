@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.application.scheduling;
 
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
@@ -37,6 +38,15 @@ class CreateScheduledJobUseCaseTest {
 
     @Mock
     private ParameterStorageHelper parameterStorageHelper;
+
+    /**
+     * Mock for AuditLoggerHelper. Required for @InjectMocks to instantiate CreateScheduledJobUseCase.
+     * The use case calls auditLogger.logJobCreated() internally, but we don't verify these calls
+     * in these tests as they focus on the core job creation logic.
+     */
+    @Mock
+    @SuppressWarnings("unused")
+    private AuditLoggerHelper auditLogger;
 
     @InjectMocks
     private CreateScheduledJobUseCase useCase;
