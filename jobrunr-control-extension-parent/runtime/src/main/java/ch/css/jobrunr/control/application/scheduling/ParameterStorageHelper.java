@@ -57,17 +57,15 @@ public class ParameterStorageHelper {
                             "Enable Hibernate ORM: quarkus.hibernate-orm.enabled=true");
         }
 
-        // Store parameters externally
-        // NOTE: This method is kept for backward compatibility or cases where job ID is not yet known
-        // but ideally we should use storeParametersForJob with the job UUID
+        // Store parameters externally with a random ID (legacy path; prefer storeParametersForJob)
         UUID parameterSetId = UUID.randomUUID();
         ParameterSet parameterSet = ParameterSet.create(parameterSetId, jobType, convertedParameters);
         parameterStorageService.store(parameterSet);
 
         LOG.infof("Stored parameters externally with ID: %s for job: %s", parameterSetId, jobName);
 
-        // Return parameter map with only the parameter set ID
-        return Map.of(jobDefinition.parameterSetFieldName(), parameterSetId.toString());
+        // JobRequest has no parameterSetId field; return empty map
+        return Map.of();
     }
 
     /**
@@ -148,6 +146,7 @@ public class ParameterStorageHelper {
             return Map.of(); // Empty for inline parameters
         }
 
-        return Map.of(jobDefinition.parameterSetFieldName(), jobId.toString());
+        // JobRequest has no parameterSetId field; parameters are looked up by job UUID at runtime
+        return Map.of();
     }
 }

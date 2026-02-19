@@ -31,64 +31,26 @@ public class ParameterExtractor {
      * Analyzes record parameters and returns both the parameters and metadata about external parameter usage.
      */
     public AnalyzedParameters analyzeRecordParameters(ClassInfo recordClass) {
-        List<RecordComponentInfo> components = recordClass.recordComponents();
-        RecordComponentInfo parameterSetComponent = findParameterSetComponent(components, recordClass);
+        AnnotationInstance parameterSetAnnotation = recordClass.annotation(JOB_PARAMETER_SET);
 
-        if (parameterSetComponent != null) {
-            return analyzeExternalParameters(parameterSetComponent, recordClass);
+        if (parameterSetAnnotation != null) {
+            return analyzeExternalParameters(parameterSetAnnotation, recordClass);
         } else {
-            return analyzeInlineParameters(components);
+            return analyzeInlineParameters(recordClass.recordComponents());
         }
     }
 
     /**
-     * Finds and validates the @JobParameterSet component.
+     * Analyzes external parameters from @JobParameterSet on the record type.
      */
-    private RecordComponentInfo findParameterSetComponent(List<RecordComponentInfo> components, ClassInfo recordClass) {
-        RecordComponentInfo parameterSetComponent = null;
-
-        for (RecordComponentInfo component : components) {
-            if (component.hasAnnotation(JOB_PARAMETER_SET)) {
-                validateParameterSetComponent(component, parameterSetComponent, recordClass);
-                parameterSetComponent = component;
-            }
-        }
-
-        return parameterSetComponent;
-    }
-
-    /**
-     * Validates a @JobParameterSet component.
-     */
-    private void validateParameterSetComponent(RecordComponentInfo component,
-                                               RecordComponentInfo existingComponent,
-                                               ClassInfo recordClass) {
-        if (existingComponent != null) {
-            throw new IllegalStateException(
-                    "JobRequest " + recordClass.name() +
-                            " has multiple @JobParameterSet annotations on components '" +
-                            existingComponent.name() + "' and '" + component.name() + "'. Only one is allowed.");
-        }
-
-        if (!component.type().name().toString().equals("java.lang.String")) {
-            throw new IllegalStateException(
-                    "JobRequest " + recordClass.name() +
-                            " component '" + component.name() + "' has @JobParameterSet but is not of type String. " +
-                            "Found: " + component.type().name());
-        }
-    }
-
-    /**
-     * Analyzes external parameters from @JobParameterSet.
-     */
-    private AnalyzedParameters analyzeExternalParameters(RecordComponentInfo parameterSetComponent, ClassInfo recordClass) {
-        List<JobParameter> parameters = extractExternalParameters(parameterSetComponent, recordClass);
-        logExternalParameters(parameters, parameterSetComponent, recordClass);
+    private AnalyzedParameters analyzeExternalParameters(AnnotationInstance parameterSetAnnotation, ClassInfo recordClass) {
+        List<JobParameter> parameters = extractExternalParameters(parameterSetAnnotation, recordClass);
+        logExternalParameters(parameters, recordClass);
 
         return new AnalyzedParameters(
                 parameters,
                 true,
-                parameterSetComponent.name()
+                null
         );
     }
 
@@ -116,12 +78,10 @@ public class ParameterExtractor {
     /**
      * Logs debug information about external parameters.
      */
-    private void logExternalParameters(List<JobParameter> parameters,
-                                       RecordComponentInfo component,
-                                       ClassInfo recordClass) {
+    private void logExternalParameters(List<JobParameter> parameters, ClassInfo recordClass) {
         if (LOG.isDebugEnabled()) {
-            LOG.debugf("Analyzed %s external parameters from @JobParameterSet on component '%s' for job '%s'",
-                    parameters.size(), component.name(), recordClass.simpleName());
+            LOG.debugf("Analyzed %s external parameters from @JobParameterSet on record '%s'",
+                    parameters.size(), recordClass.simpleName());
             for (JobParameter param : parameters) {
                 LOG.debugf("   - External parameter: %s (type=%s, required=%s, default='%s')",
                         param.name(), param.type(), param.required(), param.defaultValue());
@@ -132,16 +92,14 @@ public class ParameterExtractor {
     /**
      * Extracts parameters from @JobParameterSet annotation.
      */
-    private List<JobParameter> extractExternalParameters(RecordComponentInfo parameterSetComponent, ClassInfo recordClass) {
+    private List<JobParameter> extractExternalParameters(AnnotationInstance annotation, ClassInfo recordClass) {
         List<JobParameter> parameters = new ArrayList<>();
-        AnnotationInstance annotation = parameterSetComponent.annotation(JOB_PARAMETER_SET);
         AnnotationValue valueArray = annotation.value();
 
         if (valueArray == null || valueArray.asNestedArray().length == 0) {
             throw new IllegalStateException(
                     "JobRequest " + recordClass.name() +
-                            " @JobParameterSet on component '" + parameterSetComponent.name() +
-                            "' must define at least one parameter");
+                            " @JobParameterSet must define at least one parameter");
         }
 
         AnnotationInstance[] definitions = valueArray.asNestedArray();

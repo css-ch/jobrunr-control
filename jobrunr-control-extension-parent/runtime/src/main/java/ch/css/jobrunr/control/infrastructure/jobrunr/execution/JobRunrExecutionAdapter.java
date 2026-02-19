@@ -2,7 +2,6 @@ package ch.css.jobrunr.control.infrastructure.jobrunr.execution;
 
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.infrastructure.jobrunr.ConfigurableJobSearchAdapter;
-import ch.css.jobrunr.control.infrastructure.jobrunr.JobParameterExtractor;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -28,6 +27,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
     private final ConfigurableJobSearchAdapter configurableJobSearchAdapter;
     private final JobChainStatusEvaluator jobChainStatusEvaluator;
     private final JobStateMapper jobStateMapper;
+    private final ParameterSetLoaderPort parameterSetLoaderPort;
 
     @Inject
     public JobRunrExecutionAdapter(
@@ -35,12 +35,14 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
             JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
             ConfigurableJobSearchAdapter configurableJobSearchAdapter,
             JobChainStatusEvaluator jobChainStatusEvaluator,
-            JobStateMapper jobStateMapper
+            JobStateMapper jobStateMapper,
+            ParameterSetLoaderPort parameterSetLoaderPort
     ) {
         this.storageProvider = storageProvider;
         this.configurableJobSearchAdapter = configurableJobSearchAdapter;
         this.jobChainStatusEvaluator = jobChainStatusEvaluator;
         this.jobStateMapper = jobStateMapper;
+        this.parameterSetLoaderPort = parameterSetLoaderPort;
     }
 
     @Override
@@ -104,7 +106,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         Instant finishedAt = extractFinishedAt(job);
         BatchProgress batchProgress = extractBatchProgress(job);
         String jobName = job.getJobName();
-        var parameters = JobParameterExtractor.extractParameters(job);
+        var parameters = parameterSetLoaderPort.loadParameters(job.getId());
         var metadata = job.getMetadata().entrySet().stream()
                 .filter(entry -> !entry.getKey().startsWith("jobRunr"))
                 .collect(java.util.stream.Collectors.toMap(
@@ -129,7 +131,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
     private Instant extractStartedAt(org.jobrunr.jobs.Job job) {
         // Suche nach PROCESSING State in der Job-History
         return job.getJobStates().stream()
-                .filter(s -> s instanceof ProcessingState)
+                .filter(ProcessingState.class::isInstance)
                 .map(JobState::getCreatedAt)
                 .findFirst()
                 .orElse(null);

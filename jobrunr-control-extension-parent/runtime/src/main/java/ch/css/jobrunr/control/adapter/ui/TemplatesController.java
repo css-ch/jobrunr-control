@@ -302,8 +302,8 @@ public class TemplatesController extends BaseController {
      * Parameters are truncated to avoid sending large data in the list view.
      */
     private ScheduledJobInfoView toView(ScheduledJobInfo jobInfo) {
-        boolean usesExternal = resolveParametersUseCase.usesExternalStorage(jobInfo.getParameters());
-        Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(jobInfo.getParameters());
+        boolean usesExternal = jobInfo.hasExternalParameters();
+        Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(jobInfo);
 
         // Truncate large parameter values to prevent 413 (Request Entity Too Large) errors
         Map<String, Object> truncatedParameters = truncateParameterValues(resolvedParameters);

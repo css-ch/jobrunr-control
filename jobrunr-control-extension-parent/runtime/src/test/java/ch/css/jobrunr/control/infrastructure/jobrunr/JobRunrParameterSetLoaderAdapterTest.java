@@ -1,5 +1,8 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr;
 
+import ch.css.jobrunr.control.domain.JobDefinition;
+import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
+import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.domain.ParameterSet;
 import ch.css.jobrunr.control.domain.ParameterStoragePort;
 import ch.css.jobrunr.control.domain.exceptions.ParameterSetNotFoundException;
@@ -34,6 +37,9 @@ class JobRunrParameterSetLoaderAdapterTest {
     private ParameterStoragePort parameterStoragePort;
 
     @Mock
+    private JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
+
+    @Mock
     private Job job;
 
     @Mock
@@ -41,9 +47,13 @@ class JobRunrParameterSetLoaderAdapterTest {
 
     private JobRunrParameterSetLoaderAdapter adapter;
 
+    private static final String HANDLER_CLASS = "com.example.InlineJobHandler";
+    private static final String SIMPLE_CLASS = "InlineJobHandler";
+
     @BeforeEach
     void setUp() {
-        adapter = new JobRunrParameterSetLoaderAdapter(storageProvider, parameterStoragePort);
+        adapter = new JobRunrParameterSetLoaderAdapter(
+                storageProvider, parameterStoragePort, jobDefinitionDiscoveryService);
     }
 
     @Test
@@ -51,10 +61,18 @@ class JobRunrParameterSetLoaderAdapterTest {
     void loadParameters_InlineParameters_ReturnsJobParameters() {
         // Arrange
         UUID jobId = UUID.randomUUID();
+        JobDefinition inlineDef = new JobDefinition(
+                SIMPLE_CLASS, false, "InlineJobRequest", HANDLER_CLASS,
+                List.of(),
+                new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
+                false, null
+        );
 
         when(storageProvider.getJobById(jobId)).thenReturn(job);
         when(job.getJobDetails()).thenReturn(jobDetails);
+        when(jobDetails.getClassName()).thenReturn(HANDLER_CLASS);
         when(jobDetails.getJobParameters()).thenReturn(List.of());
+        when(jobDefinitionDiscoveryService.findJobByType(SIMPLE_CLASS)).thenReturn(Optional.of(inlineDef));
 
         // Act
         Map<String, Object> result = adapter.loadParameters(jobId);
@@ -62,6 +80,37 @@ class JobRunrParameterSetLoaderAdapterTest {
         // Assert
         assertThat(result).isNotNull();
         verify(storageProvider).getJobById(jobId);
+    }
+
+    @Test
+    @DisplayName("should load external parameters using job ID as parameter set ID")
+    void loadParameters_ExternalParameters_LoadsByJobId() {
+        // Arrange
+        UUID jobId = UUID.randomUUID();
+        Map<String, Object> expectedParams = Map.of("param1", "value1", "param2", 123);
+        ParameterSet parameterSet = ParameterSet.create(jobId, "ExternalJob", expectedParams);
+        JobDefinition externalDef = new JobDefinition(
+                "ExternalJobHandler", false, "ExternalJobRequest", "com.example.ExternalJobHandler",
+                List.of(),
+                new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
+                true, "parameterSetId"
+        );
+
+        when(storageProvider.getJobById(jobId)).thenReturn(job);
+        when(job.getJobDetails()).thenReturn(jobDetails);
+        when(jobDetails.getClassName()).thenReturn("com.example.ExternalJobHandler");
+        when(jobDefinitionDiscoveryService.findJobByType("ExternalJobHandler"))
+                .thenReturn(Optional.of(externalDef));
+        when(parameterStoragePort.findById(jobId)).thenReturn(Optional.of(parameterSet));
+
+        // Act
+        Map<String, Object> result = adapter.loadParameters(jobId);
+
+        // Assert
+        assertThat(result)
+                .containsEntry("param1", "value1")
+                .containsEntry("param2", 123);
+        verify(parameterStoragePort).findById(jobId);
     }
 
     @Test

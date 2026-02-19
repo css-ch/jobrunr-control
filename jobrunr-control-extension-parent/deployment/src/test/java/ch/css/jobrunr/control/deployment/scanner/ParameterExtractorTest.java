@@ -40,8 +40,6 @@ class ParameterExtractorTest {
         indexClass(indexer, CustomNameParametersRecord.class);
         indexClass(indexer, MultilineParameterRecord.class);
         indexClass(indexer, TestEnum.class);
-        indexClass(indexer, MultipleParameterSetsRecord.class);
-        indexClass(indexer, InvalidTypeParameterSetRecord.class);
         indexClass(indexer, EmptyParameterSetRecord.class);
         indexClass(indexer, MissingNameInParameterSetRecord.class);
         indexClass(indexer, MissingTypeInParameterSetRecord.class);
@@ -85,7 +83,7 @@ class ParameterExtractorTest {
         ParameterExtractor.AnalyzedParameters result = extractor.analyzeRecordParameters(recordClass);
 
         assertTrue(result.usesExternalParameters());
-        assertEquals("parameters", result.parameterSetFieldName());
+        assertNull(result.parameterSetFieldName());
         assertEquals(2, result.parameters().size());
 
         var param1 = result.parameters().get(0);
@@ -191,26 +189,6 @@ class ParameterExtractorTest {
     }
 
     @Test
-    void shouldThrowExceptionForMultipleParameterSets() {
-        ClassInfo recordClass = index.getClassByName(MultipleParameterSetsRecord.class.getName());
-
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> extractor.analyzeRecordParameters(recordClass));
-
-        assertTrue(exception.getMessage().contains("multiple @JobParameterSet annotations"));
-    }
-
-    @Test
-    void shouldThrowExceptionForInvalidParameterSetType() {
-        ClassInfo recordClass = index.getClassByName(InvalidTypeParameterSetRecord.class.getName());
-
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> extractor.analyzeRecordParameters(recordClass));
-
-        assertTrue(exception.getMessage().contains("@JobParameterSet but is not of type String"));
-    }
-
-    @Test
     void shouldThrowExceptionForEmptyParameterSet() {
         ClassInfo recordClass = index.getClassByName(EmptyParameterSetRecord.class.getName());
 
@@ -256,13 +234,11 @@ class ParameterExtractorTest {
     public record InlineParametersRecord(String name, Integer count) {
     }
 
-    public record ExternalParametersRecord(
-            @JobParameterSet({
-                    @JobParameterDefinition(name = "externalParam1", type = "java.lang.String"),
-                    @JobParameterDefinition(name = "externalParam2", type = "java.lang.Integer", defaultValue = "42")
-            })
-            String parameters
-    ) {
+    @JobParameterSet({
+            @JobParameterDefinition(name = "externalParam1", type = "java.lang.String"),
+            @JobParameterDefinition(name = "externalParam2", type = "java.lang.Integer", defaultValue = "42")
+    })
+    public record ExternalParametersRecord() {
     }
 
     public record MixedTypesRecord(
@@ -295,40 +271,20 @@ class ParameterExtractorTest {
     ) {
     }
 
-    public record MultipleParameterSetsRecord(
-            @JobParameterSet({@JobParameterDefinition(name = "param1", type = "java.lang.String")})
-            String set1,
-            @JobParameterSet({@JobParameterDefinition(name = "param2", type = "java.lang.String")})
-            String set2
-    ) {
+    @JobParameterSet({})
+    public record EmptyParameterSetRecord() {
     }
 
-    public record InvalidTypeParameterSetRecord(
-            @JobParameterSet({@JobParameterDefinition(name = "param", type = "java.lang.String")})
-            Integer invalidType
-    ) {
+    @JobParameterSet({
+            @JobParameterDefinition(type = "java.lang.String")
+    })
+    public record MissingNameInParameterSetRecord() {
     }
 
-    public record EmptyParameterSetRecord(
-            @JobParameterSet({})
-            String parameters
-    ) {
-    }
-
-    public record MissingNameInParameterSetRecord(
-            @JobParameterSet({
-                    @JobParameterDefinition(type = "java.lang.String")
-            })
-            String parameters
-    ) {
-    }
-
-    public record MissingTypeInParameterSetRecord(
-            @JobParameterSet({
-                    @JobParameterDefinition(name = "param")
-            })
-            String parameters
-    ) {
+    @JobParameterSet({
+            @JobParameterDefinition(name = "param")
+    })
+    public record MissingTypeInParameterSetRecord() {
     }
 
     private void indexClass(Indexer indexer, Class<?> clazz) throws IOException {

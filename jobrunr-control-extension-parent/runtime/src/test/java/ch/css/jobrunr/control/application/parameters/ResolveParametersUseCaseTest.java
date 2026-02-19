@@ -1,7 +1,10 @@
 package ch.css.jobrunr.control.application.parameters;
 
+import ch.css.jobrunr.control.domain.JobDefinition;
+import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.domain.ParameterSet;
 import ch.css.jobrunr.control.domain.ParameterStorageService;
+import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,7 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.HashMap;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,17 +31,35 @@ class ResolveParametersUseCaseTest {
     @InjectMocks
     private ResolveParametersUseCase useCase;
 
+    private static ScheduledJobInfo inlineJobInfo(UUID jobId, Map<String, Object> params) {
+        JobDefinition jobDef = new JobDefinition(
+                "TestJob", false, "TestJobRequest", "TestJobHandler",
+                List.of(),
+                new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
+                false, null
+        );
+        return new ScheduledJobInfo(jobId, "Test Job", jobDef, Instant.now(), params, false);
+    }
+
+    private static ScheduledJobInfo externalJobInfo(UUID jobId) {
+        JobDefinition jobDef = new JobDefinition(
+                "TestJob", false, "TestJobRequest", "TestJobHandler",
+                List.of(),
+                new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
+                true, "parameterSetId"
+        );
+        return new ScheduledJobInfo(jobId, "Test Job", jobDef, Instant.now(), Map.of(), false);
+    }
+
     @Test
     @DisplayName("should return inline parameters unchanged")
     void execute_InlineParameters_ReturnsUnchanged() {
         // Arrange
-        Map<String, Object> inlineParams = Map.of(
-                "param1", "value1",
-                "param2", 42
-        );
+        UUID jobId = UUID.randomUUID();
+        Map<String, Object> inlineParams = Map.of("param1", "value1", "param2", 42);
 
         // Act
-        Map<String, Object> result = useCase.execute(inlineParams);
+        Map<String, Object> result = useCase.execute(inlineJobInfo(jobId, inlineParams));
 
         // Assert
         assertThat(result)
@@ -47,102 +69,49 @@ class ResolveParametersUseCaseTest {
     }
 
     @Test
-    @DisplayName("should resolve external parameters from storage")
-    void execute_ExternalParameters_ResolvesFromStorage() {
+    @DisplayName("should resolve external parameters from storage using job ID as parameter set ID")
+    void execute_ExternalParameters_ResolvesFromStorageByJobId() {
         // Arrange
-        UUID paramSetId = UUID.randomUUID();
-        Map<String, Object> externalParamsMap = Map.of("__parameterSetId", paramSetId.toString());
-        Map<String, Object> storedParams = Map.of(
-                "externalParam1", "value1",
-                "externalParam2", 100
-        );
-        ParameterSet parameterSet = ParameterSet.create(paramSetId, "TestJob", storedParams);
+        UUID jobId = UUID.randomUUID();
+        Map<String, Object> storedParams = Map.of("externalParam1", "value1", "externalParam2", 100);
+        ParameterSet parameterSet = ParameterSet.create(jobId, "TestJob", storedParams);
 
-        when(parameterStorageService.findById(paramSetId)).thenReturn(Optional.of(parameterSet));
+        when(parameterStorageService.findById(jobId)).thenReturn(Optional.of(parameterSet));
 
         // Act
-        Map<String, Object> result = useCase.execute(externalParamsMap);
+        Map<String, Object> result = useCase.execute(externalJobInfo(jobId));
 
         // Assert
         assertThat(result)
                 .isNotNull()
                 .containsExactlyInAnyOrderEntriesOf(storedParams);
-        verify(parameterStorageService).findById(paramSetId);
+        verify(parameterStorageService).findById(jobId);
     }
 
     @Test
     @DisplayName("should return empty map when parameter set not found")
     void execute_ParameterSetNotFound_ReturnsEmptyMap() {
         // Arrange
-        UUID paramSetId = UUID.randomUUID();
-        Map<String, Object> externalParamsMap = Map.of("__parameterSetId", paramSetId.toString());
+        UUID jobId = UUID.randomUUID();
 
-        when(parameterStorageService.findById(paramSetId)).thenReturn(Optional.empty());
+        when(parameterStorageService.findById(jobId)).thenReturn(Optional.empty());
 
         // Act
-        Map<String, Object> result = useCase.execute(externalParamsMap);
+        Map<String, Object> result = useCase.execute(externalJobInfo(jobId));
 
         // Assert
         assertThat(result).isEmpty();
-        verify(parameterStorageService).findById(paramSetId);
+        verify(parameterStorageService).findById(jobId);
     }
 
     @Test
-    @DisplayName("should return empty map for null parameters")
-    void execute_NullParameters_ReturnsEmptyMap() {
-        // Act
-        Map<String, Object> result = useCase.execute(null);
-
-        // Assert
-        assertThat(result).isEmpty();
-        verify(parameterStorageService, never()).findById(any());
-    }
-
-    @Test
-    @DisplayName("should return empty map for empty parameters")
-    void execute_EmptyParameters_ReturnsEmptyMap() {
-        // Act
-        Map<String, Object> result = useCase.execute(new HashMap<>());
-
-        // Assert
-        assertThat(result).isEmpty();
-        verify(parameterStorageService, never()).findById(any());
-    }
-
-    @Test
-    @DisplayName("should detect inline parameters do not use external storage")
-    void usesExternalStorage_InlineParameters_ReturnsFalse() {
+    @DisplayName("should return empty map for inline job with empty parameters")
+    void execute_EmptyInlineParameters_ReturnsEmptyMap() {
         // Arrange
-        Map<String, Object> inlineParams = Map.of("param1", "value1");
+        UUID jobId = UUID.randomUUID();
 
         // Act
-        boolean result = useCase.usesExternalStorage(inlineParams);
-
-        // Assert
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("should detect external parameters use external storage")
-    void usesExternalStorage_ExternalParameters_ReturnsTrue() {
-        // Arrange
-        Map<String, Object> externalParams = Map.of("__parameterSetId", UUID.randomUUID().toString());
-
-        // Act
-        boolean result = useCase.usesExternalStorage(externalParams);
-
-        // Assert
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("should handle invalid parameter set ID format")
-    void execute_InvalidParameterSetId_ReturnsEmptyMap() {
-        // Arrange
-        Map<String, Object> invalidParams = Map.of("__parameterSetId", "not-a-uuid");
-
-        // Act
-        Map<String, Object> result = useCase.execute(invalidParams);
+        Map<String, Object> result = useCase.execute(inlineJobInfo(jobId, Map.of()));
 
         // Assert
         assertThat(result).isEmpty();

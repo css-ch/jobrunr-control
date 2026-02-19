@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 
 /**
  * Base controller providing common HTMX utilities and helper methods.
@@ -228,11 +227,11 @@ public abstract class BaseController {
      */
     protected ResolvedJobData resolveJobParameters(
             ScheduledJobInfo jobInfo,
-            UnaryOperator<Map<String, Object>> resolveParameters,
+            Function<ScheduledJobInfo, Map<String, Object>> resolveParameters,
             Function<String, List<JobParameter>> getJobParameters) {
 
-        // Resolve parameters (expand external parameter sets)
-        Map<String, Object> resolvedParameters = resolveParameters.apply(jobInfo.getParameters());
+        // Resolve parameters (load external parameter sets if applicable)
+        Map<String, Object> resolvedParameters = resolveParameters.apply(jobInfo);
 
         // Create a new ScheduledJobInfo with resolved parameters for the form
         ScheduledJobInfo jobInfoWithResolvedParams = new ScheduledJobInfo(

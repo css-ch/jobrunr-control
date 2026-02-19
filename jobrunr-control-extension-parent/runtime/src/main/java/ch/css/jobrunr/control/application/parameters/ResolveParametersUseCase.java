@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.application.parameters;
 
 import ch.css.jobrunr.control.domain.ParameterSet;
 import ch.css.jobrunr.control.domain.ParameterStorageService;
+import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -11,17 +12,15 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Use Case: Resolves job parameters by expanding external parameter set references.
+ * Use Case: Resolves job parameters by loading external parameter sets when applicable.
  * <p>
- * When a job uses external parameter storage (@JobParameterSet), the parameters map
- * contains a "__parameterSetId" key. This use case resolves that ID and returns
- * the actual parameters for display purposes.
+ * When a job uses external parameter storage (@JobParameterSet), this use case loads
+ * the actual parameters from the parameter storage using the job ID as the parameter set ID.
  */
 @ApplicationScoped
 public class ResolveParametersUseCase {
 
     private static final Logger LOG = Logger.getLogger(ResolveParametersUseCase.class);
-    private static final String PARAMETER_SET_ID_KEY = "__parameterSetId";
 
     private final ParameterStorageService parameterStorageService;
 
@@ -31,67 +30,26 @@ public class ResolveParametersUseCase {
     }
 
     /**
-     * Resolves parameters by expanding external parameter set references.
-     * If the parameters contain a "__parameterSetId" key, it loads the parameter set
-     * from external storage and returns the actual parameters.
+     * Resolves parameters for a job.
+     * If the job uses external parameter storage, the parameters are loaded from the
+     * parameter store using the job ID as the parameter set ID.
+     * Otherwise, the inline parameters from the job info are returned.
      *
-     * @param parameters the raw parameters map (may contain __parameterSetId)
-     * @return the resolved parameters (with external parameters expanded)
+     * @param jobInfo the scheduled job info
+     * @return the resolved parameters
      */
-    public Map<String, Object> execute(Map<String, Object> parameters) {
-        if (parameters == null || parameters.isEmpty()) {
-            return new HashMap<>();
+    public Map<String, Object> execute(ScheduledJobInfo jobInfo) {
+        if (!jobInfo.hasExternalParameters()) {
+            return new HashMap<>(jobInfo.getParameters());
         }
 
-        // Check if this uses external parameter storage
-        if (!parameters.containsKey(PARAMETER_SET_ID_KEY)) {
-            // Inline parameters - return as is
-            return new HashMap<>(parameters);
-        }
-
-        // External parameters - resolve from storage
-        String paramSetIdStr = (String) parameters.get(PARAMETER_SET_ID_KEY);
-        try {
-            UUID paramSetId = UUID.fromString(paramSetIdStr);
-            return parameterStorageService.findById(paramSetId)
-                    .map(ParameterSet::parameters)
-                    .map(HashMap::new)
-                    .orElseGet(() -> {
-                        LOG.warnf("Parameter set %s not found, returning empty parameters", paramSetId);
-                        return new HashMap<>();
-                    });
-        } catch (IllegalArgumentException e) {
-            LOG.errorf("Invalid parameter set ID format: %s", paramSetIdStr);
-            return new HashMap<>();
-        }
-    }
-
-    /**
-     * Checks if the given parameters use external storage.
-     *
-     * @param parameters the parameters map
-     * @return true if external storage is used
-     */
-    public boolean usesExternalStorage(Map<String, Object> parameters) {
-        return parameters != null && parameters.containsKey(PARAMETER_SET_ID_KEY);
-    }
-
-    /**
-     * Extracts the parameter set ID if external storage is used.
-     *
-     * @param parameters the parameters map
-     * @return the parameter set ID, or null if inline storage
-     */
-    public UUID getParameterSetId(Map<String, Object> parameters) {
-        if (!usesExternalStorage(parameters)) {
-            return null;
-        }
-        try {
-            String paramSetIdStr = (String) parameters.get(PARAMETER_SET_ID_KEY);
-            return UUID.fromString(paramSetIdStr);
-        } catch (IllegalArgumentException e) {
-            LOG.errorf("Invalid parameter set ID format in parameters");
-            return null;
-        }
+        UUID paramSetId = jobInfo.getJobId();
+        return parameterStorageService.findById(paramSetId)
+                .map(ParameterSet::parameters)
+                .map(HashMap::new)
+                .orElseGet(() -> {
+                    LOG.warnf("Parameter set %s not found, returning inline parameters", paramSetId);
+                    return new HashMap<>(jobInfo.getParameters());
+                });
     }
 }

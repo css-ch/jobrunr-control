@@ -1,6 +1,8 @@
 package ch.css.jobrunr.control.application.scheduling;
 
+import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
+import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.domain.ParameterStoragePort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
@@ -53,12 +55,10 @@ class DeleteScheduledJobUseCaseTest {
     }
 
     @Test
-    @DisplayName("should delete job and clean up external parameters")
+    @DisplayName("should delete job and clean up external parameters using job ID")
     void execute_JobWithExternalParams_DeletesJobAndParameters() {
         // Arrange
         UUID jobId = UUID.randomUUID();
-        UUID paramSetId = UUID.randomUUID();
-        Map<String, Object> params = Map.of("__parameterSetId", paramSetId.toString());
         ScheduledJobInfo jobInfo = createJobInfo(jobId, true);
 
         when(jobSchedulerPort.getScheduledJobById(jobId)).thenReturn(jobInfo);
@@ -67,7 +67,7 @@ class DeleteScheduledJobUseCaseTest {
         useCase.execute(jobId);
 
         // Assert
-        verify(parameterStoragePort).deleteById(any(UUID.class));
+        verify(parameterStoragePort).deleteById(jobId);
         verify(jobSchedulerPort).deleteScheduledJob(jobId);
     }
 
@@ -84,16 +84,13 @@ class DeleteScheduledJobUseCaseTest {
 
     // Helper
     private ScheduledJobInfo createJobInfo(UUID jobId, boolean externalParams) {
-        Map<String, Object> params = externalParams ?
-                Map.of("__parameterSetId", UUID.randomUUID().toString()) :
-                Map.of("param1", "value1");
-        // Create a minimal job definition
-        ch.css.jobrunr.control.domain.JobDefinition jobDef = new ch.css.jobrunr.control.domain.JobDefinition(
+        JobDefinition jobDef = new JobDefinition(
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
                 List.of(),
-                new ch.css.jobrunr.control.domain.JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
-                false, null
+                new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
+                externalParams, externalParams ? "parameterSetId" : null
         );
+        Map<String, Object> params = externalParams ? Map.of() : Map.of("param1", "value1");
         return new ScheduledJobInfo(jobId, "Test Job", jobDef, Instant.now(), params, false, List.of());
     }
 }

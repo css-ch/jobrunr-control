@@ -53,8 +53,8 @@ public class ExternalDataBatchJob implements JobRequestHandler<ExternalDataBatch
             return;
         }
 
-        // Load parameters from external storage
-        UUID parameterSetId = UUID.fromString(request.parameterSetId());
+        // Load parameters from external storage using the job's own UUID
+        UUID parameterSetId = ThreadLocalJobContext.getJobContext().getJobId();
         ParameterSet parameterSet = parameterStorageService.findById(parameterSetId)
                 .orElseThrow(() -> new IllegalStateException(
                         "Parameter set not found: " + parameterSetId));

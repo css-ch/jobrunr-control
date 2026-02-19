@@ -30,7 +30,6 @@ public record ScheduledJobInfo(
      */
     public ScheduledJobInfo {
         Objects.requireNonNull(jobId, "Job ID must not be null");
-        jobName = Objects.requireNonNull(jobName, "Job Name must not be null");
         Objects.requireNonNull(jobDefinition, "Job definition must not be null");
         Objects.requireNonNull(scheduledAt, "Scheduled at must not be null");
         parameters = parameters != null ? Map.copyOf(parameters) : Map.of();
@@ -90,24 +89,25 @@ public record ScheduledJobInfo(
 
     /**
      * Checks if this job uses external parameter storage.
+     * Determined by the job type via its definition.
      *
      * @return true if parameters are stored externally
      */
     public boolean hasExternalParameters() {
-        return parameters.containsKey("__parameterSetId");
+        return jobDefinition.usesExternalParameters();
     }
 
     /**
      * Gets the parameter set ID if using external storage.
+     * The parameter set ID is always equal to the job ID.
      *
-     * @return the parameter set ID, or empty if inline storage
+     * @return the parameter set ID (same as job ID), or empty if inline storage
      */
     public Optional<UUID> getParameterSetId() {
-        Object value = parameters.get("__parameterSetId");
-        if (value instanceof String str) {
-            return Optional.of(UUID.fromString(str));
+        if (!hasExternalParameters()) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        return Optional.of(jobId);
     }
 }
 

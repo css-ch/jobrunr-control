@@ -67,11 +67,10 @@ class DeleteTemplateUseCaseTest {
     }
 
     @Test
-    @DisplayName("should cleanup external parameters on deletion")
+    @DisplayName("should cleanup external parameters on deletion using template ID as parameter set ID")
     void shouldCleanupExternalParametersOnDeletion() {
         // Arrange
         UUID templateId = UUID.randomUUID();
-        UUID paramSetId = UUID.randomUUID();
         ScheduledJobInfo jobInfo = mock(ScheduledJobInfo.class);
 
         when(schedulerPort.getScheduledJobById(templateId))
@@ -79,13 +78,13 @@ class DeleteTemplateUseCaseTest {
         when(jobInfo.hasExternalParameters())
                 .thenReturn(true);
         when(jobInfo.getParameterSetId())
-                .thenReturn(Optional.of(paramSetId));
+                .thenReturn(Optional.of(templateId));
 
         // Act
         useCase.execute(templateId);
 
         // Assert
-        verify(parameterStoragePort).deleteById(paramSetId);
+        verify(parameterStoragePort).deleteById(templateId);
         verify(schedulerPort).deleteScheduledJob(templateId);
     }
 }

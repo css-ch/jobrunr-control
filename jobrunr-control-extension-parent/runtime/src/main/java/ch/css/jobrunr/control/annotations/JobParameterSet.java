@@ -6,17 +6,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marks a String field in a JobRequest to receive the parameter set ID
- * when using external parameter storage strategy.
+ * Marks a JobRequest record to use external parameter storage.
  *
  * <p>This annotation determines that the job uses EXTERNAL parameter storage.
- * The annotated field will contain a UUID reference to the ParameterSetEntity.
- * Parameters are defined in the annotation's value array, not on record components.</p>
+ * Parameters are defined in the annotation's value array and stored in a separate
+ * database table. The job handler retrieves parameters using the job's own UUID via
+ * {@code ThreadLocalJobContext.getJobContext().getJobId()}.</p>
  *
  * <h3>Requirements:</h3>
  * <ul>
- *   <li>Must be applied to exactly ONE record component per JobRequest</li>
- *   <li>Field must be of type String</li>
+ *   <li>Must be applied to the JobRequest record type</li>
  *   <li>The value array must contain at least one JobParameterDefinition</li>
  *   <li>Each JobParameterDefinition must have both 'name' and 'type' attributes</li>
  *   <li>Hibernate ORM must be enabled for external storage to work</li>
@@ -24,20 +23,18 @@ import java.lang.annotation.Target;
  *
  * <h3>Example:</h3>
  * <pre>
- * public record MyJobRequest(
- *     {@literal @}JobParameterSet({
- *         {@literal @}JobParameterDefinition(name = "userName", type = "java.lang.String", defaultValue = "admin"),
- *         {@literal @}JobParameterDefinition(name = "count", type = "java.lang.Integer", defaultValue = "10"),
- *         {@literal @}JobParameterDefinition(name = "startDate", type = "java.time.LocalDate", defaultValue = "2024-01-01")
- *     })
- *     String parameterSetId
- * ) implements JobRequest {
+ * {@literal @}JobParameterSet({
+ *     {@literal @}JobParameterDefinition(name = "userName", type = "java.lang.String", defaultValue = "admin"),
+ *     {@literal @}JobParameterDefinition(name = "count", type = "java.lang.Integer", defaultValue = "10"),
+ *     {@literal @}JobParameterDefinition(name = "startDate", type = "java.time.LocalDate", defaultValue = "2024-01-01")
+ * })
+ * public record MyJobRequest() implements JobRequest {
  *     {@literal @}Override
  *     public Class&lt;MyJob&gt; getJobRequestHandler() { return MyJob.class; }
  * }
  * </pre>
  */
-@Target(ElementType.RECORD_COMPONENT)
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface JobParameterSet {
     /**
