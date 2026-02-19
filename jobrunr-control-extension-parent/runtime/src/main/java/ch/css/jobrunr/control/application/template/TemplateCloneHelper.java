@@ -1,6 +1,5 @@
 package ch.css.jobrunr.control.application.template;
 
-import ch.css.jobrunr.control.application.scheduling.ParameterStorageHelper;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ParameterSet;
 import ch.css.jobrunr.control.domain.ParameterStorageService;
@@ -27,16 +26,13 @@ public class TemplateCloneHelper {
 
     private final JobSchedulerPort jobSchedulerPort;
     private final ParameterStorageService parameterStorageService;
-    private final ParameterStorageHelper parameterStorageHelper;
 
     @Inject
     public TemplateCloneHelper(
             JobSchedulerPort jobSchedulerPort,
-            ParameterStorageService parameterStorageService,
-            ParameterStorageHelper parameterStorageHelper) {
+            ParameterStorageService parameterStorageService) {
         this.jobSchedulerPort = jobSchedulerPort;
         this.parameterStorageService = parameterStorageService;
-        this.parameterStorageHelper = parameterStorageHelper;
     }
 
     /**
@@ -50,117 +46,110 @@ public class TemplateCloneHelper {
      * @throws IllegalArgumentException if the template job is not found
      */
     public UUID cloneTemplate(UUID templateId, String postfix, Map<String, Object> parameterOverrides, List<String> additionalLabels) {
-        if (templateId == null) {
-            throw new IllegalArgumentException("templateId must not be null");
-        }
+        validateTemplateId(templateId);
 
-        // Get the template job
-        ScheduledJobInfo sourceJob = jobSchedulerPort.getScheduledJobById(templateId);
-        if (sourceJob == null) {
-            throw new IllegalArgumentException("Template job not found: " + templateId);
-        }
+        ScheduledJobInfo sourceJob = loadTemplateJob(templateId);
+        String newJobName = generateJobName(sourceJob.jobName(), postfix);
 
         LOG.infof("Cloning template job %s (%s)", templateId, sourceJob.jobName());
 
-        // Create a new name for the clone
-        String newJobName = generateJobName(sourceJob.jobName(), postfix);
-
-        UUID newJobId;
-
-        if (sourceJob.jobDefinition().usesExternalParameters()) {
-            // TWO-PHASE APPROACH for external parameters
-            LOG.debugf("Using two-phase approach for job with external parameters");
-
-            // Phase 1: Create job with empty/reference parameters
-            Map<String, Object> emptyParams = Map.of();
-            if (additionalLabels != null && !additionalLabels.isEmpty()) {
-                newJobId = jobSchedulerPort.scheduleJob(
-                        sourceJob.jobDefinition(),
-                        newJobName,
-                        emptyParams,
-                        true,              // isExternalTrigger
-                        null,              // scheduledAt
-                        additionalLabels
-                );
-            } else {
-                newJobId = jobSchedulerPort.scheduleJob(
-                        sourceJob.jobDefinition(),
-                        newJobName,
-                        emptyParams,
-                        true,              // isExternalTrigger
-                        null               // scheduledAt
-                );
-            }
-
-            // Phase 2: Load template parameters, clone them, and store with new job ID
-            UUID templateParameterSetId = templateId; // Template's parameter set ID = template job ID
-            var templateParamSet = parameterStorageService.findById(templateParameterSetId);
-
-            if (templateParamSet.isPresent()) {
-                Map<String, Object> clonedParameters = new HashMap<>(templateParamSet.get().parameters());
-
-                // Apply overrides if provided
-                if (parameterOverrides != null && !parameterOverrides.isEmpty()) {
-                    clonedParameters.putAll(parameterOverrides);
-                    LOG.infof("Applied %s parameter override(s)", parameterOverrides.size());
-                }
-
-                // Store parameters with new job ID
-                ParameterSet newParamSet = ParameterSet.create(
-                        newJobId,
-                        sourceJob.jobDefinition().jobType(),
-                        clonedParameters
-                );
-                parameterStorageService.store(newParamSet);
-                LOG.infof("Stored cloned parameter set with ID: %s", newJobId);
-
-                // Update job to reference the parameter set
-                Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(
-                        newJobId,
-                        sourceJob.jobDefinition()
-                );
-                jobSchedulerPort.updateJobParameters(newJobId, paramReference);
-                LOG.infof("Updated job %s with parameter reference", newJobId);
-            } else {
-                LOG.warnf("Template parameter set not found for template: %s", templateId);
-            }
-
-        } else {
-            // INLINE PARAMETERS: Use existing single-phase approach
-            LOG.debugf("Using single-phase approach for job with inline parameters");
-
-            // Merge parameters: start with template parameters, then apply overrides
-            Map<String, Object> mergedParameters = new HashMap<>(sourceJob.parameters());
-            if (parameterOverrides != null && !parameterOverrides.isEmpty()) {
-                mergedParameters.putAll(parameterOverrides);
-                LOG.infof("Applied %s parameter override(s)", parameterOverrides.size());
-            }
-
-            // Schedule the new job
-            if (additionalLabels != null && !additionalLabels.isEmpty()) {
-                newJobId = jobSchedulerPort.scheduleJob(
-                        sourceJob.jobDefinition(),
-                        newJobName,
-                        mergedParameters,
-                        true,              // isExternalTrigger
-                        null,              // scheduledAt
-                        additionalLabels
-                );
-            } else {
-                newJobId = jobSchedulerPort.scheduleJob(
-                        sourceJob.jobDefinition(),
-                        newJobName,
-                        mergedParameters,
-                        true,              // isExternalTrigger
-                        null               // scheduledAt
-                );
-            }
-        }
+        UUID newJobId = sourceJob.jobDefinition().usesExternalParameters()
+                ? cloneTemplateWithExternalParameters(templateId, sourceJob, newJobName, parameterOverrides, additionalLabels)
+                : cloneTemplateWithInlineParameters(sourceJob, newJobName, parameterOverrides, additionalLabels);
 
         LOG.infof("Created cloned job with ID: %s and name: %s", newJobId, newJobName);
 
         return newJobId;
     }
+
+    private void validateTemplateId(UUID templateId) {
+        if (templateId == null) {
+            throw new IllegalArgumentException("templateId must not be null");
+        }
+    }
+
+    private ScheduledJobInfo loadTemplateJob(UUID templateId) {
+        ScheduledJobInfo sourceJob = jobSchedulerPort.getScheduledJobById(templateId);
+        if (sourceJob == null) {
+            throw new IllegalArgumentException("Template job not found: " + templateId);
+        }
+        return sourceJob;
+    }
+
+    private UUID cloneTemplateWithExternalParameters(UUID templateId, ScheduledJobInfo sourceJob, String newJobName,
+                                                     Map<String, Object> parameterOverrides, List<String> additionalLabels) {
+        LOG.debugf("Using two-phase approach for job with external parameters");
+
+        // Phase 1: Create job with empty/reference parameters
+        UUID newJobId = scheduleJobWithLabels(sourceJob.jobDefinition(), newJobName, Map.of(), additionalLabels);
+
+        // Phase 2: Load template parameters, clone them, and store with new job ID
+        var templateParamSet = parameterStorageService.findById(templateId);
+
+        if (templateParamSet.isPresent()) {
+            Map<String, Object> clonedParameters = new HashMap<>(templateParamSet.get().parameters());
+            applyParameterOverrides(clonedParameters, parameterOverrides);
+
+            // Store parameters with new job ID
+            ParameterSet newParamSet = ParameterSet.create(
+                    newJobId,
+                    sourceJob.jobDefinition().jobType(),
+                    clonedParameters
+            );
+            parameterStorageService.store(newParamSet);
+            LOG.infof("Stored cloned parameter set with ID: %s", newJobId);
+
+            // Update job with empty parameter map (parameters are accessed via job UUID)
+            jobSchedulerPort.updateJobParameters(newJobId, Map.of());
+            LOG.infof("Updated job %s with parameter reference", newJobId);
+        } else {
+            LOG.warnf("Template parameter set not found for template: %s", templateId);
+        }
+
+        return newJobId;
+    }
+
+    private UUID cloneTemplateWithInlineParameters(ScheduledJobInfo sourceJob, String newJobName,
+                                                   Map<String, Object> parameterOverrides, List<String> additionalLabels) {
+        LOG.debugf("Using single-phase approach for job with inline parameters");
+
+        // Merge parameters: start with template parameters, then apply overrides
+        Map<String, Object> mergedParameters = new HashMap<>(sourceJob.parameters());
+        applyParameterOverrides(mergedParameters, parameterOverrides);
+
+        // Schedule the new job
+        return scheduleJobWithLabels(sourceJob.jobDefinition(), newJobName, mergedParameters, additionalLabels);
+    }
+
+    private void applyParameterOverrides(Map<String, Object> parameters, Map<String, Object> overrides) {
+        if (overrides != null && !overrides.isEmpty()) {
+            parameters.putAll(overrides);
+            LOG.infof("Applied %s parameter override(s)", overrides.size());
+        }
+    }
+
+    private UUID scheduleJobWithLabels(ch.css.jobrunr.control.domain.JobDefinition jobDefinition, String jobName,
+                                       Map<String, Object> parameters, List<String> additionalLabels) {
+        if (additionalLabels != null && !additionalLabels.isEmpty()) {
+            return jobSchedulerPort.scheduleJob(
+                    jobDefinition,
+                    jobName,
+                    parameters,
+                    true,              // isExternalTrigger
+                    null,              // scheduledAt
+                    additionalLabels
+            );
+        } else {
+            return jobSchedulerPort.scheduleJob(
+                    jobDefinition,
+                    jobName,
+                    parameters,
+                    true,              // isExternalTrigger
+                    null               // scheduledAt
+            );
+        }
+    }
+
 
     /**
      * Generates a new job name by appending a postfix.

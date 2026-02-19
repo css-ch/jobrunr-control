@@ -17,11 +17,13 @@
                                    hx-get="/q/jobrunr-control/templates/table"
                                    hx-trigger="keyup changed delay:300ms"
                                    hx-target="#jobs-table"
-                                   hx-vals='{"page": "0", "size": "10", "sortBy": "jobName", "sortOrder": "asc"}'
+                                   hx-vals='js:&#123;"page": "0", "size": "10", "sortBy": "jobName", "sortOrder": "asc"&#125;'
                                    hx-include="[name='jobType']">
                         </div>
                         <div class="col-md-3">
-                            <select name="jobType"
+                            <label for="jobTypeFilter" class="visually-hidden">Job-Typ Filter</label>
+                            <select id="jobTypeFilter"
+                                    name="jobType"
                                     class="form-select"
                                     hx-get="/q/jobrunr-control/templates/table"
                                     hx-target="#jobs-table"
@@ -51,10 +53,8 @@
          hx-trigger="load"
          hx-swap="outerHTML">
         <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Lade Templates...</span>
-            </div>
-            <p class="mt-2">Lade Templates...</p>
+            <div class="spinner-border text-primary" aria-hidden="true"></div>
+            <output class="d-block mt-2">Lade Templates...</output>
         </div>
     </div>
 
@@ -72,9 +72,8 @@
                      hx-trigger="load"
                      hx-swap="innerHTML">
                     <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Lade Formular...</span>
-                        </div>
+                        <div class="spinner-border text-primary" aria-hidden="true"></div>
+                        <output class="d-block">Lade Formular...</output>
                     </div>
                 </div>
             </div>
@@ -87,17 +86,21 @@
             htmx.trigger('#jobs-table', 'load');
         }, 10000);
 
-        // Listen for closeModal event from HTMX response header
-        document.body.addEventListener('closeModal', function() {
-            const modalElement = document.getElementById('jobModal');
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) {
-                modal.hide();
+        // Close modal after successful form submission and table update
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            // Only close modal if the swap was triggered by the template form
+            if (event.detail.target.id === 'jobs-table' &&
+                (event.detail.requestConfig.elt.id === 'templateForm')) {
+                const modalElement = document.getElementById('jobModal');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
             }
         });
 
-        // Listen for scrollToError event from HTMX response header
-        document.body.addEventListener('scrollToError', function() {
+        // Close modal after successful form submission and table update
+        document.body.addEventListener('htmx:afterSwap', function() {
             // Scroll modal body to top to show the error
             const modalBody = document.querySelector('#jobModal .modal-body');
             if (modalBody) {

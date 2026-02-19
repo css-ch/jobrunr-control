@@ -86,7 +86,7 @@ class ParameterExtractorTest {
         assertNull(result.parameterSetFieldName());
         assertEquals(2, result.parameters().size());
 
-        var param1 = result.parameters().get(0);
+        var param1 = result.parameters().getFirst();
         assertEquals("externalParam1", param1.name());
         assertEquals(JobParameterType.STRING, param1.type());
         assertTrue(param1.required());
@@ -134,7 +134,7 @@ class ParameterExtractorTest {
 
         assertEquals(1, result.parameters().size());
 
-        var param = result.parameters().get(0);
+        var param = result.parameters().getFirst();
         assertEquals("status", param.name());
         assertEquals(JobParameterType.ENUM, param.type());
         assertEquals(3, param.enumValues().size());
@@ -151,7 +151,7 @@ class ParameterExtractorTest {
 
         assertEquals(1, result.parameters().size());
 
-        var param = result.parameters().get(0);
+        var param = result.parameters().getFirst();
         assertEquals("statuses", param.name());
         assertEquals(JobParameterType.MULTI_ENUM, param.type());
         assertEquals(3, param.enumValues().size());
@@ -165,7 +165,7 @@ class ParameterExtractorTest {
 
         assertEquals(2, result.parameters().size());
 
-        var param1 = result.parameters().get(0);
+        var param1 = result.parameters().getFirst();
         assertEquals("Custom Name", param1.name());
         assertEquals("default value", param1.defaultValue());
         assertFalse(param1.required());
@@ -183,7 +183,7 @@ class ParameterExtractorTest {
 
         assertEquals(1, result.parameters().size());
 
-        var param = result.parameters().get(0);
+        var param = result.parameters().getFirst();
         assertEquals("description", param.name());
         assertEquals(JobParameterType.MULTILINE, param.type());
     }

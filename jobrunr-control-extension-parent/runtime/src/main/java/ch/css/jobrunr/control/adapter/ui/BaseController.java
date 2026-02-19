@@ -1,9 +1,11 @@
 package ch.css.jobrunr.control.adapter.ui;
 
 import ch.css.jobrunr.control.application.discovery.DiscoverJobsUseCase;
+import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.domain.ScheduledJobInfoView;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
@@ -24,16 +26,14 @@ public abstract class BaseController {
     private static final Logger LOG = Logger.getLogger(BaseController.class);
 
     /**
-     * Builds a response that closes the modal and returns the updated content.
-     * Uses HX-Trigger header to signal modal closure to HTMX.
+     * Builds a response that returns the updated content.
+     * The modal will be closed automatically via htmx:afterSwap event listener.
      *
      * @param content the template instance to return
-     * @return response with modal close trigger
+     * @return response with the updated content
      */
     protected Response buildModalCloseResponse(TemplateInstance content) {
-        return Response.ok(content)
-                .header("HX-Trigger", "closeModal")
-                .build();
+        return Response.ok(content).build();
     }
 
     /**
@@ -151,6 +151,25 @@ public abstract class BaseController {
             return String.format("[Map with %d entries - too large to display]", map.size());
         }
         return map;
+    }
+
+    /**
+     * Converts ScheduledJobInfo to ScheduledJobInfoView with resolved parameters.
+     * If the job uses external parameter storage, the parameters are loaded from the parameter set.
+     * Parameters are truncated to avoid sending large data in the list view.
+     *
+     * @param jobInfo                  the job info to convert
+     * @param resolveParametersUseCase the use case to resolve external parameters
+     * @return view model with resolved and truncated parameters
+     */
+    protected ScheduledJobInfoView toView(ScheduledJobInfo jobInfo, ResolveParametersUseCase resolveParametersUseCase) {
+        boolean usesExternal = jobInfo.hasExternalParameters();
+        Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(jobInfo);
+
+        // Truncate large parameter values to prevent 413 (Request Entity Too Large) errors
+        Map<String, Object> truncatedParameters = truncateParameterValues(resolvedParameters);
+
+        return ScheduledJobInfoView.from(jobInfo, truncatedParameters, usesExternal);
     }
 
     /**

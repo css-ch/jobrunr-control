@@ -402,16 +402,12 @@ public class BatchImportJobHandler implements JobRequestHandler<BatchImportJobRe
 
 === Step 2: Create the Child Job
 
-Child jobs need the parent batch job ID to establish the parent-child relationship.
-Pass it as a parameter in the child job request:
-
 [source,java]
 ----
-// Child job request - receives parentBatchJobId from parent
+// Child job request (not annotated with @ConfigurableJob)
 public record ImportItemJobRequest(
     Long itemId,
-    Boolean dryRun,
-    UUID parentBatchJobId  // <-- Required for batch relationship
+    Boolean dryRun
 ) implements JobRequest {
 
     @Override
@@ -419,20 +415,6 @@ public record ImportItemJobRequest(
         return ImportItemJobHandler.class;
     }
 }
-----
-
-The parent batch job obtains its own ID and passes it to each child:
-
-[source,java]
-----
-// In the parent batch job handler:
-var parentBatchJobId = ThreadLocalJobContext.getJobContext().getJobId();
-
-List<ImportItemJobRequest> childRequests = items.stream()
-    .map(item -> new ImportItemJobRequest(item.id(), request.dryRun(), parentBatchJobId))
-    .toList();
-
-BackgroundJobRequest.enqueue(childRequests.stream());
 ----
 
 [source,java]
@@ -445,68 +427,6 @@ public class ImportItemJobHandler implements JobRequestHandler<ImportItemJobRequ
     public void run(ImportItemJobRequest request) throws Exception {
         // Process individual item
         processItem(request.itemId(), request.dryRun());
-    }
-}
-----
-
-=== Loading External Parameters in Batch Jobs
-
-Batch jobs using `@JobParameterSet` load their parameters from external storage using the job's own UUID:
-
-[source,java]
-----
-@ConfigurableJob(isBatch = true, labels = {"ExternalData"})
-@Override
-public void run(ExternalDataBatchJobRequest request) {
-    // Load parameters from external storage using the job's own UUID
-    UUID parameterSetId = ThreadLocalJobContext.getJobContext().getJobId();
-    ParameterSet parameterSet = parameterStorageService.findById(parameterSetId)
-            .orElseThrow(() -> new IllegalStateException(
-                    "Parameter set not found: " + parameterSetId));
-
-    Integer numberOfChildJobs = parameterSet.getInteger("numberOfChildJobs");
-    String stringParam = parameterSet.getString("stringExternalParameter");
-    // ... use parameters to create and enqueue child jobs
-}
-----
-
-=== Success and Failure Callbacks
-
-Use `JobRequestOnSuccessFactory` and `JobRequestOnFailureFactory` on the batch job's request to chain callback jobs after batch completion.
-The callback receives the original `JobRequest`, which provides access to the parent batch job's context:
-
-[source,java]
-----
-public record BatchImportJobRequest(
-    @JobParameterDefinition(defaultValue = "1000") Integer batchSize,
-    @JobParameterDefinition(defaultValue = "false") Boolean dryRun
-) implements JobRequest, JobRequestOnSuccessFactory, JobRequestOnFailureFactory {
-
-    @Override
-    public JobRequest createOnSuccessJobRequest(JobRequestId jobRequestId, JobRequest jobRequest) {
-        return new BatchSuccessRequest(jobRequest);
-    }
-
-    @Override
-    public JobRequest createOnFailureJobRequest(JobRequestId jobRequestId, JobRequest jobRequest) {
-        return new BatchFailureRequest(jobRequest);
-    }
-}
-----
-
-In the callback handler, use `ThreadLocalJobContext.getJobContext().getAwaitedJob()` to retrieve the parent batch job ID:
-
-[source,java]
-----
-@ApplicationScoped
-public class BatchSuccessHandler implements JobRequestHandler<BatchSuccessRequest> {
-
-    @Job(name = "Batch Success Post-Processing", retries = 0)
-    @Override
-    public void run(BatchSuccessRequest request) {
-        // Access the parent batch job that triggered this callback
-        UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJob();
-        LOG.infof("Batch job %s completed successfully", parentJobId);
     }
 }
 ----
@@ -963,40 +883,118 @@ quarkus.jobrunr-control.parameter-storage.cleanup.retention-days=30
 |No practical limits
 
 |**Use Cases**
-|Standard jobs with few parameters (< 10), strings < 1000 chars
-|Jobs with 10+ parameters, large text fields, or template jobs
+|Standard jobs with few parameters
+|Jobs with many or large parameters
 
 |**Maintenance**
 |No cleanup needed
 |Automatic cleanup available
 |===
 
-.Tips
-* For external storage, always specify `type` as the fully qualified class name
+=== Best Practices
+
+==== Inline Storage
+
+* Keep parameter count low (< 10)
+* Limit string lengths (< 1000 chars)
+* Use for jobs with fixed parameter schemas
+* Prefer for simple configuration jobs
+
+==== External Storage
+
+* Use for jobs with 10+ parameters
+* Ideal for template jobs with varying configs
+* Use MULTILINE type for large text fields
+* Enable cleanup to prevent storage bloat
+* Consider parameter set reuse for similar jobs
+
+==== Type Annotations
+
+* Always specify `type` for external storage parameters
+* Use fully qualified class names for custom types
 * Mark multiline text explicitly with `type = "MULTILINE"`
-* Enable cleanup (`quarkus.jobrunr-control.parameter-storage.cleanup.enabled=true`) to prevent storage bloat
+* Document expected parameter formats in job comments
 
 == Lifecycle Callbacks
 
-The extension provides two interfaces for chaining follow-up jobs after completion or failure.
-For a practical example with batch jobs, see <<Success and Failure Callbacks>>.
-
 === Success Callback
 
-Implement `JobRequestOnSuccessFactory` on your `JobRequest` to chain a job after successful completion.
-The callback is automatically scheduled when the main job completes successfully.
+Implement `JobRequestOnSuccessFactory` to chain a job after successful completion:
+
+[source,java]
+----
+public record MyBatchJobRequest(
+    Integer batchSize
+) implements JobRequest, JobRequestOnSuccessFactory {
+
+    @Override
+    public Class<MyBatchJobHandler> getJobRequestHandler() {
+        return MyBatchJobHandler.class;
+    }
+
+    @Override
+    public JobRequest createOnSuccessJobRequest(
+            JobRequestId jobRequestId,
+            JobRequest jobRequest) {
+        return new NotifySuccessRequest(
+            jobRequestId.asUUID(),
+            "Batch completed successfully"
+        );
+    }
+}
+----
+
+The success callback job is automatically scheduled when the main job completes successfully.
 
 === Failure Callback
 
-Implement `JobRequestOnFailureFeactory` on your `JobRequest` to chain a job when execution fails.
+Implement `JobRequestOnFailureFeactory` to chain a job when execution fails:
+
+[source,java]
+----
+public record MyBatchJobRequest(
+    Integer batchSize
+) implements JobRequest, JobRequestOnFailureFeactory {
+
+    @Override
+    public Class<MyBatchJobHandler> getJobRequestHandler() {
+        return MyBatchJobHandler.class;
+    }
+
+    @Override
+    public JobRequest createOnFailureJobRequest(
+            JobRequestId jobRequestId,
+            JobRequest jobRequest) {
+        return new AlertFailureRequest(
+            jobRequestId.asUUID(),
+            "Batch job failed!"
+        );
+    }
+}
+----
 
 === Combining Callbacks
 
-A single `JobRequest` can implement both interfaces to handle both outcomes.
+You can implement both interfaces:
 
-=== Accessing the Parent Job
+[source,java]
+----
+public record MyBatchJobRequest(Integer batchSize)
+    implements JobRequest,
+               JobRequestOnSuccessFactory,
+               JobRequestOnFailureFeactory {
 
-In callback handlers, use `ThreadLocalJobContext.getJobContext().getAwaitedJob()` to retrieve the UUID of the parent job that triggered the callback.
+    @Override
+    public JobRequest createOnSuccessJobRequest(...) {
+        return new SuccessNotificationRequest(...);
+    }
+
+    @Override
+    public JobRequest createOnFailureJobRequest(...) {
+        return new FailureAlertRequest(...);
+    }
+}
+----
 
 === Job Chain Status Evaluation
 

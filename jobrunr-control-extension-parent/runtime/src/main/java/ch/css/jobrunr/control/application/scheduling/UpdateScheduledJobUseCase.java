@@ -1,11 +1,11 @@
 package ch.css.jobrunr.control.application.scheduling;
 
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
-import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -114,9 +114,8 @@ public class UpdateScheduledJobUseCase {
             // Update external parameter set in-place (preserves version)
             parameterStorageHelper.updateParametersForJob(jobId, jobDefinition, jobType, convertedParameters);
 
-            // Update job metadata with parameter reference
-            Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(jobId, jobDefinition);
-            jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, paramReference, isExternalTrigger, effectiveScheduledAt, additionalLabels);
+            // Update job metadata with empty parameter map (parameters are accessed via job UUID)
+            jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, Map.of(), isExternalTrigger, effectiveScheduledAt, additionalLabels);
 
             LOG.infof("Updated job with external parameters: %s (ID: %s)", jobType, jobId);
         } else {

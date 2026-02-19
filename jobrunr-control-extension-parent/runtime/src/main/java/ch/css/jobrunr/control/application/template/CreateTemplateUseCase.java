@@ -85,9 +85,8 @@ public class CreateTemplateUseCase {
             // Phase 2: Store parameters using template UUID as parameter set ID
             parameterStorageHelper.storeParametersForJob(templateId, jobDefinition, jobType, convertedParameters);
 
-            // Phase 3: Update template job with parameter reference
-            Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(templateId, jobDefinition);
-            jobSchedulerPort.updateJobParameters(templateId, paramReference);
+            // Phase 3: Update template job with empty parameter map (parameters are accessed via job UUID)
+            jobSchedulerPort.updateJobParameters(templateId, Map.of());
 
             LOG.infof("Created template with external parameters: %s (ID: %s)", jobType, templateId);
         } else {

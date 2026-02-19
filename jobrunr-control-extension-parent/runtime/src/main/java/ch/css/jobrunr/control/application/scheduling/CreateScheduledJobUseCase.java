@@ -101,9 +101,8 @@ public class CreateScheduledJobUseCase {
             // Phase 2: Store parameters using job UUID as parameter set ID
             parameterStorageHelper.storeParametersForJob(jobId, jobDefinition, jobType, convertedParameters);
 
-            // Phase 3: Update job with parameter reference
-            Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(jobId, jobDefinition);
-            jobSchedulerPort.updateJobParameters(jobId, paramReference);
+            // Phase 3: Update job with empty parameter map (parameters are accessed via job UUID)
+            jobSchedulerPort.updateJobParameters(jobId, Map.of());
 
             LOG.infof("Created job with external parameters: %s (ID: %s)", jobType, jobId);
         } else {

@@ -446,27 +446,6 @@ Marks a `JobRequestHandler.run()` method as a configurable job:
 public void run(MyJobRequest request) { ... }
 ----
 
-.Labels
-Labels categorize jobs for filtering in the JobRunr Pro Dashboard and in JobRunr Control.
-They are defined via the `labels` attribute of `@ConfigurableJob`.
-
-[cols="1,3"]
-|===
-|Label |Meaning
-
-|`template`
-|Reserved label. Marks a job as a template (blueprint). Template jobs are never executed directly and are managed in the dedicated Templates tab. This label is set automatically by the extension when creating templates.
-
-|Custom labels (e.g. `"Example"`, `"Batch"`, `"ExternalData"`)
-|Developer-defined labels for grouping and filtering. Visible in the JobRunr Pro Dashboard and can be used for deep-link filtering (e.g. "View by Label").
-|===
-
-[IMPORTANT]
-====
-The label `template` is reserved and must not be set manually via `@ConfigurableJob`.
-It is managed exclusively by the extension's template use cases.
-====
-
 ==== @JobParameterDefinition
 
 Annotates record components to define parameter metadata:

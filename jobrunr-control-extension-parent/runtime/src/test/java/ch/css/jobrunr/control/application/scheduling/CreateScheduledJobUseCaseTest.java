@@ -131,7 +131,6 @@ class CreateScheduledJobUseCaseTest {
         String jobName = "My Test Job";
         Map<String, String> parameters = Map.of("param1", "value1");
         Map<String, Object> convertedParams = Map.of("param1", "value1");
-        Map<String, Object> paramReference = Map.of("parameterSetId", mockJobId.toString());
         Instant scheduledAt = Instant.now().plusSeconds(3600);
         JobDefinition externalParamsJobDef = createJobDefinition(jobType, true);
 
@@ -139,7 +138,6 @@ class CreateScheduledJobUseCaseTest {
         when(validator.convertAndValidate(externalParamsJobDef, parameters)).thenReturn(convertedParams);
         when(jobSchedulerPort.scheduleJob(eq(externalParamsJobDef), eq(jobName), eq(Map.of()), eq(false), eq(scheduledAt), isNull()))
                 .thenReturn(mockJobId);
-        when(parameterStorageHelper.createParameterReference(mockJobId, externalParamsJobDef)).thenReturn(paramReference);
 
         // Act
         UUID result = useCase.execute(jobType, jobName, parameters, scheduledAt, false);
@@ -153,9 +151,8 @@ class CreateScheduledJobUseCaseTest {
         // Verify Phase 2: Store parameters with job UUID
         verify(parameterStorageHelper).storeParametersForJob(mockJobId, externalParamsJobDef, jobType, convertedParams);
 
-        // Verify Phase 3: Update job with parameter reference
-        verify(parameterStorageHelper).createParameterReference(mockJobId, externalParamsJobDef);
-        verify(jobSchedulerPort).updateJobParameters(mockJobId, paramReference);
+        // Verify Phase 3: Update job with empty parameter map
+        verify(jobSchedulerPort).updateJobParameters(mockJobId, Map.of());
     }
 
     @Test

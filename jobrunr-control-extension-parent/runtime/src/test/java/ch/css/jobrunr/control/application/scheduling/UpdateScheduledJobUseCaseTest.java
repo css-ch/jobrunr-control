@@ -1,11 +1,11 @@
 package ch.css.jobrunr.control.application.scheduling;
 
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
-import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.testutils.JobDefinitionBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,6 +42,7 @@ class UpdateScheduledJobUseCaseTest {
     private ParameterStorageHelper storageHelper;
 
     @Mock
+    @SuppressWarnings("unused") // Required for @InjectMocks to instantiate UpdateScheduledJobUseCase
     private AuditLoggerHelper auditLogger;
 
     @InjectMocks
@@ -104,13 +105,14 @@ class UpdateScheduledJobUseCaseTest {
         UUID jobId = UUID.randomUUID();
         String invalidJobType = "NonExistentJob";
         Map<String, String> parameters = Map.of();
+        Instant scheduledAt = Instant.now();
 
         when(discoveryService.findJobByType(invalidJobType))
                 .thenReturn(Optional.empty());
 
         // Act & Assert
         assertThatThrownBy(() -> useCase.execute(
-                jobId, invalidJobType, "Job", parameters, Instant.now(), false
+                jobId, invalidJobType, "Job", parameters, scheduledAt, false
         ))
                 .isInstanceOf(JobNotFoundException.class)
                 .hasMessageContaining("Job type")
@@ -157,7 +159,6 @@ class UpdateScheduledJobUseCaseTest {
         String jobName = "Job with External Params";
         Map<String, String> parameters = Map.of("param1", "value1");
         Map<String, Object> convertedParams = Map.of("param1", "value1");
-        Map<String, Object> paramReference = Map.of("parameterSetId", jobId.toString());
         Instant scheduledAt = Instant.now();
 
         JobDefinition externalParamJob = new JobDefinitionBuilder()
@@ -169,8 +170,6 @@ class UpdateScheduledJobUseCaseTest {
                 .thenReturn(Optional.of(externalParamJob));
         when(validator.convertAndValidate(externalParamJob, parameters))
                 .thenReturn(convertedParams);
-        when(storageHelper.createParameterReference(jobId, externalParamJob))
-                .thenReturn(paramReference);
 
         // Act
         useCase.execute(jobId, jobType, jobName, parameters, scheduledAt, false);
@@ -179,13 +178,12 @@ class UpdateScheduledJobUseCaseTest {
         // Verify parameters updated in-place
         verify(storageHelper).updateParametersForJob(jobId, externalParamJob, jobType, convertedParams);
 
-        // Verify job updated with parameter reference
-        verify(storageHelper).createParameterReference(jobId, externalParamJob);
+        // Verify job updated with empty parameter map
         verify(schedulerPort).updateJob(
                 eq(jobId),
                 eq(externalParamJob),
                 eq(jobName),
-                eq(paramReference),
+                eq(Map.of()),
                 eq(false),
                 eq(scheduledAt),
                 isNull()

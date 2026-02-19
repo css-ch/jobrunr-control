@@ -133,7 +133,7 @@ public class TemplatesController extends BaseController {
 
         // Convert to view models with resolved parameters
         List<ScheduledJobInfoView> jobViews = paginationResult.pageItems().stream()
-                .map(this::toView)
+                .map(job -> toView(job, resolveParametersUseCase))
                 .toList();
 
         return Components.templatesTable(
@@ -293,21 +293,6 @@ public class TemplatesController extends BaseController {
 
 
     private TemplateInstance getDefaultTemplatesTable() {
-        return getTemplatesTable(null, null, 0, 10, "jobName", "asc");
-    }
-
-    /**
-     * Converts ScheduledJobInfo to ScheduledJobInfoView with resolved parameters.
-     * If the job uses external parameter storage, the parameters are loaded from the parameter set.
-     * Parameters are truncated to avoid sending large data in the list view.
-     */
-    private ScheduledJobInfoView toView(ScheduledJobInfo jobInfo) {
-        boolean usesExternal = jobInfo.hasExternalParameters();
-        Map<String, Object> resolvedParameters = resolveParametersUseCase.execute(jobInfo);
-
-        // Truncate large parameter values to prevent 413 (Request Entity Too Large) errors
-        Map<String, Object> truncatedParameters = truncateParameterValues(resolvedParameters);
-
-        return ScheduledJobInfoView.from(jobInfo, truncatedParameters, usesExternal);
+        return getTemplatesTable(null, "all", 0, 10, "jobName", "asc");
     }
 }

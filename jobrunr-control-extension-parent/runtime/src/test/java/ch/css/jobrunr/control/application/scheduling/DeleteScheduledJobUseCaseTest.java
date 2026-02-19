@@ -32,6 +32,7 @@ class DeleteScheduledJobUseCaseTest {
     private ParameterStoragePort parameterStoragePort;
 
     @Mock
+    @SuppressWarnings("unused") // injected for audit logging, not directly relevant for these tests
     private AuditLoggerHelper auditLogger;
 
     @InjectMocks

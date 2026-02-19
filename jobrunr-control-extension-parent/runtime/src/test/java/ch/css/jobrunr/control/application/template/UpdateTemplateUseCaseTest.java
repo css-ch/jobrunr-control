@@ -1,12 +1,12 @@
 package ch.css.jobrunr.control.application.template;
 
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.application.scheduling.ParameterStorageHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
-import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.testutils.JobDefinitionBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -155,7 +155,6 @@ class UpdateTemplateUseCaseTest {
         String jobName = "Template with External Params";
         Map<String, String> parameters = Map.of("param1", "value1");
         Map<String, Object> convertedParams = Map.of("param1", "value1");
-        Map<String, Object> paramReference = Map.of("parameterSetId", templateId.toString());
 
         JobDefinition externalParamJob = new JobDefinitionBuilder()
                 .withJobType("TestJob")
@@ -166,8 +165,6 @@ class UpdateTemplateUseCaseTest {
                 .thenReturn(Optional.of(externalParamJob));
         when(validator.convertAndValidate(externalParamJob, parameters))
                 .thenReturn(convertedParams);
-        when(storageHelper.createParameterReference(templateId, externalParamJob))
-                .thenReturn(paramReference);
 
         // Act
         useCase.execute(templateId, jobType, jobName, parameters);
@@ -176,13 +173,12 @@ class UpdateTemplateUseCaseTest {
         // Verify parameters updated in-place
         verify(storageHelper).updateParametersForJob(templateId, externalParamJob, jobType, convertedParams);
 
-        // Verify template updated with parameter reference
-        verify(storageHelper).createParameterReference(templateId, externalParamJob);
+        // Verify template updated with empty parameter map
         verify(schedulerPort).updateJob(
                 eq(templateId),
                 eq(externalParamJob),
                 eq(jobName),
-                eq(paramReference),
+                eq(Map.of()),
                 eq(true),
                 any(),
                 eq(List.of("template"))

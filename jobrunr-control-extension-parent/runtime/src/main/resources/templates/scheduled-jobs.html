@@ -63,9 +63,9 @@
          hx-trigger="load"
          hx-swap="outerHTML">
         <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
+            <output class="spinner-border text-primary">
                 <span class="visually-hidden">Lade Jobs...</span>
-            </div>
+            </output>
             <p class="mt-2">Lade Jobs...</p>
         </div>
     </div>
@@ -84,9 +84,9 @@
                      hx-trigger="load"
                      hx-swap="innerHTML">
                     <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
+                        <output class="spinner-border text-primary">
                             <span class="visually-hidden">Lade Formular...</span>
-                        </div>
+                        </output>
                     </div>
                 </div>
             </div>
@@ -99,17 +99,21 @@
             htmx.trigger('#jobs-table', 'load');
         }, 10000);
 
-        // Listen for closeModal event from HTMX response header
-        document.body.addEventListener('closeModal', function() {
-            const modalElement = document.getElementById('jobModal');
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) {
-                modal.hide();
+        // Close modal after successful form submission and table update
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            // Only close modal if the swap was triggered by the job form
+            if (event.detail.target.id === 'jobs-table' &&
+                (event.detail.requestConfig.elt.id === 'jobForm' || event.detail.requestConfig.elt.id === 'templateForm')) {
+                const modalElement = document.getElementById('jobModal');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
             }
         });
 
-        // Listen for scrollToError event from HTMX response header
-        document.body.addEventListener('scrollToError', function() {
+        // Close modal after successful form submission and table update
+        document.body.addEventListener('htmx:afterSwap', function(event) {
             // Scroll modal body to top to show the error
             const modalBody = document.querySelector('#jobModal .modal-body');
             if (modalBody) {

@@ -1,12 +1,12 @@
 package ch.css.jobrunr.control.application.template;
 
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.application.scheduling.ParameterStorageHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
-import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -79,13 +79,12 @@ public class UpdateTemplateUseCase {
             // Update external parameter set in-place (preserves version)
             parameterStorageHelper.updateParametersForJob(templateId, jobDefinition, jobType, convertedParameters);
 
-            // Update template metadata with parameter reference
-            Map<String, Object> paramReference = parameterStorageHelper.createParameterReference(templateId, jobDefinition);
+            // Update template metadata with empty parameter map (parameters are accessed via job UUID)
             jobSchedulerPort.updateJob(
                     templateId,
                     jobDefinition,
                     jobName,
-                    paramReference,
+                    Map.of(),
                     true,                              // isExternalTrigger
                     EXTERNAL_TRIGGER_DATE,             // External trigger uses special date
                     java.util.List.of("template")      // Always add "template" label

@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ScheduledJobInfoTest {
 
+    @SuppressWarnings("SameParameterValue")
     private static JobDefinition createTestJobDefinition(String jobType, boolean usesExternalParameters) {
         return new JobDefinition(
                 jobType,

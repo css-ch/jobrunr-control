@@ -315,7 +315,15 @@ Jobs using external storage are marked in the UI with a special indicator.
 The dashboard transparently handles parameter loading and display.
 ====
 
-== Template Jobs
+== Scheduling Options
+
+=== Scheduled Execution
+
+Select "Scheduled" as the trigger type to execute a job at a specific time:
+
+. Set the date using the date picker
+. Set the time using the time picker
+. The job will automatically execute at the specified time == Template Jobs
 
 Template jobs are reusable job configurations that serve as blueprints for creating and executing jobs on demand.
 
