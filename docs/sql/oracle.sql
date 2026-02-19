@@ -14,7 +14,7 @@ BEGIN
             CREATE TABLE jobrunr_control_parameter_sets (
                 id VARCHAR2(36) PRIMARY KEY NOT NULL,
                 job_type VARCHAR2(500) NOT NULL,
-                parameters_json JSON NOT NULL,
+                parameters_json CLOB NOT NULL,
                 created_at TIMESTAMP NOT NULL,
                 updated_at TIMESTAMP NOT NULL,
                 version NUMBER(19)
