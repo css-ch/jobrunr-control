@@ -59,6 +59,10 @@ public class TemplatesController extends BaseController {
 
     @CheckedTemplate(basePath = "modals", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
     public static class Modals {
+        private Modals() {
+            // Utility class
+        }
+
         public static native TemplateInstance templateForm(List<JobDefinition> jobDefinitions,
                                                            boolean isEdit,
                                                            ScheduledJobInfo job,
@@ -187,7 +191,7 @@ public class TemplatesController extends BaseController {
 
         try {
             List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream()
-                    .sorted(Comparator.comparing(JobParameter::name))
+                    .sorted(Comparator.comparing(JobParameter::order))
                     .toList();
             return ScheduledJobsController.Components.paramInputs(parameters, null);
         } catch (Exception e) {

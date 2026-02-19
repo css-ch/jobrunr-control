@@ -219,7 +219,7 @@ public class ScheduledJobsController extends BaseController {
         }
 
         try {
-            List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream().sorted(Comparator.comparing(JobParameter::name)).toList();
+            List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream().sorted(Comparator.comparing(JobParameter::order)).toList();
             if (LOG.isDebugEnabled()) {
                 LOG.debugf("Found %s parameters for job type '%s'", parameters.size(), jobType);
                 for (JobParameter param : parameters) {

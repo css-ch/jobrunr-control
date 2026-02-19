@@ -98,8 +98,9 @@ public class ParameterExtractor {
     private AnalyzedParameters analyzeInlineParameters(List<RecordComponentInfo> components) {
         List<JobParameter> parameters = new ArrayList<>();
 
+        int order = 0;
         for (RecordComponentInfo component : components) {
-            JobParameter parameter = analyzeRecordComponent(component);
+            JobParameter parameter = analyzeRecordComponent(component, order++);
             parameters.add(parameter);
         }
 
@@ -145,8 +146,9 @@ public class ParameterExtractor {
 
         AnnotationInstance[] definitions = valueArray.asNestedArray();
 
+        int order = 0;
         for (AnnotationInstance defAnnotation : definitions) {
-            parameters.add(extractParameterFromDefinition(defAnnotation, recordClass.name().toString()));
+            parameters.add(extractParameterFromDefinition(defAnnotation, recordClass.name().toString(), order++));
         }
 
         return parameters;
@@ -155,7 +157,7 @@ public class ParameterExtractor {
     /**
      * Extracts a JobParameter from a @JobParameterDefinition within @JobParameterSet.
      */
-    private JobParameter extractParameterFromDefinition(AnnotationInstance defAnnotation, String jobRequestName) {
+    private JobParameter extractParameterFromDefinition(AnnotationInstance defAnnotation, String jobRequestName, int order) {
         String name = getAnnotationValue(defAnnotation, "name", "");
         String defaultValue = getAnnotationValue(defAnnotation, "defaultValue", JobParameterDefinition.NO_DEFAULT_VALUE);
         String typeString = getAnnotationValue(defAnnotation, "type", "");
@@ -185,13 +187,13 @@ public class ParameterExtractor {
 
         LOG.debugf("Extracted external parameter: name=%s, type=%s, required=%s", name, parameterType, required);
 
-        return new JobParameter(name, parameterType, required, defaultValue, enumValues);
+        return new JobParameter(name, parameterType, required, defaultValue, enumValues, order);
     }
 
     /**
      * Analyzes a record component for inline parameter jobs.
      */
-    private JobParameter analyzeRecordComponent(RecordComponentInfo component) {
+    private JobParameter analyzeRecordComponent(RecordComponentInfo component, int order) {
         String componentName = component.name();
         Type componentType = component.type();
 
@@ -231,7 +233,7 @@ public class ParameterExtractor {
         }
 
         List<String> enumValues = getEnumValuesIfApplicable(componentType, parameterType);
-        return new JobParameter(name, parameterType, required, defaultValue, enumValues);
+        return new JobParameter(name, parameterType, required, defaultValue, enumValues, order);
     }
 
     /**

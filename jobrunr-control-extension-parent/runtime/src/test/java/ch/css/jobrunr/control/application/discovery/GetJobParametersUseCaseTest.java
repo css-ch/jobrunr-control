@@ -34,8 +34,8 @@ class GetJobParametersUseCaseTest {
     @BeforeEach
     void setUp() {
         testParameters = List.of(
-                new JobParameter("param1", JobParameterType.STRING, true, null, List.of()),
-                new JobParameter("param2", JobParameterType.INTEGER, false, "42", List.of())
+                new JobParameter("param1", JobParameterType.STRING, true, null, List.of(), 0),
+                new JobParameter("param2", JobParameterType.INTEGER, false, "42", List.of(), 1)
         );
 
         testJobDefinition = createJobDefinition("TestJob", testParameters);

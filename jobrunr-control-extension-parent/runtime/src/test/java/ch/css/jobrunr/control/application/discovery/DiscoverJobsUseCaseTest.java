@@ -87,7 +87,7 @@ class DiscoverJobsUseCaseTest {
                 jobType + "Request",
                 jobType + "Handler",
                 List.of(
-                        new JobParameter("param1", JobParameterType.STRING, true, null, List.of())
+                        new JobParameter("param1", JobParameterType.STRING, true, null, List.of(), 0)
                 ),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
                 false,

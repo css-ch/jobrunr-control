@@ -15,8 +15,8 @@ class JobDefinitionTest {
     @DisplayName("should create with all fields")
     void shouldCreateWithAllFields() {
         // Arrange
-        JobParameter param1 = new JobParameter("param1", JobParameterType.STRING, true, null, List.of());
-        JobParameter param2 = new JobParameter("param2", JobParameterType.INTEGER, false, "10", List.of());
+        JobParameter param1 = new JobParameter("param1", JobParameterType.STRING, true, null, List.of(), 0);
+        JobParameter param2 = new JobParameter("param2", JobParameterType.INTEGER, false, "10", List.of(), 1);
         List<JobParameter> parameters = List.of(param1, param2);
         JobSettings settings = new JobSettings("Test", false, 3, List.of(), List.of(), "", "", "", "", "", "", "");
 
@@ -66,9 +66,9 @@ class JobDefinitionTest {
     @DisplayName("getParameterNames should return list of parameter names")
     void getParameterNamesShouldReturnListOfNames() {
         // Arrange
-        JobParameter param1 = new JobParameter("firstName", JobParameterType.STRING, true, null, List.of());
-        JobParameter param2 = new JobParameter("age", JobParameterType.INTEGER, false, "18", List.of());
-        JobParameter param3 = new JobParameter("email", JobParameterType.STRING, true, null, List.of());
+        JobParameter param1 = new JobParameter("firstName", JobParameterType.STRING, true, null, List.of(), 0);
+        JobParameter param2 = new JobParameter("age", JobParameterType.INTEGER, false, "18", List.of(), 1);
+        JobParameter param3 = new JobParameter("email", JobParameterType.STRING, true, null, List.of(), 2);
 
         JobDefinition definition = new JobDefinitionBuilder()
                 .withParameters(List.of(param1, param2, param3))

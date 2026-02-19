@@ -1,9 +1,9 @@
 package ch.css.jobrunr.control.application.scheduling;
 
+import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
-import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -84,10 +84,11 @@ class CreateScheduledJobUseCaseTest {
     void execute_NonExistentJobType_ThrowsJobNotFoundException() {
         // Arrange
         String jobType = "NonExistentJob";
+        Map<String, String> parameters = Map.of();
         when(jobDefinitionDiscoveryService.findJobByType(jobType)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> useCase.execute(jobType, "Test", Map.of(), null, false))
+        assertThatThrownBy(() -> useCase.execute(jobType, "Test", parameters, null, false))
                 .isInstanceOf(JobNotFoundException.class)
                 .hasMessageContaining("Job type")
                 .hasMessageContaining(jobType);
@@ -187,7 +188,7 @@ class CreateScheduledJobUseCaseTest {
                 false,
                 jobType + "Request",
                 jobType + "Handler",
-                List.of(new JobParameter("param1", JobParameterType.STRING, true, null, List.of())),
+                List.of(new JobParameter("param1", JobParameterType.STRING, true, null, List.of(), 0)),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
                 usesExternalParams,
                 usesExternalParams ? "parameterSetId" : null
