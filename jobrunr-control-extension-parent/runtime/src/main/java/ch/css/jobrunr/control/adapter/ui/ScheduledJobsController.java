@@ -11,7 +11,6 @@ import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import ch.css.jobrunr.control.domain.ScheduledJobInfoView;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -243,8 +242,7 @@ public class ScheduledJobsController extends BaseController {
             @FormParam("jobName") String jobName,
             @FormParam("triggerType") String triggerType,
             @FormParam("scheduledAt") String scheduledAt,
-            MultivaluedMap<String, String> allFormParams,
-            RoutingContext context) {
+            MultivaluedMap<String, String> allFormParams) {
         try {
             // Validate required fields
             if (jobType == null || jobType.isBlank()) {
@@ -280,8 +278,7 @@ public class ScheduledJobsController extends BaseController {
             @FormParam("jobName") String jobName,
             @FormParam("triggerType") String triggerType,
             @FormParam("scheduledAt") String scheduledAt,
-            MultivaluedMap<String, String> allFormParams,
-            RoutingContext context) {
+            MultivaluedMap<String, String> allFormParams) {
 
         try {
             LOG.infof("Updating job %s - jobType=%s, jobName=%s, triggerType=%s, scheduledAt=%s",

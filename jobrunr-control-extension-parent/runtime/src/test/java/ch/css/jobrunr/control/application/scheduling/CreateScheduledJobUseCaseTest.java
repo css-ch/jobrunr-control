@@ -1,6 +1,5 @@
 package ch.css.jobrunr.control.application.scheduling;
 
-import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
@@ -38,9 +37,6 @@ class CreateScheduledJobUseCaseTest {
 
     @Mock
     private ParameterStorageHelper parameterStorageHelper;
-
-    @Mock
-    private AuditLoggerHelper auditLogger;
 
     @InjectMocks
     private CreateScheduledJobUseCase useCase;

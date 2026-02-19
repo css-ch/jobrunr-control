@@ -72,6 +72,7 @@ class GetScheduledJobsUseCaseTest {
     }
 
     // Test data builders
+    @SuppressWarnings("SameParameterValue") // Method designed for reusability in future tests
     private JobDefinition createJobDefinition(String jobType) {
         return new JobDefinition(
                 jobType,
