@@ -2,8 +2,11 @@ package ch.css.jobrunr.control.jobs.batch;
 
 import org.jobrunr.jobs.lambdas.JobRequest;
 
+import java.util.UUID;
+
 public record ExampleBatchJobItemProcessorRequest(int chunkId, int chunkSize,
-                                                  Boolean simulateErrors) implements JobRequest {
+                                                  Boolean simulateErrors,
+                                                  UUID parentBatchJobId) implements JobRequest {
 
     @Override
     public Class<ExampleBatchJobItemProcessor> getJobRequestHandler() {

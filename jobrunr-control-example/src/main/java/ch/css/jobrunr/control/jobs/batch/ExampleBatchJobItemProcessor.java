@@ -24,8 +24,13 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
     @Override
     @Transactional
     @Job(name = "Processing example batch chunkId: %0", retries = 0)
+    @SuppressWarnings("squid:S4511")
     public void run(ExampleBatchJobItemProcessorRequest request) {
-        ThreadLocalJobContext.getJobContext().logger().info(String.format("Processing chunkId: %s", request.chunkId()));
+        // Get the parent batch job ID from the request
+        var parentBatchJobId = request.parentBatchJobId();
+        // Example for logging
+        ThreadLocalJobContext.getJobContext().logger().info(String.format("Processing chunkId: %s (parent batch job: %s)", request.chunkId(), parentBatchJobId));
+
 
         // Simulate transient errors: fail on first attempt, succeed on re-run
         // Check if this chunk has been attempted before using metadata
@@ -33,7 +38,6 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
 
         if (request.simulateErrors() && isFirstAttempt && Math.abs(request.chunkId() % 2) == 1) {
             // Mark as attempted for next time
-
             ThreadLocalJobContext.getJobContext().saveMetadata("attempted", true);
             ThreadLocalJobContext.getJobContext().logger().error("Simulated transient error for chunk ID: " + request.chunkId() + " (will succeed when batch is re-run from dashboard)");
             throw new JobProcessingException("Simulated transient error for chunk ID: " + request.chunkId());

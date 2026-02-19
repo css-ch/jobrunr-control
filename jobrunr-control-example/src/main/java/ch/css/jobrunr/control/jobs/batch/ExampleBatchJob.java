@@ -43,9 +43,12 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
             return;
         }
 
+        // Get the parent batch job ID to pass to child jobs
+        var parentBatchJobId = ThreadLocalJobContext.getJobContext().getJobId();
+
         // Load all items to be processed based on request parameters
         List<ExampleBatchJobItemProcessorRequest> items = IntStream.rangeClosed(1, request.numberOfChunks())
-                .mapToObj(junkId -> new ExampleBatchJobItemProcessorRequest(junkId, request.chunkSize(), request.simulateErrors()))
+                .mapToObj(junkId -> new ExampleBatchJobItemProcessorRequest(junkId, request.chunkSize(), request.simulateErrors(), parentBatchJobId))
                 .toList();
 
         // Simulate preparation delay
