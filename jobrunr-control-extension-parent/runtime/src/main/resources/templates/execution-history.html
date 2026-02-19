@@ -34,9 +34,12 @@
                         </div>
                         <div class="col-md-3 text-end">
                             <button class="btn btn-secondary"
+                                    id="refresh-btn"
                                     hx-get="/q/jobrunr-control/history/table"
                                     hx-target="#history-table"
-                                    hx-include="[name='search'],[name='status-filter']">
+                                    hx-include="[name='search'],[name='status-filter']"
+                                    hx-disabled-elt="this">
+                                <span class="htmx-indicator spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                                 <i class="bi bi-arrow-clockwise"></i> Aktualisieren
                             </button>
                         </div>
