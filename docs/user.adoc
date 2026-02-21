@@ -18,6 +18,126 @@ The JobRunr Control dashboard is available at:
 http://your-server:port/q/jobrunr-control
 ----
 
+=== Security Setup
+
+All JobRunr Control endpoints and the embedded JobRunr Pro Dashboard are protected by authentication and role-based authorization using Quarkus OIDC (OpenID Connect).
+
+==== Authentication Provider
+
+The application uses **Keycloak** (or any OIDC-compliant provider) for authentication.
+Users must log in via the configured identity provider before accessing any dashboard features.
+
+==== Protected Endpoints
+
+The following endpoint groups are secured:
+
+[cols="1,2,1"]
+|===
+|Endpoint |Description |Required Access
+
+|`/q/jobrunr-control/*`
+|JobRunr Control Web UI
+|Authenticated user (any role)
+
+|`/q/jobrunr/*`
+|JobRunr Pro Dashboard (embedded)
+|Authenticated user (any role)
+
+|`/q/jobrunr/api/*` (read)
+|JobRunr Pro API (GET, OPTIONS, HEAD)
+|`viewer`, `configurator`, or `admin` role
+
+|`/q/jobrunr/api/*` (write)
+|JobRunr Pro API (POST, PUT, DELETE, PATCH)
+|`admin` role only
+|===
+
+[IMPORTANT]
+====
+**JobRunr Pro Dashboard Security**
+
+JobRunr Pro's embedded dashboard mode does not support its own OpenID authentication (see https://www.jobrunr.io/en/guides/authentication/openid-authentication/).
+Instead, protection is enforced at the **Quarkus HTTP layer** using OIDC authentication.
+
+This means:
+
+* All requests to `/q/jobrunr/*` require a valid OIDC session
+* Role-based access to JobRunr API endpoints is enforced via Quarkus security policies
+* JobRunr's built-in authentication is bypassed in favor of Quarkus OIDC
+====
+
+==== Method-Based Authorization
+
+The JobRunr Pro API endpoints (`/q/jobrunr/api/*`) use **HTTP method-based authorization**:
+
+**Read-Only Operations (GET, OPTIONS, HEAD):**
+
+* Accessible by users with `viewer`, `configurator`, or `admin` roles
+* Examples:
+** `GET /q/jobrunr/api/jobs?offset=0&limit=20`
+** `GET /q/jobrunr/api/job-exception-types?state=SCHEDULED`
+** `GET /q/jobrunr/api/jobs/{jobId}`
+
+**Write Operations (POST, PUT, DELETE, PATCH):**
+
+* Restricted to users with the `admin` role only
+* Examples:
+** `DELETE /q/jobrunr/api/jobs/{jobId}`
+** `POST /q/jobrunr/api/jobs/{jobId}/requeue`
+** `PUT /q/jobrunr/api/jobs/{jobId}`
+
+[NOTE]
+====
+This approach allows viewers and configurators to browse job data in the JobRunr Dashboard without being able to modify or delete jobs directly through the API.
+However, JobRunr Control's Web UI at `/q/jobrunr-control/*` still enforces its own role-based permissions for job operations.
+====
+
+==== Configuration Example
+
+Below is the security configuration used in `application.properties`:
+
+[source,properties]
+----
+# OIDC Provider (Keycloak)
+quarkus.oidc.auth-server-url=http://localhost:8080/realms/jobrunr
+quarkus.oidc.client-id=jobrunr-control
+quarkus.oidc.credentials.secret=jobrunr-secret
+quarkus.oidc.application-type=web-app
+
+# Protect JobRunr Control Web UI
+quarkus.http.auth.permission.jobrunr-control.paths=/q/jobrunr-control,/q/jobrunr-control/*
+quarkus.http.auth.permission.jobrunr-control.policy=authenticated
+
+# Protect JobRunr Pro Dashboard (embedded mode)
+quarkus.http.auth.permission.jobrunr-dashboard.paths=/q/jobrunr,/q/jobrunr/*
+quarkus.http.auth.permission.jobrunr-dashboard.policy=authenticated
+
+# Custom policies for JobRunr API
+quarkus.http.auth.policy.admin-policy.roles-allowed=admin
+quarkus.http.auth.policy.viewer-policy.roles-allowed=viewer,configurator,admin
+
+# JobRunr API: Read-only methods (GET, OPTIONS, HEAD)
+quarkus.http.auth.permission.jobrunr-api-read.paths=/q/jobrunr/api/*
+quarkus.http.auth.permission.jobrunr-api-read.policy=viewer-policy
+quarkus.http.auth.permission.jobrunr-api-read.methods=GET,OPTIONS,HEAD
+
+# JobRunr API: Write methods (POST, PUT, DELETE, PATCH)
+quarkus.http.auth.permission.jobrunr-api-write.paths=/q/jobrunr/api/*
+quarkus.http.auth.permission.jobrunr-api-write.policy=admin-policy
+quarkus.http.auth.permission.jobrunr-api-write.methods=POST,PUT,DELETE,PATCH
+
+# Read realm roles from Keycloak access token
+quarkus.oidc.roles.source=accesstoken
+----
+
+==== Testing Security
+
+To verify the security setup:
+
+. **Test anonymous access**: Navigate to `/q/jobrunr-control` without logging in - you should be redirected to the login page
+. **Test viewer role**: Log in as a viewer and attempt to delete a job via the JobRunr API - you should receive a 403 Forbidden error
+. **Test admin role**: Log in as an admin and perform write operations - they should succeed
+
 === Roles and Permissions
 
 Access to features depends on your assigned role.
@@ -852,3 +972,13 @@ All create, update, delete, and execute operations for both templates and jobs a
 * Template/Job name and UUID
 * For executions: source (REST/UI) and resulting job ID
 
+== Documentation Changelog
+
+=== 2026-02-21
+
+* **Added Security Setup section**: Comprehensive documentation of authentication and authorization setup for JobRunr Control and JobRunr Pro Dashboard
+** Explained OIDC/Keycloak integration
+** Documented protected endpoints and their access requirements
+** Detailed method-based authorization for JobRunr API endpoints (read-only vs. write operations)
+** Provided configuration examples and testing procedures
+** Clarified that JobRunr Pro's embedded dashboard security is enforced at the Quarkus HTTP layer

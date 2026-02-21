@@ -225,6 +225,26 @@ quarkus.security.users.embedded.roles.api-client=api-reader,api-executor
 
 For detailed security setup, see the [Programmer's Guide](docs/programmers.adoc#_security_configuration).
 
+### Development without OIDC
+
+For local development and testing, you can disable OIDC authentication:
+
+```properties
+quarkus.oidc.enabled=false
+```
+
+**⚠️ WARNING**: This grants all roles (admin, configurator, viewer, api-reader, api-executor)
+to ALL requests without authentication. Use ONLY in development and testing environments!
+
+When OIDC is disabled:
+
+- No login required
+- No logout button in UI
+- All requests are treated as "anonymous-user" with full permissions
+- Audit logs show "anonymous-user" as the actor
+
+**Production deployments MUST use OIDC authentication** (enabled by default).
+
 ### Dev Mode
 
 For development and testing, grant all roles automatically:
@@ -434,14 +454,70 @@ See [Architecture Documentation](docs/arc42.adoc) for full details.
 ### Run in Dev Mode
 
 ```bash
-./mvnw -f jobrunr-control-example/pom.xml quarkus:dev
+cd jobrunr-control-example
+../mvnw quarkus:dev
 ```
+
+### Authentication in Dev Mode
+
+By default, dev mode starts with **Keycloak DevServices** using Testcontainers:
+
+- **Automatic Setup**: Keycloak container starts automatically with a pre-configured realm
+- **Pre-configured Users**:
+    - `admin` / `admin` - Full access (all roles)
+    - `configurator` / `configurator` - Can create/modify templates
+    - `viewer` / `viewer` - Read-only access
+
+See [DEV-MODE-KEYCLOAK.md](jobrunr-control-example/DEV-MODE-KEYCLOAK.md) for detailed setup and customization.
+
+### Troubleshooting Dev Mode Startup
+
+#### Application Hangs on Startup with Podman
+
+**Symptom:** Application hangs during startup in dev mode, port 9090 doesn't open, no error displayed. Tests work fine.
+
+**Root Cause:** The OIDC Dev UI attempts to discover metadata from Keycloak before the DevServices container is fully
+ready. With Podman, this causes an indefinite hang.
+
+**Solutions:**
+
+1. **Use the no-docker profile** (bypasses OIDC completely):
+   ```bash
+   ./mvnw -f jobrunr-control-example/pom.xml quarkus:dev -Dquarkus.profile=dev,no-docker
+   ```
+
+2. **Disable OIDC Dev UI** in `application.properties` (already configured):
+   ```properties
+   %dev.quarkus.oidc.dev-ui.enabled=false
+   ```
+
+3. **Use external Keycloak** (start separately):
+   ```bash
+   ./start-keycloak.sh
+   ./mvnw -f jobrunr-control-example/pom.xml quarkus:dev -Dquarkus.profile=dev,start-keycloak
+   ```
+
+**Diagnostic Commands:**
+
+```bash
+# Check if process is hanging
+ps aux | grep quarkus
+
+# Get thread dump (replace PID)
+jstack <PID> | grep -A 10 "Quarkus Main Thread"
+
+# If you see "OidcDevUiRecorder.discoverMetadata", it's the OIDC Dev UI issue
+```
+
+**Note:** This is a known limitation with Quarkus OIDC DevServices when using Podman. The fix (
+`%dev.quarkus.oidc.dev-ui.enabled=false`) is already applied in the configuration.
 
 ### Access Points
 
-- JobRunr Control: `http://localhost:8080/q/jobrunr-control`
-- JobRunr Dashboard: `http://localhost:8080/q/jobrunr/dashboard`
-- Swagger UI: `http://localhost:8080/q/swagger-ui/`
+- JobRunr Control: `http://localhost:9090/q/jobrunr-control`
+- JobRunr Dashboard: `http://localhost:9090/q/jobrunr`
+- Swagger UI: `http://localhost:9090/q/swagger-ui/`
+- Keycloak Admin: Check console output for dynamic URL
 
 ## License
 
@@ -450,3 +526,4 @@ Internal CSS Project. Requires a valid JobRunr Pro license.
 ## Support
 
 For issues and questions, contact the JobRunr Control Team.
+

@@ -76,18 +76,13 @@
                             <i class="bi bi-clock-history"></i> Historie
                         </a>
                     </li>
-                    {#if dashboard.hasOpenApi()}
+                    {#if security:isOidcEnabled()}
                     <li class="nav-item">
-                        <a class="nav-link" href="/q/swagger-ui" target="_blank">
-                            <i class="bi bi-file-earmark-code"></i> API Docs
+                        <a class="nav-link" href="/q/jobrunr-control/logout">
+                            <i class="bi bi-person-circle"></i> {security:currentUser()} (<i class="bi bi-box-arrow-right"></i> Logout)
                         </a>
                     </li>
                     {/if}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{dashboard.url()}" target="_blank">
-                            <i class="bi bi-speedometer2"></i> JobRunr Dashboard
-                        </a>
-                    </li>
                 </ul>
             </div>
         </div>

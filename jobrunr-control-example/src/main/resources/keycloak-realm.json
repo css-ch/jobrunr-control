@@ -1,0 +1,143 @@
+{
+  "realm": "jobrunr",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 28800,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 86400,
+  "roles": {
+    "realm": [
+      {
+        "name": "viewer",
+        "description": "Can view jobs and templates"
+      },
+      {
+        "name": "configurator",
+        "description": "Can create and modify job templates"
+      },
+      {
+        "name": "admin",
+        "description": "Full administrative access"
+      },
+      {
+        "name": "api-reader",
+        "description": "Can read job information via REST API"
+      },
+      {
+        "name": "api-executor",
+        "description": "Can execute jobs via REST API"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "jobrunr-control",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "jobrunr-secret",
+      "redirectUris": [
+        "http://localhost:9090/*"
+      ],
+      "webOrigins": [
+        "http://localhost:9090"
+      ],
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "3600"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin",
+        "configurator",
+        "viewer",
+        "api-reader",
+        "api-executor"
+      ]
+    },
+    {
+      "username": "configurator",
+      "firstName": "Configurator",
+      "lastName": "User",
+      "email": "configurator@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "configurator",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "configurator",
+        "viewer"
+      ]
+    },
+    {
+      "username": "viewer",
+      "firstName": "Viewer",
+      "lastName": "User",
+      "email": "viewer@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "viewer",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "viewer"
+      ]
+    },
+    {
+      "username": "service-account-jobrunr-control",
+      "enabled": true,
+      "serviceAccountClientId": "jobrunr-control",
+      "realmRoles": [
+        "api-reader",
+        "api-executor"
+      ]
+    },
+    {
+      "username": "guest",
+      "firstName": "Guest",
+      "lastName": "User",
+      "email": "guest@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "guest",
+          "temporary": false
+        }
+      ],
+      "realmRoles": []
+    }
+  ]
+}
+

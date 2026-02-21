@@ -90,3 +90,14 @@ private static final org.jboss.logging.Logger LOG = org.jboss.logging.Logger.get
 - **Syncing documentation:** When these contributor instructions change in a way that affects developer practices, UI
   behavior, or public APIs, update `docs/programmers.adoc` and `docs/user.adoc` accordingly and add a brief changelog
   note describing the changes and rationale.
+
+## Changelog
+
+### 2026-02-21: Conditional OIDC Security
+
+- Added `JobRunrControlRoleAugmentor` for development/testing without OIDC
+- Set `quarkus.oidc.enabled=false` to disable authentication (dev/test only)
+- UI automatically hides logout/user info when OIDC is disabled
+- Security by default: OIDC remains enabled unless explicitly disabled
+- See `readme.md`, `docs/programmers.adoc`, and `docs/user.adoc` for details
+

@@ -1,7 +1,9 @@
 package ch.css.jobrunr.control.deployment;
 
-import ch.css.jobrunr.control.adapter.ui.DashboardTemplateExtensions;
-import ch.css.jobrunr.control.adapter.ui.DashboardUrlUtils;
+import java.util.List;
+
+import ch.css.jobrunr.control.adapter.rest.JobControlResource;
+import ch.css.jobrunr.control.adapter.ui.*;
 import ch.css.jobrunr.control.infrastructure.discovery.JobDefinitionRecorder;
 import ch.css.jobrunr.control.infrastructure.jobrunr.filters.ParameterCleanupJobFilter;
 import ch.css.jobrunr.control.infrastructure.quarkus.BuildTimeConfigurationAdapter;
@@ -12,6 +14,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.RunTimeConfigurationDefaultBuildItem;
 
 public class JobRunrControlProcessor {
 
@@ -20,6 +23,44 @@ public class JobRunrControlProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    /**
+     * Register JAX-RS controllers as beans.
+     * Setting unremovable ensures @RolesAllowed annotations are processed.
+     */
+    @BuildStep
+    AdditionalBeanBuildItem registerControllers() {
+        return AdditionalBeanBuildItem.builder()
+                .addBeanClasses(
+                        DashboardController.class,
+                        ScheduledJobsController.class,
+                        TemplatesController.class,
+                        JobExecutionsController.class,
+                        JobControlResource.class
+                )
+                .setUnremovable()
+                .build();
+    }
+
+    /**
+     * Register default HTTP authentication policy for all JobRunr Control paths.
+     * Sets "authenticated" as the default policy so consuming apps don't need to add
+     * these properties manually. The consuming app can override with:
+     * quarkus.http.auth.permission.jobrunr-control.policy=permit
+     */
+    @BuildStep
+    List<RunTimeConfigurationDefaultBuildItem> registerDefaultHttpAuthPolicy() {
+        return List.of(
+                new RunTimeConfigurationDefaultBuildItem(
+                        "quarkus.http.auth.permission.jobrunr-control.paths",
+                        "/q/jobrunr-control,/q/jobrunr-control/*"
+                ),
+                new RunTimeConfigurationDefaultBuildItem(
+                        "quarkus.http.auth.permission.jobrunr-control.policy",
+                        "authenticated"
+                )
+        );
     }
 
     /**
