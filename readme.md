@@ -139,6 +139,14 @@ curl -X POST http://localhost:9090/q/jobrunr-control/api/jobs/{jobId}/start \
 curl http://localhost:9090/q/jobrunr-control/api/jobs/{jobId}
 ```
 
+**Automated Script**: For batch processing and polling, use the provided script:
+
+```bash
+./scripts/start-and-poll-job.sh <job-id> <postfix> [key1=value1] [key2=value2]
+```
+
+See [scripts/README.md](scripts/README.md) for detailed documentation and examples.
+
 ## UI Endpoints
 
 Base path: `/q/jobrunr-control`
