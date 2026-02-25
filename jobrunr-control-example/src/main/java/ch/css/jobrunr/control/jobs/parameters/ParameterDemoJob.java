@@ -1,7 +1,9 @@
 package ch.css.jobrunr.control.jobs.parameters;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
+import ch.css.jobrunr.control.domain.JobResultPort;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
@@ -13,6 +15,12 @@ import org.jobrunr.jobs.lambdas.JobRequestHandler;
 public class ParameterDemoJob implements JobRequestHandler<ParameterDemoJobRequest> {
 
     private static final Logger LOG = Logger.getLogger(ParameterDemoJob.class);
+    private final JobResultPort jobResultPort;
+
+    @Inject
+    public ParameterDemoJob(JobResultPort jobResultPort) {
+        this.jobResultPort = jobResultPort;
+    }
 
     /**
      * Executes the parameter demo job, logging all provided parameters.
@@ -31,6 +39,8 @@ public class ParameterDemoJob implements JobRequestHandler<ParameterDemoJobReque
         LOG.infof("DateTime parameter: %s", request.dateTimeParameter());
         LOG.infof("Enum parameter: %s", request.enumParameter());
         LOG.infof("Multi-Enum parameter: %s", request.multiEnumParameter());
+
+        jobResultPort.storeResult(0, "Parameter demo job completed successfully");
     }
 }
 

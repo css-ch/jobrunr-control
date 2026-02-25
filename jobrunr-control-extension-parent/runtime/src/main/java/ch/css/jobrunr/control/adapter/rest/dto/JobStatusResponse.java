@@ -13,6 +13,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param startedAt     Start time (ISO-8601 format)
  * @param finishedAt    Finish time (ISO-8601 format, null if not finished)
  * @param batchProgress Batch progress (null if not a batch job)
+ * @param result        Result message stored by the job handler via {@code JobResultPort} (null if not set)
+ * @param resultCode    Numeric result code stored by the job handler via {@code JobResultPort} (null if not set)
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobStatusResponse(
@@ -22,6 +24,8 @@ public record JobStatusResponse(
         JobStatus status,
         String startedAt,
         String finishedAt,
-        BatchProgressDTO batchProgress
+        BatchProgressDTO batchProgress,
+        String result,
+        Integer resultCode
 ) {
 }

@@ -30,7 +30,7 @@ class JobExecutionInfoTest {
         // Act
         JobExecutionInfo executionInfo = new JobExecutionInfo(
                 jobId, jobName, jobType, status, startedAt, finishedAt,
-                batchProgress, parameters, metadata
+                batchProgress, parameters, metadata, null, null
         );
 
         // Assert
@@ -51,7 +51,7 @@ class JobExecutionInfoTest {
         // Arrange & Act
         JobExecutionInfo executionInfo = new JobExecutionInfo(
                 UUID.randomUUID(), "Test Job", "TestJob", JobStatus.PROCESSING,
-                Instant.now(), null, null, Map.of(), Map.of()
+                Instant.now(), null, null, Map.of(), Map.of(), null, null
         );
 
         // Assert
@@ -65,28 +65,28 @@ class JobExecutionInfoTest {
         // Job ID null
         assertThatThrownBy(() -> new JobExecutionInfo(
                 null, "Test", "TestJob", JobStatus.SUCCEEDED,
-                Instant.now(), null, null, Map.of(), Map.of()
+                Instant.now(), null, null, Map.of(), Map.of(), null, null
         )).isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("Job ID");
 
         // Job Name null
         assertThatThrownBy(() -> new JobExecutionInfo(
                 UUID.randomUUID(), null, "TestJob", JobStatus.SUCCEEDED,
-                Instant.now(), null, null, Map.of(), Map.of()
+                Instant.now(), null, null, Map.of(), Map.of(), null, null
         )).isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("Job Name");
 
         // Job Type null
         assertThatThrownBy(() -> new JobExecutionInfo(
                 UUID.randomUUID(), "Test", null, JobStatus.SUCCEEDED,
-                Instant.now(), null, null, Map.of(), Map.of()
+                Instant.now(), null, null, Map.of(), Map.of(), null, null
         )).isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("Job Type");
 
         // Status null
         assertThatThrownBy(() -> new JobExecutionInfo(
                 UUID.randomUUID(), "Test", "TestJob", null,
-                Instant.now(), null, null, Map.of(), Map.of()
+                Instant.now(), null, null, Map.of(), Map.of(), null, null
         )).isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("Status");
     }
@@ -97,7 +97,7 @@ class JobExecutionInfoTest {
         // Act
         JobExecutionInfo executionInfo = new JobExecutionInfo(
                 UUID.randomUUID(), "Test Job", "TestJob", JobStatus.SUCCEEDED,
-                Instant.now(), null, null, null, null
+                Instant.now(), null, null, null, null, null, null
         );
 
         // Assert

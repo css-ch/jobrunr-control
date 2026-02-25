@@ -16,7 +16,9 @@ public record JobExecutionInfo(
         Instant finishedAt,
         BatchProgress batchProgress,
         Map<String, Object> parameters,
-        Map<String, Object> metadata
+        Map<String, Object> metadata,
+        String result,
+        Integer resultCode
 ) {
 
     public JobExecutionInfo {
@@ -79,15 +81,22 @@ public record JobExecutionInfo(
      */
     public JobExecutionInfo withStatus(JobStatus newStatus) {
         return new JobExecutionInfo(
-                jobId,
-                jobName,
-                jobType,
-                newStatus,
-                startedAt,
-                finishedAt,
-                batchProgress,
-                parameters,
-                metadata
+                jobId, jobName, jobType, newStatus,
+                startedAt, finishedAt, batchProgress, parameters, metadata, result, resultCode
+        );
+    }
+
+    public JobExecutionInfo withResult(String newResult) {
+        return new JobExecutionInfo(
+                jobId, jobName, jobType, status,
+                startedAt, finishedAt, batchProgress, parameters, metadata, newResult, resultCode
+        );
+    }
+
+    public JobExecutionInfo withResult(String newResult, Integer newResultCode) {
+        return new JobExecutionInfo(
+                jobId, jobName, jobType, status,
+                startedAt, finishedAt, batchProgress, parameters, metadata, newResult, newResultCode
         );
     }
 }

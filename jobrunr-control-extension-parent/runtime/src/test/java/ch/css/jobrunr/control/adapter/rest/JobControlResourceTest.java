@@ -158,7 +158,9 @@ class JobControlResourceTest {
                 null,              // finishedAt
                 null,              // batchProgress
                 Map.of(),          // parameters
-                Map.of()           // metadata
+                Map.of(),          // metadata
+                null,              // result
+                null               // resultCode
         );
 
         when(getJobExecutionByIdUseCase.execute(jobId)).thenReturn(executionInfo);
@@ -212,7 +214,9 @@ class JobControlResourceTest {
                 null,              // finishedAt
                 batchProgress,     // batchProgress
                 Map.of(),          // parameters
-                Map.of()           // metadata
+                Map.of(),          // metadata
+                null,              // result
+                null               // resultCode
         );
 
         when(getJobExecutionByIdUseCase.execute(jobId)).thenReturn(executionInfo);

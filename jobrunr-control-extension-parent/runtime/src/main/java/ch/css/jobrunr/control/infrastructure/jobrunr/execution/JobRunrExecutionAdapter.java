@@ -2,12 +2,15 @@ package ch.css.jobrunr.control.infrastructure.jobrunr.execution;
 
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.infrastructure.jobrunr.ConfigurableJobSearchAdapter;
+import ch.css.jobrunr.control.infrastructure.jobrunr.JobResultAdapter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.jobs.states.*;
+import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
+import org.jobrunr.storage.navigation.AmountRequest;
 
 import java.time.Instant;
 import java.util.List;
@@ -92,8 +95,18 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
             JobChainStatusEvaluator.JobChainStatus chainStatus =
                     jobChainStatusEvaluator.evaluateChainStatus(jobId, jobInfo.status());
 
-            // Return job info with status from chain evaluation
-            return Optional.of(jobInfo.withStatus(chainStatus.overallStatus()));
+            // Find result: parent job first, then direct continuation jobs
+            String result = jobInfo.result();
+            Integer resultCode = jobInfo.resultCode();
+            if (result == null && resultCode == null) {
+                org.jobrunr.jobs.Job resultJob = findResultJobInContinuationJobs(jobId);
+                if (resultJob != null) {
+                    result = extractResult(resultJob);
+                    resultCode = extractResultCode(resultJob);
+                }
+            }
+
+            return Optional.of(jobInfo.withStatus(chainStatus.overallStatus()).withResult(result, resultCode));
         } catch (Exception e) {
             LOG.errorf(e, "Error retrieving job chain %s", jobId);
             return Optional.empty();
@@ -114,6 +127,9 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                         java.util.Map.Entry::getValue
                 ));
 
+        String result = extractResult(job);
+        Integer resultCode = extractResultCode(job);
+
         return new JobExecutionInfo(
                 job.getId(),
                 jobName,
@@ -123,7 +139,9 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                 finishedAt,
                 batchProgress,
                 parameters,
-                metadata
+                metadata,
+                result,
+                resultCode
         );
     }
 
@@ -143,6 +161,45 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
             return state.getCreatedAt();
         }
         return null;
+    }
+
+    private String extractResult(org.jobrunr.jobs.Job job) {
+        Object value = job.getMetadata().get(JobResultAdapter.RESULT_METADATA_KEY);
+        return value != null ? value.toString() : null;
+    }
+
+    private Integer extractResultCode(org.jobrunr.jobs.Job job) {
+        Object value = job.getMetadata().get(JobResultAdapter.RESULT_CODE_METADATA_KEY);
+        if (value instanceof Integer i) return i;
+        if (value instanceof Number n) return n.intValue();
+        if (value instanceof String s) {
+            try {
+                return Integer.parseInt(s);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the first direct continuation job (success/failure callback) that has a stored result.
+     * This allows callback handlers to set a result that is surfaced on the parent job's status endpoint.
+     */
+    private org.jobrunr.jobs.Job findResultJobInContinuationJobs(UUID parentJobId) {
+        try {
+            var searchRequest = JobSearchRequestBuilder
+                    .aJobSearchRequest()
+                    .withAwaitingOn(parentJobId)
+                    .build();
+            var amountRequest = new AmountRequest("updatedAt:DESC", 100);
+            return storageProvider.getJobList(searchRequest, amountRequest).stream()
+                    .filter(j -> extractResult(j) != null || extractResultCode(j) != null)
+                    .findFirst()
+                    .orElse(null);
+        } catch (Exception e) {
+            LOG.warnf(e, "Failed to find result in continuation jobs for parent %s", parentJobId);
+            return null;
+        }
     }
 
     @SuppressWarnings("unused")

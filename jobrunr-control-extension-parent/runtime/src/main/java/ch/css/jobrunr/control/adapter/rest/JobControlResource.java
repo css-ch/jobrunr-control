@@ -170,7 +170,9 @@ public class JobControlResource {
                 executionInfo.getStatus(),
                 executionInfo.getStartedAt() != null ? ISO_FORMATTER.format(executionInfo.getStartedAt()) : null,
                 executionInfo.getFinishedAt().map(ISO_FORMATTER::format).orElse(null),
-                batchProgressDTO
+                batchProgressDTO,
+                executionInfo.result(),
+                executionInfo.resultCode()
         );
 
         return Response.ok(response).build();
