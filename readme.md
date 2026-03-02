@@ -282,7 +282,7 @@ dev.test.roles=admin,viewer,configurator,api-reader,api-executor
 - **Inline Storage** (default): Parameters stored directly in JobRunr's job table
 - **External Storage**: Parameters stored in a separate database table for large parameter sets
 
-Use `@JobParameterSet` on a JobRequest to enable external storage. Requires Hibernate ORM.
+Use `@JobParameterSet` on a JobRequest to enable external storage. Requires Hibernate ORM. The external Parameter Set must be defined in a separated Record.
 
 ### Job Chain Status Evaluation
 
