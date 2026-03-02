@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.testutils;
 
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
+import ch.css.jobrunr.control.domain.JobParameterSection;
 import ch.css.jobrunr.control.domain.JobSettings;
 
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ public class JobDefinitionBuilder {
     private String displayName = "Test Job";
     private String className = "ch.css.test.TestJob";
     private List<JobParameter> parameters = new ArrayList<>();
+    private List<JobParameterSection> parameterSections = new ArrayList<>();
     private JobSettings settings = createDefaultSettings();
     private boolean usesExternalParameters = false;
     private String parameterSetId = null;
@@ -44,6 +46,11 @@ public class JobDefinitionBuilder {
 
     public JobDefinitionBuilder withParameters(List<JobParameter> parameters) {
         this.parameters = new ArrayList<>(parameters);
+        return this;
+    }
+
+    public JobDefinitionBuilder withParameterSections(List<JobParameterSection> parameterSections) {
+        this.parameterSections = new ArrayList<>(parameterSections);
         return this;
     }
 
@@ -83,6 +90,7 @@ public class JobDefinitionBuilder {
                 displayName,
                 className,
                 parameters,
+                parameterSections,
                 settings,
                 usesExternalParameters,
                 parameterSetId

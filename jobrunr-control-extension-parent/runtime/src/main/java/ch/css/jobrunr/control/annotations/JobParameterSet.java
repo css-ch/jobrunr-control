@@ -43,5 +43,5 @@ public @interface JobParameterSet {
      *
      * @return array of parameter definitions (must not be empty)
      */
-    JobParameterDefinition[] value();
+    Class<?> parameterSetClass();
 }

@@ -1,8 +1,10 @@
 package ch.css.jobrunr.control.deployment.scanner;
 
 import ch.css.jobrunr.control.annotations.JobParameterDefinition;
+import ch.css.jobrunr.control.annotations.JobParameterSectionLayout;
 import ch.css.jobrunr.control.annotations.JobParameterSet;
 import ch.css.jobrunr.control.domain.JobParameter;
+import ch.css.jobrunr.control.domain.JobParameterSection;
 import ch.css.jobrunr.control.domain.JobParameterType;
 import org.jboss.jandex.*;
 import org.jboss.logging.Logger;
@@ -44,14 +46,24 @@ public class ParameterExtractor {
      * Analyzes external parameters from @JobParameterSet on the record type.
      */
     private AnalyzedParameters analyzeExternalParameters(AnnotationInstance parameterSetAnnotation, ClassInfo recordClass) {
-        List<JobParameter> parameters = extractExternalParameters(parameterSetAnnotation, recordClass);
-        logExternalParameters(parameters, recordClass);
-
-        return new AnalyzedParameters(
-                parameters,
-                true,
-                null
-        );
+        AnnotationValue parameterSetClassValue = parameterSetAnnotation.value("parameterSetClass");
+        if (parameterSetClassValue != null && !parameterSetClassValue.asString().isEmpty()) {
+            Type parameterSetType = parameterSetClassValue.asClass();
+            ClassInfo parameterSetClass = index.getClassByName(parameterSetType.name());
+            if(parameterSetClass != null) {
+                LOG.debugf("JobRequest '%s' uses external parameter set class: %s", recordClass.simpleName(), parameterSetType.name());
+                AnalyzedParameters analyzedParameters = analyzeInlineParameters(parameterSetClass.recordComponents());
+                return new AnalyzedParameters(
+                        analyzedParameters.parameters(),
+                        analyzedParameters.parameterSections(),
+                        true,
+                        parameterSetType.name().toString()
+                );
+            }
+        }
+        throw new IllegalStateException(
+                "JobRequest " + recordClass.name() +
+                        " has @JobParameterSet annotation but 'parameterSetClass' attribute is missing, empty or class can not be loaded");
     }
 
     /**
@@ -59,93 +71,36 @@ public class ParameterExtractor {
      */
     private AnalyzedParameters analyzeInlineParameters(List<RecordComponentInfo> components) {
         List<JobParameter> parameters = new ArrayList<>();
+        List<JobParameterSection> parameterSections = new ArrayList<>();
 
-        int order = 0;
+        int order = 9999;
         for (RecordComponentInfo component : components) {
             JobParameter parameter = analyzeRecordComponent(component, order++);
+            JobParameterSection parameterSection = analyzeRecordComponentSection(component, order);
+            if (parameterSection != null) {
+                parameterSections.add(parameterSection);
+            }
             parameters.add(parameter);
         }
+        for(JobParameter parameter : parameters) {
+            if(parameterSections.stream().noneMatch(s -> s.id().equals(parameter.sectionId()))) {
+                if(parameter.sectionId().equals("default")) {
+                    parameterSections.add(new JobParameterSection("default", null, 9999, JobParameterSectionLayout.SINGLE_VALUE_ON_LINE_LABEL_OBOVE));
+                } else {
+                    LOG.warnf("Parameter '%s' references sectionId '%s' which does not exist. Consider adding a @JobParameterSection with id '%s'.",
+                            parameter.name(), parameter.sectionId(), parameter.sectionId());
+                }
+            }
+        }
 
-        LOG.debugf("Analyzed %s inline parameters from record components", parameters.size());
+        LOG.debugf("Analyzed %s inline parameters from record components. %s Sections", parameters.size(), parameterSections.size());
 
         return new AnalyzedParameters(
                 parameters,
+                parameterSections,
                 false,
                 null
         );
-    }
-
-    /**
-     * Logs debug information about external parameters.
-     */
-    private void logExternalParameters(List<JobParameter> parameters, ClassInfo recordClass) {
-        if (LOG.isDebugEnabled()) {
-            LOG.debugf("Analyzed %s external parameters from @JobParameterSet on record '%s'",
-                    parameters.size(), recordClass.simpleName());
-            for (JobParameter param : parameters) {
-                LOG.debugf("   - External parameter: %s (type=%s, required=%s, default='%s')",
-                        param.name(), param.type(), param.required(), param.defaultValue());
-            }
-        }
-    }
-
-    /**
-     * Extracts parameters from @JobParameterSet annotation.
-     */
-    private List<JobParameter> extractExternalParameters(AnnotationInstance annotation, ClassInfo recordClass) {
-        List<JobParameter> parameters = new ArrayList<>();
-        AnnotationValue valueArray = annotation.value();
-
-        if (valueArray == null || valueArray.asNestedArray().length == 0) {
-            throw new IllegalStateException(
-                    "JobRequest " + recordClass.name() +
-                            " @JobParameterSet must define at least one parameter");
-        }
-
-        AnnotationInstance[] definitions = valueArray.asNestedArray();
-
-        int order = 0;
-        for (AnnotationInstance defAnnotation : definitions) {
-            parameters.add(extractParameterFromDefinition(defAnnotation, recordClass.name().toString(), order++));
-        }
-
-        return parameters;
-    }
-
-    /**
-     * Extracts a JobParameter from a @JobParameterDefinition within @JobParameterSet.
-     */
-    private JobParameter extractParameterFromDefinition(AnnotationInstance defAnnotation, String jobRequestName, int order) {
-        String name = getAnnotationValue(defAnnotation, "name", "");
-        String defaultValue = getAnnotationValue(defAnnotation, "defaultValue", JobParameterDefinition.NO_DEFAULT_VALUE);
-        String typeString = getAnnotationValue(defAnnotation, "type", "");
-
-        if (name.isEmpty()) {
-            throw new IllegalStateException(
-                    "Parameter definition in @JobParameterSet of JobRequest " + jobRequestName +
-                            " must have a non-empty 'name' attribute");
-        }
-
-        if (typeString.isEmpty()) {
-            throw new IllegalStateException(
-                    "Parameter '" + name + "' in @JobParameterSet of JobRequest " + jobRequestName +
-                            " must have a 'type' attribute specifying the fully qualified type name");
-        }
-
-        // Determine type
-        JobParameterType parameterType = mapStringToParameterType(typeString);
-        List<String> enumValues = List.of();
-
-        // If enum, extract values
-        if (parameterType == JobParameterType.ENUM || parameterType == JobParameterType.MULTI_ENUM) {
-            enumValues = extractEnumValuesFromTypeString(typeString, parameterType);
-        }
-
-        boolean required = defaultValue.equals(JobParameterDefinition.NO_DEFAULT_VALUE);
-
-        LOG.debugf("Extracted external parameter: name=%s, type=%s, required=%s", name, parameterType, required);
-
-        return new JobParameter(name, parameterType, required, defaultValue, enumValues, order);
     }
 
     /**
@@ -158,6 +113,9 @@ public class ParameterExtractor {
         AnnotationInstance jobParamAnnotation = component.annotation(JobParameterDefinition.class);
 
         String name = componentName;
+        String displayName = componentName;
+        String description = null;
+        String sectionId = "default";
         String defaultValue = null;
         boolean required = true;
         JobParameterType parameterType = null;
@@ -167,6 +125,30 @@ public class ParameterExtractor {
             AnnotationValue nameValue = jobParamAnnotation.value("name");
             if (nameValue != null && !nameValue.asString().isEmpty()) {
                 name = nameValue.asString();
+            }
+
+            // Extract name if specified
+            AnnotationValue displayNameValue = jobParamAnnotation.value("displayName");
+            if (displayNameValue != null && !displayNameValue.asString().isEmpty()) {
+                displayName = displayNameValue.asString();
+            }
+
+            // Extract name if specified
+            AnnotationValue descriptionValue = jobParamAnnotation.value("description");
+            if (descriptionValue != null && !descriptionValue.asString().isEmpty()) {
+                description = descriptionValue.asString();
+            }
+
+            // Extract name if specified
+            AnnotationValue sectionIdValue = jobParamAnnotation.value("sectionId");
+            if (sectionIdValue != null && !sectionIdValue.asString().isEmpty()) {
+                sectionId = sectionIdValue.asString();
+            }
+
+            // Extract name if specified
+            AnnotationValue orderValue = jobParamAnnotation.value("order");
+            if (orderValue != null) {
+                order = orderValue.asInt();
             }
 
             // Extract default value if specified
@@ -191,7 +173,46 @@ public class ParameterExtractor {
         }
 
         List<String> enumValues = getEnumValuesIfApplicable(componentType, parameterType);
-        return new JobParameter(name, parameterType, required, defaultValue, enumValues, order);
+        return new JobParameter(name, displayName, description, parameterType, required, defaultValue, enumValues, order, sectionId);
+    }
+
+    /**
+     * Analyzes a record component for @JobParameterSection metadata.
+     */
+    private JobParameterSection analyzeRecordComponentSection(RecordComponentInfo component, int order) {
+        AnnotationInstance jobParamSectionAnnotation = component.annotation(ch.css.jobrunr.control.annotations.JobParameterSection.class);
+        if(jobParamSectionAnnotation != null) {
+            String id = null;
+            String title = null;
+            JobParameterSectionLayout layout = JobParameterSectionLayout.SINGLE_VALUE_ON_LINE_LABEL_OBOVE;
+
+            // Extract id if specified
+            AnnotationValue idValue = jobParamSectionAnnotation.value("id");
+            if (idValue != null && !idValue.asString().isEmpty()) {
+                id = idValue.asString();
+            }
+
+            // Extract id if specified
+            AnnotationValue titleValue = jobParamSectionAnnotation.value("title");
+            if (titleValue != null && !titleValue.asString().isEmpty()) {
+                title = titleValue.asString();
+            }
+
+            // Extract name if specified
+            AnnotationValue orderValue = jobParamSectionAnnotation.value("order");
+            if (orderValue != null) {
+                order = orderValue.asInt();
+            }
+
+            // Extract name if specified
+            AnnotationValue layoutValue = jobParamSectionAnnotation.value("layout");
+            if (layoutValue != null) {
+                layout = JobParameterSectionLayout.valueOf(layoutValue.asEnum());
+            }
+
+            return new JobParameterSection(id, title, order, layout);
+        }
+        return null;
     }
 
     /**
@@ -289,33 +310,6 @@ public class ParameterExtractor {
     }
 
     /**
-     * Extracts enum values from a type string.
-     */
-    private List<String> extractEnumValuesFromTypeString(String typeString, JobParameterType parameterType) {
-        String enumClassName = typeString;
-
-        // For EnumSet, extract the inner type
-        if (parameterType == JobParameterType.MULTI_ENUM && typeString.startsWith("java.util.EnumSet<") && typeString.endsWith(">")) {
-            enumClassName = typeString.substring("java.util.EnumSet<".length(), typeString.length() - 1);
-        }
-
-        DotName enumDotName = DotName.createSimple(enumClassName);
-        ClassInfo enumClassInfo = index.getClassByName(enumDotName);
-
-        if (enumClassInfo == null) {
-            LOG.warnf("Could not find enum class in index: %s", enumClassName);
-            return List.of();
-        }
-
-        if (!enumClassInfo.isEnum()) {
-            LOG.warnf("Class %s is not an enum", enumClassName);
-            return List.of();
-        }
-
-        return extractEnumConstants(enumClassInfo);
-    }
-
-    /**
      * Gets enum values if the type is an enum or EnumSet.
      */
     private List<String> getEnumValuesIfApplicable(Type type, JobParameterType parameterType) {
@@ -368,18 +362,14 @@ public class ParameterExtractor {
         return enumValues;
     }
 
-    private String getAnnotationValue(AnnotationInstance annotation, String name, String defaultValue) {
-        AnnotationValue value = annotation.value(name);
-        return value != null ? value.asString() : defaultValue;
-    }
-
     /**
      * Helper record to return analysis results including external parameter metadata.
      */
     public record AnalyzedParameters(
             List<JobParameter> parameters,
+            List<JobParameterSection> parameterSections,
             boolean usesExternalParameters,
-            String parameterSetFieldName
+            String externalParametersClassName
     ) {
     }
 }

@@ -4,15 +4,16 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterType;
 import ch.css.jobrunr.control.domain.exceptions.ValidationException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Validator for job parameters.
@@ -20,6 +21,15 @@ import java.util.Map;
  */
 @ApplicationScoped
 public class JobParameterValidator {
+
+    private final ObjectMapper objectMapper;
+    private final Validator validator;
+
+    @Inject
+    public JobParameterValidator(ObjectMapper objectMapper, Validator validator) {
+        this.objectMapper = objectMapper;
+        this.validator = validator;
+    }
 
     /**
      * Validates the provided parameters against the job definition.
@@ -42,7 +52,7 @@ public class JobParameterValidator {
             }
 
             // Skip further validation for optional null values
-            if (value == null) {
+            if (value == null || value.isBlank()) {
                 continue;
             }
 
@@ -52,6 +62,23 @@ public class JobParameterValidator {
             } catch (ValidationException e) {
                 errors.addAll(e.getErrors());
             }
+        }
+
+        // Additional validation for JobRequest parameters
+        try {
+            Class<?> parametersClass;
+            if(jobDefinition.usesExternalParameters()) {
+                parametersClass = Thread.currentThread().getContextClassLoader().loadClass(jobDefinition.externalParametersClassName());
+            } else {
+                parametersClass = Thread.currentThread().getContextClassLoader().loadClass(jobDefinition.jobRequestTypeName());
+            }
+            Object parameterSet = objectMapper.convertValue(convertedParams, parametersClass);
+            final Set<ConstraintViolation<Object>> violations = validator.validate(parameterSet);
+            if (!violations.isEmpty()) {
+                errors.addAll(violations.stream().map(ConstraintViolation::getMessage).toList());
+            }
+        } catch (ClassNotFoundException e) {
+            throw new ValidationException("Validation failed: JobRequest class '" + jobDefinition.jobRequestTypeName() + "' not found");
         }
 
         if (!errors.isEmpty()) {
@@ -71,7 +98,7 @@ public class JobParameterValidator {
      * @throws ValidationException when the value does not match the type
      */
     private Object convertAndValidate(String name, JobParameterType type, String value) {
-        if (value == null) {
+        if (value == null || value.isBlank()) {
             return null;
         }
 

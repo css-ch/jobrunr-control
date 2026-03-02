@@ -63,7 +63,7 @@ class JobRunrParameterSetLoaderAdapterTest {
         UUID jobId = UUID.randomUUID();
         JobDefinition inlineDef = new JobDefinition(
                 SIMPLE_CLASS, false, "InlineJobRequest", HANDLER_CLASS,
-                List.of(),
+                List.of(), List.of(),
                 new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
                 false, null
         );
@@ -91,7 +91,7 @@ class JobRunrParameterSetLoaderAdapterTest {
         ParameterSet parameterSet = ParameterSet.create(jobId, "ExternalJob", expectedParams);
         JobDefinition externalDef = new JobDefinition(
                 "ExternalJobHandler", false, "ExternalJobRequest", "com.example.ExternalJobHandler",
-                List.of(),
+                List.of(), List.of(),
                 new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
                 true, "parameterSetId"
         );

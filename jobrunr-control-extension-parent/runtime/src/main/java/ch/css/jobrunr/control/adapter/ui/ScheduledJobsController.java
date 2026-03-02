@@ -5,10 +5,7 @@ import ch.css.jobrunr.control.application.discovery.GetJobParametersUseCase;
 import ch.css.jobrunr.control.application.monitoring.GetScheduledJobsUseCase;
 import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.application.scheduling.*;
-import ch.css.jobrunr.control.domain.JobDefinition;
-import ch.css.jobrunr.control.domain.JobParameter;
-import ch.css.jobrunr.control.domain.ScheduledJobInfo;
-import ch.css.jobrunr.control.domain.ScheduledJobInfoView;
+import ch.css.jobrunr.control.domain.*;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
@@ -60,6 +57,7 @@ public class ScheduledJobsController extends BaseController {
                                                                  String sortBy, String sortOrder);
 
         public static native TemplateInstance paramInputs(List<JobParameter> parameters,
+                                                          List<JobParameterSection> parameterSections,
                                                           Map<String, Object> existingValues);
     }
 
@@ -73,7 +71,8 @@ public class ScheduledJobsController extends BaseController {
         public static native TemplateInstance jobForm(List<JobDefinition> jobDefinitions,
                                                       boolean isEdit,
                                                       ScheduledJobInfo job,
-                                                      List<JobParameter> parameters);
+                                                      List<JobParameter> parameters,
+                                                      List<JobParameterSection> parameterSections);
     }
 
 
@@ -181,7 +180,7 @@ public class ScheduledJobsController extends BaseController {
     @RolesAllowed({"configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getNewJobModal() {
-        return Modals.jobForm(getSortedJobDefinitions(discoverJobsUseCase), false, null, null);
+        return Modals.jobForm(getSortedJobDefinitions(discoverJobsUseCase), false, null, null, null);
     }
 
     @GET
@@ -202,7 +201,7 @@ public class ScheduledJobsController extends BaseController {
         );
 
         return Modals.jobForm(jobDefinitions, true,
-                resolvedData.jobInfoWithResolvedParams, resolvedData.parameters);
+                resolvedData.jobInfoWithResolvedParams, resolvedData.parameters, resolvedData.parameterSections);
     }
 
     @GET
@@ -214,22 +213,22 @@ public class ScheduledJobsController extends BaseController {
 
         if (jobType == null || jobType.isBlank()) {
             LOG.warnf("jobType is empty");
-            return Components.paramInputs(List.of(), null);
+            return Components.paramInputs(List.of(), List.of(), null);
         }
 
         try {
-            List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream().sorted(Comparator.comparing(JobParameter::order)).toList();
+            GetJobParametersUseCase.Result result = getJobParametersUseCase.execute(jobType);
             if (LOG.isDebugEnabled()) {
-                LOG.debugf("Found %s parameters for job type '%s'", parameters.size(), jobType);
-                for (JobParameter param : parameters) {
+                LOG.debugf("Found %s parameters for job type '%s'", result.parameters().size(), jobType);
+                for (JobParameter param : result.parameters()) {
                     LOG.debugf("  - Parameter: %s (type: %s, required: %s, defaultValue: '%s')",
                             param.name(), param.type(), param.required(), param.defaultValue());
                 }
             }
-            return Components.paramInputs(parameters, null);
+            return Components.paramInputs(result.parameters(), result.parameterSections(), null);
         } catch (Exception e) {
             LOG.errorf(e, "Error getting parameters for job type '%s'", jobType);
-            return Components.paramInputs(List.of(), null);
+            return Components.paramInputs(List.of(), List.of(),null);
         }
     }
 

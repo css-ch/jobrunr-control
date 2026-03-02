@@ -5,10 +5,7 @@ import ch.css.jobrunr.control.application.discovery.GetJobParametersUseCase;
 import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.application.scheduling.StartJobUseCase;
 import ch.css.jobrunr.control.application.template.*;
-import ch.css.jobrunr.control.domain.JobDefinition;
-import ch.css.jobrunr.control.domain.JobParameter;
-import ch.css.jobrunr.control.domain.ScheduledJobInfo;
-import ch.css.jobrunr.control.domain.ScheduledJobInfoView;
+import ch.css.jobrunr.control.domain.*;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
@@ -66,7 +63,8 @@ public class TemplatesController extends BaseController {
         public static native TemplateInstance templateForm(List<JobDefinition> jobDefinitions,
                                                            boolean isEdit,
                                                            ScheduledJobInfo job,
-                                                           List<JobParameter> parameters);
+                                                           List<JobParameter> parameters,
+                                                           List<JobParameterSection> parameterSections);
     }
 
     private final DiscoverJobsUseCase discoverJobsUseCase;
@@ -153,7 +151,7 @@ public class TemplatesController extends BaseController {
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getNewTemplateModal() {
         List<JobDefinition> jobDefinitions = getSortedJobDefinitions(discoverJobsUseCase);
-        return Modals.templateForm(jobDefinitions, false, null, null);
+        return Modals.templateForm(jobDefinitions, false, null, null, null);
     }
 
     @GET
@@ -174,7 +172,7 @@ public class TemplatesController extends BaseController {
         );
 
         return Modals.templateForm(jobDefinitions, true,
-                resolvedData.jobInfoWithResolvedParams, resolvedData.parameters);
+                resolvedData.jobInfoWithResolvedParams, resolvedData.parameters, resolvedData.parameterSections);
     }
 
     @GET
@@ -186,17 +184,15 @@ public class TemplatesController extends BaseController {
 
         if (jobType == null || jobType.isBlank()) {
             LOG.warnf("jobType is empty");
-            return ScheduledJobsController.Components.paramInputs(List.of(), null);
+            return ScheduledJobsController.Components.paramInputs(List.of(), List.of(), null);
         }
 
         try {
-            List<JobParameter> parameters = getJobParametersUseCase.execute(jobType).stream()
-                    .sorted(Comparator.comparing(JobParameter::order))
-                    .toList();
-            return ScheduledJobsController.Components.paramInputs(parameters, null);
+            GetJobParametersUseCase.Result result = getJobParametersUseCase.execute(jobType);
+            return ScheduledJobsController.Components.paramInputs(result.parameters(), result.parameterSections(), null);
         } catch (Exception e) {
             LOG.errorf(e, "Error getting parameters for job type '%s'", jobType);
-            return ScheduledJobsController.Components.paramInputs(List.of(), null);
+            return ScheduledJobsController.Components.paramInputs(List.of(), List.of(), null);
         }
     }
 

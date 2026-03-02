@@ -34,7 +34,7 @@ class ResolveParametersUseCaseTest {
     private static ScheduledJobInfo inlineJobInfo(UUID jobId, Map<String, Object> params) {
         JobDefinition jobDef = new JobDefinition(
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
-                List.of(),
+                List.of(), List.of(),
                 new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
                 false, null
         );
@@ -44,7 +44,7 @@ class ResolveParametersUseCaseTest {
     private static ScheduledJobInfo externalJobInfo(UUID jobId) {
         JobDefinition jobDef = new JobDefinition(
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
-                List.of(),
+                List.of(), List.of(),
                 new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
                 true, "parameterSetId"
         );

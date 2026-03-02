@@ -60,7 +60,7 @@
 
     <!-- Bootstrap Modal -->
     <div class="modal fade" id="jobModal" tabindex="-1" aria-labelledby="jobModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="jobModalLabel">Template planen</h5>
@@ -90,11 +90,19 @@
         document.body.addEventListener('htmx:afterSwap', function(event) {
             // Only close modal if the swap was triggered by the template form
             if (event.detail.target.id === 'jobs-table' &&
-                (event.detail.requestConfig.elt.id === 'templateForm')) {
-                const modalElement = document.getElementById('jobModal');
-                const modal = bootstrap.Modal.getInstance(modalElement);
-                if (modal) {
-                    modal.hide();
+                event.detail.requestConfig.elt.id === 'templateForm') {
+
+                // Check if error alert exists in form-alerts
+                const formAlerts = document.querySelector('#form-alerts');
+                const hasError = formAlerts && formAlerts.querySelector('.alert-danger');
+
+                // Only close modal if NO error occurred
+                if (!hasError) {
+                    const modalElement = document.getElementById('jobModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    }
                 }
             }
         });

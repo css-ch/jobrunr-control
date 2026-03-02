@@ -36,7 +36,7 @@ class ParameterStorageAdapterTest {
 
     @BeforeEach
     void setUp() {
-        adapter = new ParameterStorageAdapter(storageAdapters);
+        adapter = new ParameterStorageAdapter(storageAdapters, null);
     }
 
     @Test

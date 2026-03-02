@@ -79,7 +79,8 @@ class GetScheduledJobsUseCaseTest {
                 false,
                 jobType + "Request",
                 jobType + "Handler",
-                List.of(new JobParameter("param1", JobParameterType.STRING, true, null, List.of(), 0)),
+                List.of(new JobParameter("param1", "param1", null, JobParameterType.STRING, true, null, List.of(), 0, "default")),
+                List.of(),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
                 false,
                 null

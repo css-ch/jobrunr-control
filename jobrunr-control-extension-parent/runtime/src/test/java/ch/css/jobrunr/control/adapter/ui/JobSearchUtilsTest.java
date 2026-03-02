@@ -18,7 +18,7 @@ class JobSearchUtilsTest {
             false,
             "test.JobRequest",
             "test.JobHandler",
-            List.of(),
+            List.of(), List.of(),
             new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
             false,
             null
@@ -49,7 +49,7 @@ class JobSearchUtilsTest {
         List<JobExecutionInfo> result = JobSearchUtils.applySearchToExecutions("monthly", executions);
 
         assertEquals(1, result.size());
-        assertTrue(result.get(0).getJobName().toLowerCase().contains("monthly"));
+        assertTrue(result.getFirst().getJobName().toLowerCase().contains("monthly"));
     }
 
     @Test
@@ -59,7 +59,7 @@ class JobSearchUtilsTest {
         List<JobExecutionInfo> result = JobSearchUtils.applySearchToExecutions("BatchJob", executions);
 
         assertEquals(1, result.size());
-        assertTrue(result.get(0).getJobType().contains("BatchJob"));
+        assertTrue(result.getFirst().getJobType().contains("BatchJob"));
     }
 
     @Test
@@ -69,7 +69,7 @@ class JobSearchUtilsTest {
         List<JobExecutionInfo> result = JobSearchUtils.applySearchToExecutions("region=EU", executions);
 
         assertEquals(1, result.size());
-        assertEquals("EU", result.get(0).getParameters().get("region"));
+        assertEquals("EU", result.getFirst().getParameters().get("region"));
     }
 
     @Test
@@ -79,7 +79,7 @@ class JobSearchUtilsTest {
         List<JobExecutionInfo> result = JobSearchUtils.applySearchToExecutions("priority=high", executions);
 
         assertEquals(1, result.size());
-        assertEquals("high", result.get(0).getMetadata().get("priority"));
+        assertEquals("high", result.getFirst().getMetadata().get("priority"));
     }
 
     @Test
@@ -98,7 +98,7 @@ class JobSearchUtilsTest {
         List<ScheduledJobInfo> result = JobSearchUtils.applySearchToScheduledJobs("daily", jobs);
 
         assertEquals(1, result.size());
-        assertTrue(result.get(0).jobName().toLowerCase().contains("daily"));
+        assertTrue(result.getFirst().jobName().toLowerCase().contains("daily"));
     }
 
     @Test
@@ -108,7 +108,7 @@ class JobSearchUtilsTest {
         List<ScheduledJobInfo> result = JobSearchUtils.applySearchToScheduledJobs("env=prod", jobs);
 
         assertEquals(1, result.size());
-        assertEquals("prod", result.get(0).parameters().get("env"));
+        assertEquals("prod", result.getFirst().parameters().get("env"));
     }
 
     private List<JobExecutionInfo> createTestExecutions() {

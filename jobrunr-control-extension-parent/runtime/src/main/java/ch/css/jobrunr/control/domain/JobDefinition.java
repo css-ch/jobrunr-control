@@ -10,18 +10,20 @@ import java.util.List;
  * @param jobRequestTypeName     Fully qualified name of the JobRequest class
  * @param handlerClassName       Fully qualified name of the JobRequestHandler class
  * @param parameters             List of job parameters (inline or external schema)
+ * @param parameterSections      List of parameter sections for grouping parameters in the UI (at minimum a default section)
  * @param jobSettings            Job execution settings from @ConfigurableJob
  * @param usesExternalParameters Whether this job uses external parameter storage (@JobParameterSet)
- * @param parameterSetFieldName  Name of the field annotated with @JobParameterSet (null if inline)
+ * @param externalParametersClassName  Name of the class used for external parameter storage (if usesExternalParameters is true)
  */
 public record JobDefinition(String jobType,
                             boolean isBatchJob,
                             String jobRequestTypeName,
                             String handlerClassName,
                             List<JobParameter> parameters,
+                            List<JobParameterSection> parameterSections,
                             JobSettings jobSettings,
                             boolean usesExternalParameters,
-                            String parameterSetFieldName) {
+                            String externalParametersClassName) {
 
     @SuppressWarnings("unused") // Used in type-safe qute templates
     public List<String> getParameterNames() {

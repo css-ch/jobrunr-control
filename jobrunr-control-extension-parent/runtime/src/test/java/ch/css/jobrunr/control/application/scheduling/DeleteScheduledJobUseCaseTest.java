@@ -87,7 +87,7 @@ class DeleteScheduledJobUseCaseTest {
     private ScheduledJobInfo createJobInfo(UUID jobId, boolean externalParams) {
         JobDefinition jobDef = new JobDefinition(
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
-                List.of(),
+                List.of(), List.of(),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
                 externalParams, externalParams ? "parameterSetId" : null
         );

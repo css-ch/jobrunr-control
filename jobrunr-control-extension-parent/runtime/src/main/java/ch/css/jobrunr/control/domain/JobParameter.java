@@ -15,9 +15,12 @@ import java.util.List;
  */
 public record JobParameter(
         String name,
+        String displayName,
+        String description,
         JobParameterType type,
         boolean required,
         String defaultValue,
         List<String> enumValues,
-        int order) {
+        int order,
+        String sectionId) {
 }

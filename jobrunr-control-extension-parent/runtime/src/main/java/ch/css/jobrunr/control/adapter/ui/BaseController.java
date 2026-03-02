@@ -1,11 +1,9 @@
 package ch.css.jobrunr.control.adapter.ui;
 
 import ch.css.jobrunr.control.application.discovery.DiscoverJobsUseCase;
+import ch.css.jobrunr.control.application.discovery.GetJobParametersUseCase;
 import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
-import ch.css.jobrunr.control.domain.JobDefinition;
-import ch.css.jobrunr.control.domain.JobParameter;
-import ch.css.jobrunr.control.domain.ScheduledJobInfo;
-import ch.css.jobrunr.control.domain.ScheduledJobInfoView;
+import ch.css.jobrunr.control.domain.*;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
@@ -228,10 +226,12 @@ public abstract class BaseController {
     protected static class ResolvedJobData {
         public final ScheduledJobInfo jobInfoWithResolvedParams;
         public final List<JobParameter> parameters;
+        public final List<JobParameterSection> parameterSections;
 
-        public ResolvedJobData(ScheduledJobInfo jobInfoWithResolvedParams, List<JobParameter> parameters) {
+        public ResolvedJobData(ScheduledJobInfo jobInfoWithResolvedParams, List<JobParameter> parameters, List<JobParameterSection> parameterSections) {
             this.jobInfoWithResolvedParams = jobInfoWithResolvedParams;
             this.parameters = parameters;
+            this.parameterSections = parameterSections;
         }
     }
 
@@ -247,7 +247,7 @@ public abstract class BaseController {
     protected ResolvedJobData resolveJobParameters(
             ScheduledJobInfo jobInfo,
             Function<ScheduledJobInfo, Map<String, Object>> resolveParameters,
-            Function<String, List<JobParameter>> getJobParameters) {
+            Function<String, GetJobParametersUseCase.Result> getJobParameters) {
 
         // Resolve parameters (load external parameter sets if applicable)
         Map<String, Object> resolvedParameters = resolveParameters.apply(jobInfo);
@@ -265,14 +265,17 @@ public abstract class BaseController {
 
         // Load parameter definitions for this job type
         List<JobParameter> parameters = Collections.emptyList();
+        List<JobParameterSection> parameterSections = Collections.emptyList();
         try {
-            parameters = getJobParameters.apply(jobInfo.getJobType());
+            GetJobParametersUseCase.Result result = getJobParameters.apply(jobInfo.getJobType());
+            parameters = result.parameters();
+            parameterSections = result.parameterSections();
         } catch (Exception e) {
             LOG.errorf("Error loading parameters for job type '%s': %s",
                     jobInfo.getJobType(), e.getMessage(), e);
         }
 
-        return new ResolvedJobData(jobInfoWithResolvedParams, parameters);
+        return new ResolvedJobData(jobInfoWithResolvedParams, parameters, parameterSections);
     }
 
     /**
