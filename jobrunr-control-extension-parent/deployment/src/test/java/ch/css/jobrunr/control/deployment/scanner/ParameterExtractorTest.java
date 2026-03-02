@@ -40,9 +40,7 @@ class ParameterExtractorTest {
         indexClass(indexer, CustomNameParametersRecord.class);
         indexClass(indexer, MultilineParameterRecord.class);
         indexClass(indexer, TestEnum.class);
-        indexClass(indexer, EmptyParameterSetRecord.class);
-        indexClass(indexer, MissingNameInParameterSetRecord.class);
-        indexClass(indexer, MissingTypeInParameterSetRecord.class);
+        indexClass(indexer, NoRecordParameterSetClass.class);
         index = indexer.complete();
         extractor = new ParameterExtractor(index);
     }
@@ -54,7 +52,7 @@ class ParameterExtractorTest {
         ParameterExtractor.AnalyzedParameters result = extractor.analyzeRecordParameters(recordClass);
 
         assertFalse(result.usesExternalParameters());
-        assertNull(result.parameterSetFieldName());
+        assertNull(result.externalParametersClassName());
         assertEquals(2, result.parameters().size());
 
         // Check parameters by name (order not guaranteed)
@@ -83,19 +81,18 @@ class ParameterExtractorTest {
         ParameterExtractor.AnalyzedParameters result = extractor.analyzeRecordParameters(recordClass);
 
         assertTrue(result.usesExternalParameters());
-        assertNull(result.parameterSetFieldName());
-        assertEquals(2, result.parameters().size());
+        assertEquals(MixedTypesRecord.class.getName(), result.externalParametersClassName());
+        assertEquals(6, result.parameters().size());
 
         var param1 = result.parameters().getFirst();
-        assertEquals("externalParam1", param1.name());
-        assertEquals(JobParameterType.STRING, param1.type());
+        assertEquals("boolParam", param1.name());
+        assertEquals(JobParameterType.BOOLEAN, param1.type());
         assertTrue(param1.required());
 
         var param2 = result.parameters().get(1);
-        assertEquals("externalParam2", param2.name());
-        assertEquals(JobParameterType.INTEGER, param2.type());
-        assertFalse(param2.required());
-        assertEquals("42", param2.defaultValue());
+        assertEquals("dateParam", param2.name());
+        assertEquals(JobParameterType.DATE, param2.type());
+        assertTrue(param2.required());
     }
 
     @Test
@@ -190,32 +187,14 @@ class ParameterExtractorTest {
 
     @Test
     void shouldThrowExceptionForEmptyParameterSet() {
-        ClassInfo recordClass = index.getClassByName(EmptyParameterSetRecord.class.getName());
+        ClassInfo recordClass = index.getClassByName(NoRecordParameterSetClass.class.getName());
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> extractor.analyzeRecordParameters(recordClass));
 
-        assertTrue(exception.getMessage().contains("must define at least one parameter"));
-    }
+        System.out.println(exception.getMessage());
 
-    @Test
-    void shouldThrowExceptionForMissingParameterName() {
-        ClassInfo recordClass = index.getClassByName(MissingNameInParameterSetRecord.class.getName());
-
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> extractor.analyzeRecordParameters(recordClass));
-
-        assertTrue(exception.getMessage().contains("must have a non-empty 'name' attribute"));
-    }
-
-    @Test
-    void shouldThrowExceptionForMissingParameterType() {
-        ClassInfo recordClass = index.getClassByName(MissingTypeInParameterSetRecord.class.getName());
-
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> extractor.analyzeRecordParameters(recordClass));
-
-        assertTrue(exception.getMessage().contains("must have a 'type' attribute"));
+        assertTrue(exception.getMessage().contains("empty or class can not be loaded"));
     }
 
     // Test classes and enums
@@ -234,10 +213,7 @@ class ParameterExtractorTest {
     public record InlineParametersRecord(String name, Integer count) {
     }
 
-    @JobParameterSet({
-            @JobParameterDefinition(name = "externalParam1", type = "java.lang.String"),
-            @JobParameterDefinition(name = "externalParam2", type = "java.lang.Integer", defaultValue = "42")
-    })
+    @JobParameterSet(parameterSetClass = MixedTypesRecord.class)
     public record ExternalParametersRecord() {
     }
 
@@ -271,20 +247,8 @@ class ParameterExtractorTest {
     ) {
     }
 
-    @JobParameterSet({})
-    public record EmptyParameterSetRecord() {
-    }
-
-    @JobParameterSet({
-            @JobParameterDefinition(type = "java.lang.String")
-    })
-    public record MissingNameInParameterSetRecord() {
-    }
-
-    @JobParameterSet({
-            @JobParameterDefinition(name = "param")
-    })
-    public record MissingTypeInParameterSetRecord() {
+    @JobParameterSet(parameterSetClass = ParameterExtractorTest.class)
+    public record NoRecordParameterSetClass() {
     }
 
     private void indexClass(Indexer indexer, Class<?> clazz) throws IOException {

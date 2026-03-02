@@ -34,8 +34,8 @@ class GetJobParametersUseCaseTest {
     @BeforeEach
     void setUp() {
         testParameters = List.of(
-                new JobParameter("param1", JobParameterType.STRING, true, null, List.of(), 0),
-                new JobParameter("param2", JobParameterType.INTEGER, false, "42", List.of(), 1)
+                new JobParameter("param1", "param1", null, JobParameterType.STRING, true, null, List.of(), 0, "default"),
+                new JobParameter("param2", "param2", null, JobParameterType.INTEGER, false, "42", List.of(), 1, "default")
         );
 
         testJobDefinition = createJobDefinition("TestJob", testParameters);
@@ -50,7 +50,7 @@ class GetJobParametersUseCaseTest {
                 .thenReturn(Optional.of(testJobDefinition));
 
         // Act
-        List<JobParameter> result = useCase.execute(jobType);
+        List<JobParameter> result = useCase.execute(jobType).parameters();
 
         // Assert
         assertThat(result)
@@ -88,7 +88,7 @@ class GetJobParametersUseCaseTest {
                 .thenReturn(Optional.of(jobWithNoParams));
 
         // Act
-        List<JobParameter> result = useCase.execute(jobType);
+        List<JobParameter> result = useCase.execute(jobType).parameters();
 
         // Assert
         assertThat(result).isEmpty();
@@ -103,6 +103,7 @@ class GetJobParametersUseCaseTest {
                 jobType + "Request",
                 jobType + "Handler",
                 parameters,
+                List.of(),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
                 false,
                 null

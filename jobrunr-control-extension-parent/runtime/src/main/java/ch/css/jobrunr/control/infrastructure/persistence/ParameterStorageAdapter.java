@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.infrastructure.persistence;
 import ch.css.jobrunr.control.domain.ParameterSet;
 import ch.css.jobrunr.control.domain.ParameterStoragePort;
 import ch.css.jobrunr.control.domain.ParameterStorageService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
@@ -25,10 +26,12 @@ public class ParameterStorageAdapter implements ParameterStorageService {
     private static final Logger LOG = Logger.getLogger(ParameterStorageAdapter.class);
 
     private final Instance<ParameterStoragePort> storageAdapters;
+    private final ObjectMapper objectMapper;
 
     @Inject
-    public ParameterStorageAdapter(@Any Instance<ParameterStoragePort> storageAdapters) {
+    public ParameterStorageAdapter(@Any Instance<ParameterStoragePort> storageAdapters, ObjectMapper objectMapper) {
         this.storageAdapters = storageAdapters;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -82,6 +85,18 @@ public class ParameterStorageAdapter implements ParameterStorageService {
             return Optional.empty();
         }
         return getExternalStorage().findById(id);
+    }
+
+    /**
+     * Finds a parameter set by ID and converts it to the specified type.
+     *
+     * @param id   the parameter set ID
+     * @param type the class type to convert the parameters to
+     * @return optional containing the converted parameter set if found
+     */
+    @Override
+    public <T> Optional<T> findById(UUID id, Class<T> type) {
+        return findById(id).map(params -> objectMapper.convertValue(params, type));
     }
 
     /**

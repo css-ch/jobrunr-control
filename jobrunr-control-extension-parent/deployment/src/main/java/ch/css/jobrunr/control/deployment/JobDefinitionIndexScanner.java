@@ -98,9 +98,10 @@ final class JobDefinitionIndexScanner {
                     requestClassInfo.name().toString(),
                     classInfo.name().toString(),
                     analyzedParams.parameters(),
+                    analyzedParams.parameterSections(),
                     jobSettings,
                     analyzedParams.usesExternalParameters(),
-                    analyzedParams.parameterSetFieldName()
+                    analyzedParams.externalParametersClassName()
             ));
         }
 

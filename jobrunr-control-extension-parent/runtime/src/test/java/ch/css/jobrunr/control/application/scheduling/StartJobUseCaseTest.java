@@ -121,7 +121,7 @@ class StartJobUseCaseTest {
     private ScheduledJobInfo createJob(UUID jobId, String jobName, List<String> labels) {
         JobDefinition jobDef = new JobDefinition(
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
-                List.of(),
+                List.of(), List.of(),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
                 false, null
         );

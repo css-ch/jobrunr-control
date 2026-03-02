@@ -44,6 +44,14 @@ public interface ParameterStorageService {
     Optional<ParameterSet> findById(UUID id);
 
     /**
+     * Finds a parameter set by ID and maps it to the specified type.
+     *
+     * @param id   the parameter set ID
+     * @param type the class type to map the parameters to
+     * @return optional containing the mapped parameter set if found
+     */
+    <T> Optional<T> findById(UUID id, Class<T> type);
+    /**
      * Deletes a parameter set by ID.
      *
      * @param id the parameter set ID

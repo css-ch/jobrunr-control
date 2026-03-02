@@ -23,6 +23,26 @@ public @interface JobParameterDefinition {
     String name() default "";
 
     /**
+     * The display name of the parameter for UI purposes. If empty, the field name is used.
+     */
+    String displayName() default "";
+
+    /**
+     * A brief description of the parameter for UI tooltips or documentation.
+     */
+    String description() default "";
+
+    /**
+     * The ID of the ParameterSection this parameter belongs to. Used for grouping parameters in the UI.
+     */
+    String sectionId() default "default";
+
+    /**
+     * The order of the parameter within its section. Lower values are displayed first.
+     */
+    int order() default 9999;
+
+    /**
      * The default value of the parameter as a String.
      * It will be parsed to the target type at runtime.
      * Use standard formats:

@@ -46,7 +46,7 @@
 
     <div id="parameters-container" class="mb-3">
         {#if isEdit}
-                {#include components/param-inputs.html parameters = parameters existingValues = job.parameters /}
+                {#include components/param-inputs.html parameters = parameters parameterSections = parameterSections existingValues = job.parameters /}
         {#else}
             <div class="alert alert-secondary" role="alert">
                 <small>Wählen Sie einen Job aus, um die Parameter zu sehen.</small>
