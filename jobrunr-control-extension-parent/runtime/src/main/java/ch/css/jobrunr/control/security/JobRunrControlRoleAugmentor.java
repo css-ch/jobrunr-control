@@ -13,16 +13,11 @@ import org.jboss.logging.Logger;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Security augmentor that grants all roles when OIDC is disabled.
+ * Security augmentor that grants the {@code admin} role when OIDC is disabled.
  * <p>
  * When {@code quarkus.oidc.enabled=false}, this augmentor automatically grants
- * all required roles (viewer, configurator, admin, api-reader, api-executor)
- * to all requests, effectively bypassing authentication.
- * </p>
- * <p>
- * <strong>Security Warning:</strong> This is intended for development and testing
- * environments only. In production, always use OIDC authentication by setting
- * {@code quarkus.oidc.enabled=true} (default).
+ * the {@code admin} role to all requests, satisfying every {@code @RolesAllowed}
+ * check in the extension and effectively bypassing authentication.
  * </p>
  * <p>
  * <strong>Architecture Note:</strong> This class belongs to the Infrastructure/Security
@@ -34,10 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class JobRunrControlRoleAugmentor implements SecurityIdentityAugmentor {
 
     private static final Logger LOG = Logger.getLogger(JobRunrControlRoleAugmentor.class);
-
-    private static final String[] ALL_ROLES = {
-            "viewer", "configurator", "admin", "api-reader", "api-executor"
-    };
 
     private final AtomicBoolean warningLogged = new AtomicBoolean(false);
 
@@ -51,23 +42,20 @@ public class JobRunrControlRoleAugmentor implements SecurityIdentityAugmentor {
             return Uni.createFrom().item(identity);
         }
 
-        // OIDC is disabled: grant all roles to enable development/testing without authentication
+        // OIDC is disabled: grant admin role to satisfy all @RolesAllowed checks
         if (warningLogged.compareAndSet(false, true)) {
-            LOG.warnf("OIDC disabled: Granting all roles to requests. This should ONLY be used in development/testing!");
+            LOG.warnf("OIDC disabled: Granting admin role to all requests. Ensure this is intentional!");
         }
 
         QuarkusSecurityIdentity.Builder builder = QuarkusSecurityIdentity.builder(identity);
 
-        // If anonymous, create a test principal
+        // If anonymous, create a synthetic principal
         if (identity.isAnonymous()) {
             builder.setAnonymous(false);
             builder.setPrincipal(new QuarkusPrincipal("anonymous-user"));
         }
 
-        // Grant all roles
-        for (String role : ALL_ROLES) {
-            builder.addRole(role);
-        }
+        builder.addRole("admin");
 
         return Uni.createFrom().item(builder.build());
     }

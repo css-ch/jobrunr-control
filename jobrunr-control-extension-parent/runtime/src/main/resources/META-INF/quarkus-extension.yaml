@@ -2,6 +2,7 @@
 name: "JobRunr Control"
 description: "Web-based control dashboard and REST API for managing and monitoring JobRunr Pro scheduled jobs"
 metadata:
+  artifact: "ch.css.quarkus:quarkus-jobrunr-control"
   keywords:
     - "jobrunr"
     - "jobrunr-pro"
@@ -17,4 +18,4 @@ metadata:
     - "web"
     - "observability"
   status: "stable"
-  built-with-quarkus-core: "3.30.8"
+  built-with-quarkus-core: "3.31.2"

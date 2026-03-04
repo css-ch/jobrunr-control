@@ -73,6 +73,7 @@ public class MyJobHandler implements JobRequestHandler<MyJobRequest> {
 == Security Configuration
 
 The JobRunr Control extension provides role-based access control (RBAC) for both the Web UI and REST API.
+For the full security specification including all profiles and edge cases, see `docs/security.md`.
 
 === Role Overview
 
@@ -90,7 +91,7 @@ The Web UI at `/q/jobrunr-control` uses these roles:
 |Read-only access to scheduled jobs and execution history
 
 |`configurator`
-|All viewer permissions plus: create, edit, delete scheduled jobs
+|All viewer permissions plus: create, edit, delete scheduled jobs and templates
 
 |`admin`
 |All configurator permissions plus: execute jobs immediately
@@ -98,7 +99,7 @@ The Web UI at `/q/jobrunr-control` uses these roles:
 
 ==== REST API Roles
 
-The REST API at `/q/jobrunr-control/api` uses separate roles:
+The REST API at `/q/jobrunr-control/api` uses separate roles for service accounts:
 
 [cols="1,3"]
 |===
@@ -121,133 +122,131 @@ The REST API at `/q/jobrunr-control/api` uses separate roles:
 This separation allows organizations to:
 
 * Grant operators UI access without exposing API credentials
-* Issue API keys to external systems (e.g., CI/CD pipelines) with narrower permissions
-* Apply different authentication mechanisms (form login for UI, bearer tokens for API)
+* Issue bearer tokens to external systems (e.g., CI/CD pipelines) with narrower permissions
+* Revoke API access independently of UI access
 
-The `admin` role is shared across both surfaces for administrative operations.
+The `admin` role is shared across both surfaces.
 ====
 
 === Configuring Security
 
-==== Development Mode
+==== Development Mode (no Keycloak)
 
-In development mode, grant all roles for easy testing:
+By default, `quarkus:dev` runs with OIDC disabled. The built-in `JobRunrControlRoleAugmentor`
+grants the `admin` role to every request automatically — no configuration required.
+
+[source,bash]
+----
+./mvnw -f jobrunr-control-example/pom.xml quarkus:dev
+----
 
 [source,properties]
 ----
-# application.properties
-%dev.quarkus.security.users.embedded.enabled=true
-%dev.quarkus.security.users.embedded.plain-text=true
-%dev.quarkus.security.users.embedded.users.admin=admin
-%dev.quarkus.security.users.embedded.roles.admin=admin,viewer,configurator,api-reader,api-executor
-----
-
-==== Production Mode with OIDC
-
-For production, use OIDC/OAuth2 with role mapping:
-
-[source,properties]
-----
-# application.properties
-quarkus.oidc.auth-server-url=https://your-keycloak.com/realms/your-realm
-quarkus.oidc.client-id=jobrunr-control
-quarkus.oidc.credentials.secret=${OIDC_CLIENT_SECRET}
-
-# Map OIDC roles to application roles
-quarkus.oidc.roles.source=accesstoken
-quarkus.oidc.roles.role-claim-path=realm_access/roles
-----
-
-Configure your OIDC provider (Keycloak, Auth0, etc.) to issue the following roles:
-
-* For UI users: `viewer`, `configurator`, `admin`
-* For API clients: `api-reader`, `api-executor`, `admin`
-
-==== Production Mode with Basic Auth
-
-For simple deployments, use basic authentication:
-
-[source,properties]
-----
-# application.properties
-quarkus.security.users.embedded.enabled=true
-quarkus.security.users.embedded.plain-text=false
-
-# UI user with configurator role
-quarkus.security.users.embedded.users.operator=${OPERATOR_PASSWORD}
-quarkus.security.users.embedded.roles.operator=viewer,configurator
-
-# API client with executor role
-quarkus.security.users.embedded.users.api-client=${API_CLIENT_PASSWORD}
-quarkus.security.users.embedded.roles.api-client=api-reader,api-executor
-
-# Admin user with full access
-quarkus.security.users.embedded.users.admin=${ADMIN_PASSWORD}
-quarkus.security.users.embedded.roles.admin=admin,viewer,configurator,api-reader,api-executor
+# application.properties — dev profile overrides (already present in the example)
+%dev.quarkus.oidc.enabled=false
+%dev.quarkus.http.auth.permission.jobrunr-control.policy=permit
+%dev.quarkus.http.auth.permission.jobrunr-dashboard.policy=permit
+%dev.quarkus.http.auth.permission.jobrunr-control-api-read.policy=permit
+%dev.quarkus.http.auth.permission.jobrunr-control-api-write.policy=permit
+%dev.quarkus.http.auth.permission.jobrunr-api-read.policy=permit
+%dev.quarkus.http.auth.permission.jobrunr-api-write.policy=permit
 ----
 
 [WARNING]
 ====
-In production, always use hashed passwords.
-Generate BCrypt hashes using:
-
-[source,bash]
-----
-./mvnw quarkus:generate-config -Dquarkus.security.users.embedded.password=your-password
-----
+Never use `%dev` profile settings in production. All requests are treated as `anonymous-user` with `admin` access.
 ====
 
-=== API Authentication Examples
+==== Development Mode with Keycloak
 
-==== Using Basic Auth
-
-[source,bash]
-----
-curl -X POST \
-  -H "Authorization: Basic $(echo -n 'api-client:password' | base64)" \
-  -H "Content-Type: application/json" \
-  -d '{"parameters": {"customerId": "123"}}' \
-  https://your-server/q/jobrunr-control/api/jobs/{jobId}/start
-----
-
-==== Using Bearer Token (OIDC)
+To test with real OIDC authentication:
 
 [source,bash]
 ----
-# 1. Obtain token from your OIDC provider
-TOKEN=$(curl -X POST https://your-keycloak.com/realms/your-realm/protocol/openid-connect/token \
+# 1. Start Keycloak with the example realm
+./start-keycloak.sh
+
+# 2. Start the application
+./mvnw -f jobrunr-control-example/pom.xml quarkus:dev -Dquarkus.profile=dev,keycloak
+----
+
+The `%keycloak` profile overrides activate OIDC and restore all role-based policies.
+
+==== Production Mode with OIDC
+
+The extension uses a **dual-tenant OIDC setup** because it acts as a Backend-for-Frontend (BFF):
+
+* The **default tenant** (`application-type=web-app`) handles browser traffic via session cookies (Authorization Code Flow).
+* The **`bearer` tenant** (`application-type=service`) validates bearer tokens for the REST API.
+
+[source,properties]
+----
+# Default tenant — Authorization Code Flow for browser users
+quarkus.oidc.auth-server-url=https://your-keycloak.com/realms/your-realm
+quarkus.oidc.client-id=jobrunr-control
+quarkus.oidc.credentials.secret=${OIDC_CLIENT_SECRET}
+quarkus.oidc.application-type=web-app
+quarkus.oidc.token-state-manager.encryption-secret=${SESSION_ENCRYPTION_SECRET}
+# Keycloak realm roles are at realm_access/roles in the JWT — required
+quarkus.oidc.roles.source=accesstoken
+quarkus.oidc.roles.role-claim-path=realm_access/roles
+quarkus.oidc.token.refresh-expired=true
+quarkus.oidc.logout.path=/q/jobrunr-control/logout
+quarkus.oidc.logout.post-logout-path=/q/jobrunr-control/scheduled
+
+# Bearer tenant — validates bearer tokens for REST API service accounts only
+# IMPORTANT: named 'bearer', not 'api' — Quarkus OIDC convention-based resolution
+# would otherwise match the 'api' tenant ID against the '/api/' path segment in
+# /q/jobrunr/api/* and intercept JobRunr Dashboard XHR requests from the browser
+quarkus.oidc.bearer.tenant-paths=/q/jobrunr-control/api/*
+quarkus.oidc.bearer.auth-server-url=https://your-keycloak.com/realms/your-realm
+quarkus.oidc.bearer.client-id=jobrunr-control
+quarkus.oidc.bearer.credentials.secret=${OIDC_CLIENT_SECRET}
+quarkus.oidc.bearer.application-type=service
+quarkus.oidc.bearer.roles.source=accesstoken
+quarkus.oidc.bearer.roles.role-claim-path=realm_access/roles
+----
+
+Configure your Keycloak realm to issue the following **realm roles** (not client roles):
+
+* For UI users: `viewer`, `configurator`, `admin`
+* For API service accounts: `api-reader`, `api-executor`, `admin`
+
+=== REST API Authentication Examples
+
+==== Using Bearer Token (OIDC Client Credentials)
+
+[source,bash]
+----
+# 1. Obtain token from Keycloak (service account must have api-executor or admin realm role)
+TOKEN=$(curl -s -X POST \
+  https://your-keycloak.com/realms/your-realm/protocol/openid-connect/token \
   -d "client_id=jobrunr-control" \
-  -d "client_secret=${CLIENT_SECRET}" \
+  -d "client_secret=${OIDC_CLIENT_SECRET}" \
   -d "grant_type=client_credentials" \
   | jq -r '.access_token')
 
-# 2. Use token to call API
+# 2. Start a job
 curl -X POST \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
-  -d '{"parameters": {"customerId": "123"}}' \
-  https://your-server/q/jobrunr-control/api/jobs/{jobId}/start
-----
-
-=== Testing Security Configuration
-
-Verify your role configuration:
-
-[source,bash]
-----
-# Test UI access (should work with viewer role)
-curl -u viewer:password https://your-server/q/jobrunr-control
-
-# Test API read access (should work with api-reader role)
-curl -u api-client:password https://your-server/q/jobrunr-control/api/jobs/{jobId}
-
-# Test API execute access (should work with api-executor role)
-curl -X POST -u api-client:password \
   https://your-server/q/jobrunr-control/api/jobs/{jobId}/start
 
-# Test admin access (should work for all endpoints)
-curl -u admin:password https://your-server/q/jobrunr-control/api/jobs/{jobId}
+# 3. Check job status
+curl -H "Authorization: Bearer ${TOKEN}" \
+  https://your-server/q/jobrunr-control/api/jobs/{jobId}
 ----
+
+=== Security Invariants for Extension Developers
+
+When adding new endpoints to the extension, follow these rules:
+
+* Apply `@RolesAllowed` to every JAX-RS method. Use the roles defined in `security.md`.
+* Never add a Quarkus OIDC named tenant with an ID that appears as a URL path segment
+  (e.g., `api`, `jobs`, `scheduled`) — this triggers convention-based tenant resolution.
+* Never add unprefixed debug log categories for `io.quarkus.security` or `io.quarkus.oidc`
+  to `application.properties`. Always scope them with a profile prefix (e.g., `%keycloak.`).
+
 
 == Discovery Mechanism
 
@@ -1568,6 +1567,20 @@ public void run(MyJobRequest request) throws Exception {
 * Check for circular dependencies in JobRequest
 * Verify all referenced classes are on the classpath
 * Review Quarkus build output for scanner warnings
+
+== Documentation Changelog
+
+=== 2026-03-04
+
+* **Rewrote Security Configuration section** to reflect the current dual-tenant OIDC architecture:
+** Replaced outdated embedded-users and basic-auth guidance (not supported by this extension)
+** Documented BFF pattern: session cookie for browser users, bearer token for service accounts
+** Explained dual-tenant setup: default `web-app` tenant + `bearer` service tenant
+** Added `role-claim-path=realm_access/roles` — required for Keycloak realm roles
+** Explained why the bearer tenant must be named `bearer` (not `api`) to avoid path-segment collision
+** Added Security Invariants section for extension developers
+** Corrected dev-mode instructions: `JobRunrControlRoleAugmentor` handles role granting automatically; no embedded user config needed
+
 
 
 

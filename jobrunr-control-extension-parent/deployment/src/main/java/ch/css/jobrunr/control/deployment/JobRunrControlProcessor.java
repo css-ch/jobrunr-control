@@ -1,12 +1,12 @@
 package ch.css.jobrunr.control.deployment;
 
-import java.util.List;
-
 import ch.css.jobrunr.control.adapter.rest.JobControlResource;
 import ch.css.jobrunr.control.adapter.ui.*;
 import ch.css.jobrunr.control.infrastructure.discovery.JobDefinitionRecorder;
 import ch.css.jobrunr.control.infrastructure.jobrunr.filters.ParameterCleanupJobFilter;
 import ch.css.jobrunr.control.infrastructure.quarkus.BuildTimeConfigurationAdapter;
+import ch.css.jobrunr.control.security.JobRunrControlRoleAugmentor;
+import ch.css.jobrunr.control.security.JobRunrDashboardUserContextFilter;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.Capability;
@@ -15,6 +15,8 @@ import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigurationDefaultBuildItem;
+
+import java.util.List;
 
 public class JobRunrControlProcessor {
 
@@ -73,8 +75,23 @@ public class JobRunrControlProcessor {
                         DashboardUrlUtils.class,
                         DashboardTemplateExtensions.class,
                         BuildTimeConfigurationAdapter.class,
-                        ParameterCleanupJobFilter.class
+                        ParameterCleanupJobFilter.class,
+                        JobRunrControlRoleAugmentor.class
                 )
+                .setUnremovable()
+                .build();
+    }
+
+    /**
+     * Register {@link JobRunrDashboardUserContextFilter} as an explicit CDI bean so it
+     * takes precedence over the {@code @DefaultBean} produced by the JobRunr Pro Quarkus
+     * extension ({@code JobRunrQuarkusAnonymousAuthenticationFilter}). Without this, the
+     * dashboard shows "You do not have access to the JobRunr Pro Dashboard."
+     */
+    @BuildStep
+    AdditionalBeanBuildItem registerDashboardAuthFilter() {
+        return AdditionalBeanBuildItem.builder()
+                .addBeanClass(JobRunrDashboardUserContextFilter.class)
                 .setUnremovable()
                 .build();
     }

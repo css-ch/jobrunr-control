@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip -p ~/.m2/repository/org/jobrunr/jobrunr-pro/8.4.2/jobrunr-pro-8.4.2.jar org/jobrunr/dashboard/frontend/build/static/js/index.43d275bb.js)",
+      "Read(//Users/lukasweibel/src/css/jobrunr-control/**)",
+      "Bash(while read file)",
+      "Bash(do if unzip -p ~/.m2/repository/org/jobrunr/jobrunr-pro/8.4.2/jobrunr-pro-8.4.2.jar \"$file\")",
+      "Bash(then echo \"Found in: $file\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(then echo \"Also found in: $file\")"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}
