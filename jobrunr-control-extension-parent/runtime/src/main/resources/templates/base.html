@@ -88,7 +88,7 @@
         </div>
     </nav>
 
-    <main class="container mt-4">
+    <main class="container-fluid mt-4 px-4">
         <div class="mb-4">
             <h1>{title}</h1>
             {#if subtitle}
@@ -99,7 +99,7 @@
         {#insert content /}
     </main>
 
-    <footer class="container mt-5 pt-4 border-top">
+    <footer class="container-fluid mt-5 pt-4 px-4 border-top">
         <div class="row">
             <div class="col-md-12 text-center text-muted">
                 <small>
@@ -130,24 +130,6 @@
             });
         });
 
-        function copyToClipboard(text, event) {
-            navigator.clipboard.writeText(text).then(function() {
-                // Show success feedback
-                const btn = event.target.closest('button');
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
-                btn.classList.remove('btn-outline-secondary');
-                btn.classList.add('btn-success');
-                setTimeout(function() {
-                    btn.innerHTML = originalHTML;
-                    btn.classList.remove('btn-success');
-                    btn.classList.add('btn-outline-secondary');
-                }, 2000);
-            }).catch(function(err) {
-                console.error('Error copying: ', err);
-                alert('Error copying to clipboard');
-            });
-        }
     </script>
 
 </body>
