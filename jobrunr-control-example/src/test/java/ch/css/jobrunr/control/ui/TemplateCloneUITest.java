@@ -6,8 +6,6 @@ import com.microsoft.playwright.Page;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.*;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -70,9 +68,8 @@ class TemplateCloneUITest extends JobTriggerUITestBase {
         // Wait for the table to refresh after cloning
         page.waitForTimeout(1000);
 
-        // Expected clone name should be original name + current date
-        String datePostfix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        expectedClonedTemplateName = ORIGINAL_TEMPLATE_NAME + "-" + datePostfix;
+        // Expected clone name is the same as the original name (no postfix appended)
+        expectedClonedTemplateName = ORIGINAL_TEMPLATE_NAME;
     }
 
     @Test
@@ -92,8 +89,8 @@ class TemplateCloneUITest extends JobTriggerUITestBase {
         Locator clonedTemplateRow = page.locator("tr:has(strong a:has-text('" + expectedClonedTemplateName + "'))").first();
         assertTrue(clonedTemplateRow.isVisible(), "Cloned template should exist");
 
-        // Extract cloned template ID
-        clonedTemplateId = extractTemplateIdFromTemplatesTable(expectedClonedTemplateName);
+        // Extract cloned template ID — same name as original, so exclude the known original ID
+        clonedTemplateId = extractTemplateIdFromTemplatesTableExcluding(expectedClonedTemplateName, originalTemplateId);
         assertNotNull(clonedTemplateId, "Cloned template ID should be extracted successfully");
 
         // Verify the two templates have different IDs

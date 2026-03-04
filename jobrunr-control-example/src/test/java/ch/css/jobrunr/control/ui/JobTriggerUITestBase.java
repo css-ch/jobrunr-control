@@ -191,6 +191,28 @@ abstract class JobTriggerUITestBase {
         return UUID.fromString(templateIdString);
     }
 
+    /**
+     * Extracts a template ID by name, skipping the given excludedId.
+     * Useful when a clone has the same name as the original: iterates all matching
+     * links and returns the first ID that differs from excludedId.
+     */
+    protected UUID extractTemplateIdFromTemplatesTableExcluding(String templateName, UUID excludedId) {
+        Locator templateLinks = page.locator("strong a:has-text('" + templateName + "')");
+        templateLinks.first().waitFor(new Locator.WaitForOptions().setTimeout(5000));
+
+        int count = templateLinks.count();
+        for (int i = 0; i < count; i++) {
+            String href = templateLinks.nth(i).getAttribute("href");
+            if (href == null) continue;
+            String[] parts = href.split("/");
+            UUID id = UUID.fromString(parts[parts.length - 1]);
+            if (!id.equals(excludedId)) {
+                return id;
+            }
+        }
+        throw new AssertionError("No template with name '" + templateName + "' found that differs from " + excludedId);
+    }
+
     // Parameter filling helper methods
 
     /**
