@@ -8,8 +8,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -152,17 +150,16 @@ public class TemplateCloneHelper {
 
 
     /**
-     * Generates a new job name by appending a postfix.
+     * Generates a new job name, optionally appending a postfix.
      *
      * @param baseJobName Base job name
-     * @param postfix     Optional postfix (defaults to current date in yyyyMMdd format if null or blank)
+     * @param postfix     Optional postfix to append (if null or blank, the base name is used unchanged)
      * @return Generated job name
      */
     private String generateJobName(String baseJobName, String postfix) {
-        String effectivePostfix = postfix;
-        if (effectivePostfix == null || effectivePostfix.isBlank()) {
-            effectivePostfix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        if (postfix == null || postfix.isBlank()) {
+            return baseJobName;
         }
-        return baseJobName + "-" + effectivePostfix;
+        return baseJobName + "-" + postfix;
     }
 }
