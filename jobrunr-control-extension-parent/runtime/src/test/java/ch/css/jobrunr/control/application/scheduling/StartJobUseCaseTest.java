@@ -6,6 +6,7 @@ import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
+import ch.css.jobrunr.control.application.audit.TriggerSource;
 import jakarta.ws.rs.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -61,6 +62,7 @@ class StartJobUseCaseTest {
         assertThat(result).isEqualTo(jobId);
         verify(jobSchedulerPort).executeJobNow(jobId, parameters);
         verifyNoInteractions(templateCloneHelper);
+        verify(auditLogger).logJobExecuted("RegularJob", jobId, TriggerSource.UI);
     }
 
     @Test
@@ -86,6 +88,7 @@ class StartJobUseCaseTest {
         Map<String, Object> expectedMetadata = new java.util.HashMap<>(parameters);
         expectedMetadata.put("templateName", "TemplateJob");
         verify(jobSchedulerPort).executeJobNow(newJobId, expectedMetadata);
+        verify(auditLogger).logTemplateExecuted("TemplateJob", templateId, newJobId, TriggerSource.UI);
     }
 
     @Test
@@ -105,6 +108,7 @@ class StartJobUseCaseTest {
         // Assert
         assertThat(result).isEqualTo(newJobId);
         verify(jobSchedulerPort).executeJobNow(newJobId, Map.of("templateName", "MyTemplate"));
+        verify(auditLogger).logTemplateExecuted("MyTemplate", templateId, newJobId, TriggerSource.UI);
     }
 
     @Test
@@ -137,6 +141,7 @@ class StartJobUseCaseTest {
 
         verify(jobSchedulerPort, never()).executeJobNow(any(), any());
         verifyNoInteractions(templateCloneHelper);
+        verifyNoInteractions(auditLogger);
     }
 
     private ScheduledJobInfo createJob(UUID jobId, String jobName, List<String> labels) {

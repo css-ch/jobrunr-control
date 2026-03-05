@@ -1,10 +1,5 @@
 package ch.css.jobrunr.control.application.scheduling;
 
-import ch.css.jobrunr.control.domain.JobDefinition;
-import ch.css.jobrunr.control.domain.JobSchedulerPort;
-import ch.css.jobrunr.control.domain.JobSettings;
-import ch.css.jobrunr.control.domain.ParameterStoragePort;
-import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,9 +8,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,72 +18,54 @@ import static org.mockito.Mockito.*;
 class DeleteScheduledJobUseCaseTest {
 
     @Mock
-    private JobSchedulerPort jobSchedulerPort;
+    private DeleteJobHelper deleteJobHelper;
 
     @Mock
-    private ParameterStoragePort parameterStoragePort;
-
-    @Mock
-    @SuppressWarnings("unused") // injected for audit logging, not directly relevant for these tests
     private AuditLoggerHelper auditLogger;
 
     @InjectMocks
     private DeleteScheduledJobUseCase useCase;
 
     @Test
-    @DisplayName("should delete scheduled job")
-    void execute_ValidJobId_DeletesJob() {
-        // Arrange
+    @DisplayName("should delete scheduled job via helper")
+    void execute_ValidJobId_DelegatesToHelper() {
         UUID jobId = UUID.randomUUID();
-        ScheduledJobInfo jobInfo = createJobInfo(jobId, false);
-        when(jobSchedulerPort.getScheduledJobById(jobId)).thenReturn(jobInfo);
 
-        // Act
         useCase.execute(jobId);
 
-        // Assert
-        verify(jobSchedulerPort).getScheduledJobById(jobId);
-        verify(jobSchedulerPort).deleteScheduledJob(jobId);
-        verify(parameterStoragePort, never()).deleteById(any());
-    }
-
-    @Test
-    @DisplayName("should delete job and clean up external parameters using job ID")
-    void execute_JobWithExternalParams_DeletesJobAndParameters() {
-        // Arrange
-        UUID jobId = UUID.randomUUID();
-        ScheduledJobInfo jobInfo = createJobInfo(jobId, true);
-
-        when(jobSchedulerPort.getScheduledJobById(jobId)).thenReturn(jobInfo);
-
-        // Act
-        useCase.execute(jobId);
-
-        // Assert
-        verify(parameterStoragePort).deleteById(jobId);
-        verify(jobSchedulerPort).deleteScheduledJob(jobId);
+        verify(deleteJobHelper).deleteJobWithCleanup(eq(jobId), any());
+        verifyNoInteractions(auditLogger);
     }
 
     @Test
     @DisplayName("should throw exception when jobId is null")
     void execute_NullJobId_ThrowsException() {
-        // Act & Assert
         assertThatThrownBy(() -> useCase.execute(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("jobId");
 
-        verify(jobSchedulerPort, never()).deleteScheduledJob(any());
+        verifyNoInteractions(deleteJobHelper, auditLogger);
     }
 
-    // Helper
-    private ScheduledJobInfo createJobInfo(UUID jobId, boolean externalParams) {
-        JobDefinition jobDef = new JobDefinition(
-                "TestJob", false, "TestJobRequest", "TestJobHandler",
-                List.of(), List.of(),
-                new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
-                externalParams, externalParams ? "parameterSetId" : null
-        );
-        Map<String, Object> params = externalParams ? Map.of() : Map.of("param1", "value1");
-        return new ScheduledJobInfo(jobId, "Test Job", jobDef, Instant.now(), params, false, List.of());
+    @Test
+    @DisplayName("should throw exception when confirmed is false")
+    void execute_NotConfirmed_ThrowsException() {
+        UUID jobId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> useCase.execute(jobId, false))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("confirmed");
+
+        verifyNoInteractions(deleteJobHelper, auditLogger);
+    }
+
+    @Test
+    @DisplayName("should delete when confirmed is true")
+    void execute_Confirmed_DelegatesToHelper() {
+        UUID jobId = UUID.randomUUID();
+
+        useCase.execute(jobId, true);
+
+        verify(deleteJobHelper).deleteJobWithCleanup(eq(jobId), any());
     }
 }

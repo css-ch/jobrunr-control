@@ -65,7 +65,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
 
     @Override
     public Optional<JobExecutionInfo> getJobExecutionById(UUID jobId) {
-        try {
+        return executeOrDefault(Optional.empty(), "Error retrieving job " + jobId, () -> {
             org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
             String jobType = job.getLabels().stream()
                     .filter(label -> label.startsWith("jobtype:"))
@@ -73,15 +73,12 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                     .findFirst()
                     .orElse(null);
             return Optional.of(mapToJobExecutionInfo(jobType, job));
-        } catch (Exception e) {
-            LOG.errorf(e, "Error retrieving job %s", jobId);
-            return Optional.empty();
-        }
+        });
     }
 
     @Override
     public Optional<JobExecutionInfo> getJobChainExecutionById(UUID jobId) {
-        try {
+        return executeOrDefault(Optional.empty(), "Error retrieving job chain " + jobId, () -> {
             org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
             String jobType = job.getLabels().stream()
                     .filter(label -> label.startsWith("jobtype:"))
@@ -90,12 +87,9 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                     .orElse(null);
 
             JobExecutionInfo jobInfo = mapToJobExecutionInfo(jobType, job);
-
-            // Evaluate the job chain status
             JobChainStatusEvaluator.JobChainStatus chainStatus =
                     jobChainStatusEvaluator.evaluateChainStatus(jobId, jobInfo.status());
 
-            // Find result: parent job first, then direct continuation jobs
             String result = jobInfo.result();
             Integer resultCode = jobInfo.resultCode();
             if (result == null && resultCode == null) {
@@ -107,10 +101,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
             }
 
             return Optional.of(jobInfo.withStatus(chainStatus.overallStatus()).withResult(result, resultCode));
-        } catch (Exception e) {
-            LOG.errorf(e, "Error retrieving job chain %s", jobId);
-            return Optional.empty();
-        }
+        });
     }
 
     private JobExecutionInfo mapToJobExecutionInfo(String jobType, org.jobrunr.jobs.Job job) {
@@ -199,6 +190,15 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         } catch (Exception e) {
             LOG.warnf(e, "Failed to find result in continuation jobs for parent %s", parentJobId);
             return null;
+        }
+    }
+
+    private <T> T executeOrDefault(T defaultValue, String errorMessage, java.util.function.Supplier<T> supplier) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            LOG.errorf(e, errorMessage);
+            return defaultValue;
         }
     }
 

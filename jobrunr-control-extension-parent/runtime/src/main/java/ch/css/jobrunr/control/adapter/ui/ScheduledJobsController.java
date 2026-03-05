@@ -330,11 +330,7 @@ public class ScheduledJobsController extends BaseController {
     }
 
     private Comparator<ScheduledJobInfo> getComparator(String sortBy) {
-        return switch (sortBy) {
-            case "jobName" -> Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
-            case "jobType" -> Comparator.comparing(ScheduledJobInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
-            default -> Comparator.comparing(ScheduledJobInfo::getScheduledAt);
-        };
+        return getComparator(sortBy, Comparator.comparing(ScheduledJobInfo::getScheduledAt));
     }
 
     private TemplateInstance getDefaultScheduledJobsTable() {

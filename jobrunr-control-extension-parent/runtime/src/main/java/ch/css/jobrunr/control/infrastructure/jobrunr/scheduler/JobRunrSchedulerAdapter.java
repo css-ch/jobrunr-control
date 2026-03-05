@@ -74,23 +74,10 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
         if (additionalLabels != null && additionalLabels.contains("template")) {
             assertUniqueTemplateName(jobName, jobId);
         }
-        try {
-            Instant effectiveScheduledAt = scheduledAt;
-            if (isExternalTrigger) {
-                // Set scheduled date to 31.12.2999 for externally triggerable jobs
-                effectiveScheduledAt = EXTERNAL_TRIGGER;
-            }
-            // Create JobId and set job name
-            JobId newJobId = jobInvoker.scheduleJob(
-                    jobId,
-                    jobName,
-                    jobDefinition,
-                    parameters,
-                    effectiveScheduledAt,
-                    additionalLabels
-            );
+        return executeOrThrow("Error scheduling job: " + jobDefinition.jobType(), () -> {
+            Instant effectiveScheduledAt = isExternalTrigger ? EXTERNAL_TRIGGER : scheduledAt;
+            JobId newJobId = jobInvoker.scheduleJob(jobId, jobName, jobDefinition, parameters, effectiveScheduledAt, additionalLabels);
 
-            // Set job name via StorageProvider
             try {
                 var job = storageProvider.getJobById(newJobId);
                 job.setJobName(jobName);
@@ -101,70 +88,40 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
 
             LOG.infof("Job scheduled: %s (ID: %s) for %s",
                     jobDefinition.jobType(), newJobId, isExternalTrigger ? "external" : scheduledAt);
-
             return newJobId.asUUID();
-        } catch (Exception e) {
-            LOG.errorf(e, "Error scheduling job: %s", jobDefinition.jobType());
-            throw new JobSchedulingException("Error scheduling job: " + jobDefinition.jobType(), e);
-        }
+        });
     }
 
 
     @Override
     public void deleteScheduledJob(UUID jobId) {
-        try {
+        executeOrThrow("Error deleting job: " + jobId, () -> {
             jobScheduler.delete(jobId);
             LOG.infof("Job deleted: %s", jobId);
-        } catch (Exception e) {
-            LOG.errorf(e, "Error deleting job: %s", jobId);
-            throw new JobSchedulingException("Error deleting job: " + jobId, e);
-        }
+            return null;
+        });
     }
 
     @Override
     public List<ScheduledJobInfo> getScheduledJobs() {
-
-        try {
-            // Create JobSearchRequest for SCHEDULED jobs
+        return executeOrDefault(new ArrayList<>(), "Error retrieving scheduled jobs", () -> {
             var searchRequest = new org.jobrunr.storage.JobSearchRequest(StateName.SCHEDULED);
-
-            // Create AmountRequest for jobs
-            var amountRequest = new org.jobrunr.storage.navigation.AmountRequest(
-                    "scheduledAt:ASC",
-                    10000  // Maximum number
-            );
-
-            // Get all jobs in SCHEDULED state from StorageProvider
-            List<org.jobrunr.jobs.Job> scheduledJobs = storageProvider.getJobList(
-                    searchRequest,
-                    amountRequest
-            );
-
+            var amountRequest = new org.jobrunr.storage.navigation.AmountRequest("scheduledAt:ASC", 10000);
+            List<org.jobrunr.jobs.Job> scheduledJobs = storageProvider.getJobList(searchRequest, amountRequest);
             LOG.debugf("Found scheduled jobs: %s", scheduledJobs.size());
-
-            // Map to ScheduledJobInfo
-            return scheduledJobs.stream()
-                    .map(this::mapToScheduledJobInfo)
-                    .toList();
-
-        } catch (Exception e) {
-            LOG.errorf(e, "Error retrieving scheduled jobs");
-            return new ArrayList<>();
-        }
+            return scheduledJobs.stream().map(this::mapToScheduledJobInfo).toList();
+        });
     }
 
     @Override
     public ScheduledJobInfo getScheduledJobById(UUID jobId) {
-        try {
+        return executeOrDefault(null, "Error retrieving job: " + jobId, () -> {
             org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
             if (job != null && job.getState() == StateName.SCHEDULED) {
                 return mapToScheduledJobInfo(job);
             }
             return null;
-        } catch (Exception e) {
-            LOG.errorf(e, "Error retrieving job: %s", jobId);
-            return null;
-        }
+        });
     }
 
     private ScheduledJobInfo mapToScheduledJobInfo(org.jobrunr.jobs.Job job) {
@@ -224,97 +181,49 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
 
     @Override
     public void executeJobNow(UUID jobId, Map<String, Object> metadata) {
-        try {
-            // Get the existing job
+        executeOrThrow("Error executing job immediately: " + jobId, () -> {
             org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
             if (job == null) {
-                LOG.warnf("Job not found: %s", jobId);
                 throw new JobNotFoundException("Job with ID '" + jobId + "' not found");
             }
-
-            // Override parameters if provided
             if (metadata != null && !metadata.isEmpty()) {
-                // Update job metadata with parameter overrides
-                metadata.forEach((key, value) ->
-                        job.getMetadata().put(key, value)
-                );
+                metadata.forEach((key, value) -> job.getMetadata().put(key, value));
                 LOG.debugf("Job %s will be executed with %s parameter override(s)", jobId, metadata.size());
             }
-
-            // Set job to ENQUEUED state for immediate execution
             job.enqueue();
-
-            // Save the updated job
             storageProvider.save(job);
-
             LOG.infof("Job is being executed immediately: %s", jobId);
-
-        } catch (JobNotFoundException e) {
-            // Re-throw domain exception without wrapping
-            throw e;
-        } catch (JobSchedulingException e) {
-            LOG.errorf(e, "Error executing job immediately: %s", jobId);
-            throw e;
-        } catch (Exception e) {
-            LOG.errorf(e, "Error executing job immediately: %s", jobId);
-            throw new JobSchedulingException("Error executing job immediately: " + jobId, e);
-        }
+            return null;
+        });
     }
 
     @Override
     public void updateJobParameters(UUID jobId, Map<String, Object> parameters) {
-        try {
-            // Get the existing job to extract its details
+        executeOrThrow("Error updating job parameters: " + jobId, () -> {
             org.jobrunr.jobs.Job existingJob = storageProvider.getJobById(jobId);
             if (existingJob == null) {
-                LOG.warnf("Job not found: %s", jobId);
                 throw new JobNotFoundException("Job with ID '" + jobId + "' not found");
             }
 
-            // Extract job information
             var jobDetails = existingJob.getJobDetails();
             String jobName = existingJob.getJobName();
+            Instant scheduledAt = existingJob.getState() == StateName.SCHEDULED
+                    ? existingJob.getJobStates().stream()
+                            .filter(ScheduledState.class::isInstance)
+                            .map(ScheduledState.class::cast)
+                            .findFirst()
+                            .map(ScheduledState::getScheduledAt)
+                            .orElse(existingJob.getCreatedAt())
+                    : existingJob.getCreatedAt();
 
-            // Get scheduled time
-            Instant scheduledAt = null;
-            if (existingJob.getState() == StateName.SCHEDULED) {
-                scheduledAt = existingJob.getJobStates().stream()
-                        .filter(ScheduledState.class::isInstance)
-                        .map(ScheduledState.class::cast)
-                        .findFirst()
-                        .map(ScheduledState::getScheduledAt)
-                        .orElse(existingJob.getCreatedAt());
-            } else {
-                scheduledAt = existingJob.getCreatedAt();
-            }
-
-            // Get job definition by looking up the job type from existing parameters
-            // The job type should be extractable from the job's class name
-            String className = jobDetails.getClassName();
-            String simpleClassName = extractSimpleClassName(className);
-
+            String simpleClassName = extractSimpleClassName(jobDetails.getClassName());
             JobDefinition jobDefinition = jobDefinitionDiscoveryService.findJobByType(simpleClassName)
                     .orElseThrow(() -> new IllegalStateException("Job definition not found for: " + simpleClassName));
 
-            // Recreate the job with the same ID and updated parameters
-            // This uses JobRunr's createOrReplace which updates the existing job
-            jobInvoker.scheduleJob(
-                    jobId,
-                    jobName,
-                    jobDefinition,
-                    parameters,
-                    scheduledAt,
-                    new ArrayList<>(existingJob.getLabels())
-            );
-
+            jobInvoker.scheduleJob(jobId, jobName, jobDefinition, parameters, scheduledAt, new ArrayList<>(existingJob.getLabels()));
             LOG.infof("Updated parameters for job: %s", jobId);
-
-        } catch (JobNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            LOG.errorf(e, "Error updating job parameters: %s", jobId);
-            throw new JobSchedulingException("Error updating job parameters: " + jobId, e);
-        }
+            return null;
+        });
     }
 
     /**
@@ -337,5 +246,25 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
         // Year 2999 indicates external triggers
         return scheduledAt != null &&
                 scheduledAt.equals(EXTERNAL_TRIGGER);
+    }
+
+    private <T> T executeOrThrow(String errorMessage, java.util.function.Supplier<T> supplier) {
+        try {
+            return supplier.get();
+        } catch (JobSchedulingException | JobNotFoundException | DuplicateTemplateNameException e) {
+            throw e;
+        } catch (Exception e) {
+            LOG.errorf(e, errorMessage);
+            throw new JobSchedulingException(errorMessage, e);
+        }
+    }
+
+    private <T> T executeOrDefault(T defaultValue, String errorMessage, java.util.function.Supplier<T> supplier) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            LOG.errorf(e, errorMessage);
+            return defaultValue;
+        }
     }
 }

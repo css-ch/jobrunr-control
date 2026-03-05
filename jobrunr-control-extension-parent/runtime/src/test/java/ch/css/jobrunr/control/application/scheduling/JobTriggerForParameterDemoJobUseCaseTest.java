@@ -16,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -95,15 +94,17 @@ class JobTriggerForParameterDemoJobUseCaseTest {
                 "integerParameter", 42
         );
 
-        when(jobDefinitionDiscoveryService.findJobByType(JOB_TYPE)).thenReturn(Optional.of(parameterDemoJobDefinition));
+        when(jobDefinitionDiscoveryService.requireJobByType(JOB_TYPE)).thenReturn(parameterDemoJobDefinition);
         when(validator.convertAndValidate(parameterDemoJobDefinition, inputParams)).thenReturn(convertedParams);
-        when(jobSchedulerPort.scheduleJob(eq(parameterDemoJobDefinition), eq(JOB_NAME), eq(convertedParams), eq(true), isNull(), isNull()))
+        when(parameterStorageHelper.scheduleJobWithParameters(
+                eq(parameterDemoJobDefinition), eq(JOB_TYPE), eq(JOB_NAME), eq(convertedParams), eq(true), isNull(), isNull()))
                 .thenReturn(scheduledJobId);
 
         UUID result = createUseCase.execute(JOB_TYPE, JOB_NAME, inputParams, null, true);
 
         assertThat(result).isEqualTo(scheduledJobId);
-        verify(jobSchedulerPort).scheduleJob(parameterDemoJobDefinition, JOB_NAME, convertedParams, true, null, null);
+        verify(parameterStorageHelper).scheduleJobWithParameters(
+                parameterDemoJobDefinition, JOB_TYPE, JOB_NAME, convertedParams, true, null, null);
     }
 
     @Test
@@ -137,9 +138,9 @@ class JobTriggerForParameterDemoJobUseCaseTest {
         );
         Map<String, Object> overrides = Map.of("test-parameter", "yes");
 
-        when(jobDefinitionDiscoveryService.findJobByType(JOB_TYPE)).thenReturn(Optional.of(parameterDemoJobDefinition));
+        when(jobDefinitionDiscoveryService.requireJobByType(JOB_TYPE)).thenReturn(parameterDemoJobDefinition);
         when(validator.convertAndValidate(parameterDemoJobDefinition, inputParams)).thenReturn(convertedParams);
-        when(jobSchedulerPort.scheduleJob(any(), any(), any(), eq(true), isNull(), isNull()))
+        when(parameterStorageHelper.scheduleJobWithParameters(any(), any(), any(), any(), eq(true), isNull(), isNull()))
                 .thenReturn(scheduledJobId);
 
         ScheduledJobInfo scheduledJob = new ScheduledJobInfo(
@@ -151,7 +152,8 @@ class JobTriggerForParameterDemoJobUseCaseTest {
         // Step 1: Create
         UUID createdId = createUseCase.execute(JOB_TYPE, JOB_NAME, inputParams, null, true);
         assertThat(createdId).isEqualTo(scheduledJobId);
-        verify(jobSchedulerPort).scheduleJob(parameterDemoJobDefinition, JOB_NAME, convertedParams, true, null, null);
+        verify(parameterStorageHelper).scheduleJobWithParameters(
+                parameterDemoJobDefinition, JOB_TYPE, JOB_NAME, convertedParams, true, null, null);
 
         // Step 2: Trigger
         UUID triggeredId = startUseCase.execute(createdId, "-testrun", overrides);

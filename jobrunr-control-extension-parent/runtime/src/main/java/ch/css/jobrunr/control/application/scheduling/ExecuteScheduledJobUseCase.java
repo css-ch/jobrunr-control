@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.application.scheduling;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
+import ch.css.jobrunr.control.application.audit.TriggerSource;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -52,7 +53,7 @@ public class ExecuteScheduledJobUseCase {
         jobSchedulerPort.executeJobNow(jobId, metadata);
 
         // Audit log - this is always called from UI
-        auditLogger.logJobExecutedViaUI(jobName, jobId);
+        auditLogger.logJobExecuted(jobName, jobId, TriggerSource.UI);
     }
 }
 

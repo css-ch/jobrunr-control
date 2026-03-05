@@ -6,17 +6,11 @@ import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
-import ch.css.jobrunr.control.domain.exceptions.DuplicateTemplateNameException;
-import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.jboss.logging.Logger;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -25,14 +19,6 @@ import java.util.UUID;
  */
 @ApplicationScoped
 public class UpdateTemplateUseCase {
-
-    private static final Logger LOG = Logger.getLogger(UpdateTemplateUseCase.class);
-
-    // Date for externally triggerable jobs (31.12.2999)
-    private static final Instant EXTERNAL_TRIGGER_DATE =
-            LocalDate.of(2999, 12, 31)
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant();
 
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
     private final JobSchedulerPort jobSchedulerPort;
@@ -63,57 +49,19 @@ public class UpdateTemplateUseCase {
      * @param parameters Parameter map for job execution
      */
     public void execute(UUID templateId, String jobType, String jobName, Map<String, String> parameters) {
-        // Load job definition
-        Optional<JobDefinition> jobDefOpt = jobDefinitionDiscoveryService.findJobByType(jobType);
-        if (jobDefOpt.isEmpty()) {
-            throw new JobNotFoundException("JobDefinition for type '" + jobType + "' not found");
-        }
+        JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobType);
 
-        JobDefinition jobDefinition = jobDefOpt.get();
+        jobSchedulerPort.assertTemplateNameUnique(jobName, templateId);
 
-        // Check for duplicate template name (excluding current template)
-        boolean nameExists = jobSchedulerPort.getScheduledJobs().stream()
-                .anyMatch(j -> j.isTemplate() && jobName.equals(j.getJobName()) && !templateId.equals(j.getJobId()));
-        if (nameExists) {
-            throw new DuplicateTemplateNameException(jobName);
-        }
-
-        // Validate and convert parameters
         Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
 
-        if (jobDefinition.usesExternalParameters()) {
-            LOG.debugf("Updating template with external parameters: %s (ID: %s)", jobType, templateId);
+        parameterStorageHelper.updateJobWithParameters(
+                templateId, jobDefinition, jobType, jobName, convertedParameters,
+                true,           // isExternalTrigger
+                null,           // scheduledAt — helper resolves EXTERNAL_TRIGGER_DATE
+                List.of("template")
+        );
 
-            // Update external parameter set in-place (preserves version)
-            parameterStorageHelper.updateParametersForJob(templateId, jobDefinition, jobType, convertedParameters);
-
-            // Update template metadata with empty parameter map (parameters are accessed via job UUID)
-            jobSchedulerPort.updateJob(
-                    templateId,
-                    jobDefinition,
-                    jobName,
-                    Map.of(),
-                    true,                              // isExternalTrigger
-                    EXTERNAL_TRIGGER_DATE,             // External trigger uses special date
-                    java.util.List.of("template")      // Always add "template" label
-            );
-
-            LOG.infof("Updated template with external parameters: %s (ID: %s)", jobType, templateId);
-        } else {
-            // SINGLE-PHASE UPDATE: Inline parameters
-            LOG.debugf("Using single-phase update for template with inline parameters: %s (ID: %s)", jobType, templateId);
-            jobSchedulerPort.updateJob(
-                    templateId,
-                    jobDefinition,
-                    jobName,
-                    convertedParameters,
-                    true,                              // isExternalTrigger
-                    EXTERNAL_TRIGGER_DATE,             // External trigger uses special date
-                    java.util.List.of("template")      // Always add "template" label
-            );
-        }
-
-        // Audit log
         auditLogger.logTemplateUpdated(jobName, templateId, convertedParameters);
     }
 }

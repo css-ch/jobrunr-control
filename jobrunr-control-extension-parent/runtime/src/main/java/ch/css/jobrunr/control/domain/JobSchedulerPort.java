@@ -1,5 +1,7 @@
 package ch.css.jobrunr.control.domain;
 
+import ch.css.jobrunr.control.domain.exceptions.DuplicateTemplateNameException;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -102,4 +104,20 @@ public interface JobSchedulerPort {
      * @param parameters The new parameters map (typically just a parameter set reference)
      */
     void updateJobParameters(UUID jobId, Map<String, Object> parameters);
+
+    /**
+     * Throws {@link DuplicateTemplateNameException} if another template already uses the given name.
+     *
+     * @param jobName   the candidate name
+     * @param currentId the current job ID to exclude from the check (null for new templates)
+     */
+    default void assertTemplateNameUnique(String jobName, UUID currentId) {
+        boolean duplicate = getScheduledJobs().stream()
+                .filter(ScheduledJobInfo::isTemplate)
+                .anyMatch(j -> jobName.equals(j.getJobName())
+                        && (currentId == null || !currentId.equals(j.getJobId())));
+        if (duplicate) {
+            throw new DuplicateTemplateNameException(jobName);
+        }
+    }
 }

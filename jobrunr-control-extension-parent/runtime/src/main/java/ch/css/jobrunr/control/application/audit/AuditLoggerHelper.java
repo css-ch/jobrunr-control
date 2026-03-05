@@ -78,29 +78,17 @@ public class AuditLoggerHelper {
     }
 
     /**
-     * Logs template execution via REST API.
+     * Logs template execution.
      *
      * @param templateName  Template name
      * @param templateId    Template ID
      * @param executedJobId ID of the executed job
+     * @param source        Trigger source (REST or UI)
      */
-    public void logTemplateExecutedViaRest(String templateName, UUID templateId, UUID executedJobId) {
+    public void logTemplateExecuted(String templateName, UUID templateId, UUID executedJobId, TriggerSource source) {
         String user = getCurrentUser();
-        LOG.infof("%s %s executed template (via REST) %s %s -> job %s",
-                AUDIT_PREFIX, user, templateName, templateId, executedJobId);
-    }
-
-    /**
-     * Logs template execution via UI.
-     *
-     * @param templateName  Template name
-     * @param templateId    Template ID
-     * @param executedJobId ID of the executed job
-     */
-    public void logTemplateExecutedViaUI(String templateName, UUID templateId, UUID executedJobId) {
-        String user = getCurrentUser();
-        LOG.infof("%s %s executed template (via UI) %s %s -> job %s",
-                AUDIT_PREFIX, user, templateName, templateId, executedJobId);
+        LOG.infof("%s %s executed template (via %s) %s %s -> job %s",
+                AUDIT_PREFIX, user, source.name(), templateName, templateId, executedJobId);
     }
 
     /**
@@ -144,27 +132,16 @@ public class AuditLoggerHelper {
     }
 
     /**
-     * Logs job execution via REST API.
+     * Logs job execution.
      *
      * @param jobName Job name
      * @param jobId   Job ID
+     * @param source  Trigger source (REST or UI)
      */
-    public void logJobExecutedViaRest(String jobName, UUID jobId) {
+    public void logJobExecuted(String jobName, UUID jobId, TriggerSource source) {
         String user = getCurrentUser();
-        LOG.infof("%s %s executed job (via REST) %s %s",
-                AUDIT_PREFIX, user, jobName, jobId);
-    }
-
-    /**
-     * Logs job execution via UI.
-     *
-     * @param jobName Job name
-     * @param jobId   Job ID
-     */
-    public void logJobExecutedViaUI(String jobName, UUID jobId) {
-        String user = getCurrentUser();
-        LOG.infof("%s %s executed job (via UI) %s %s",
-                AUDIT_PREFIX, user, jobName, jobId);
+        LOG.infof("%s %s executed job (via %s) %s %s",
+                AUDIT_PREFIX, user, source.name(), jobName, jobId);
     }
 
     /**

@@ -15,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,21 +30,12 @@ class CreateScheduledJobUseCaseTest {
     private JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
 
     @Mock
-    private JobSchedulerPort jobSchedulerPort;
-
-    @Mock
     private JobParameterValidator validator;
 
     @Mock
     private ParameterStorageHelper parameterStorageHelper;
 
-    /**
-     * Mock for AuditLoggerHelper. Required for @InjectMocks to instantiate CreateScheduledJobUseCase.
-     * The use case calls auditLogger.logJobCreated() internally, but we don't verify these calls
-     * in these tests as they focus on the core job creation logic.
-     */
     @Mock
-    @SuppressWarnings("unused")
     private AuditLoggerHelper auditLogger;
 
     @InjectMocks
@@ -63,125 +53,79 @@ class CreateScheduledJobUseCaseTest {
     @Test
     @DisplayName("should create scheduled job with valid parameters")
     void execute_ValidParameters_CreatesScheduledJob() {
-        // Arrange
         String jobType = "TestJob";
         String jobName = "My Test Job";
         Map<String, String> parameters = Map.of("param1", "value1");
         Map<String, Object> convertedParams = Map.of("param1", "value1");
         Instant scheduledAt = Instant.now().plusSeconds(3600);
 
-        when(jobDefinitionDiscoveryService.findJobByType(jobType)).thenReturn(Optional.of(testJobDefinition));
+        when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(testJobDefinition);
         when(validator.convertAndValidate(testJobDefinition, parameters)).thenReturn(convertedParams);
-        when(jobSchedulerPort.scheduleJob(testJobDefinition, jobName, convertedParams, false, scheduledAt, null))
+        when(parameterStorageHelper.scheduleJobWithParameters(
+                eq(testJobDefinition), eq(jobType), eq(jobName), eq(convertedParams), eq(false), eq(scheduledAt), isNull()))
                 .thenReturn(mockJobId);
 
-        // Act
         UUID result = useCase.execute(jobType, jobName, parameters, scheduledAt, false);
 
-        // Assert
         assertThat(result).isEqualTo(mockJobId);
-        verify(jobDefinitionDiscoveryService).findJobByType(jobType);
-        verify(validator).convertAndValidate(testJobDefinition, parameters);
-        verify(jobSchedulerPort).scheduleJob(testJobDefinition, jobName, convertedParams, false, scheduledAt, null);
+        verify(parameterStorageHelper).scheduleJobWithParameters(
+                testJobDefinition, jobType, jobName, convertedParams, false, scheduledAt, null);
+        verify(auditLogger).logJobCreated(jobName, mockJobId, convertedParams);
     }
 
     @Test
     @DisplayName("should throw JobNotFoundException for non-existent job type")
     void execute_NonExistentJobType_ThrowsJobNotFoundException() {
-        // Arrange
         String jobType = "NonExistentJob";
-        Map<String, String> parameters = Map.of();
-        when(jobDefinitionDiscoveryService.findJobByType(jobType)).thenReturn(Optional.empty());
+        when(jobDefinitionDiscoveryService.requireJobByType(jobType))
+                .thenThrow(new JobNotFoundException("Job type '" + jobType + "' not found"));
 
-        // Act & Assert
-        assertThatThrownBy(() -> useCase.execute(jobType, "Test", parameters, null, false))
+        assertThatThrownBy(() -> useCase.execute(jobType, "Test", Map.of(), null, false))
                 .isInstanceOf(JobNotFoundException.class)
                 .hasMessageContaining("Job type")
                 .hasMessageContaining(jobType);
 
-        verify(jobDefinitionDiscoveryService).findJobByType(jobType);
-        verify(jobSchedulerPort, never()).scheduleJob(any(), any(), any(), anyBoolean(), any(), any());
+        verify(parameterStorageHelper, never()).scheduleJobWithParameters(any(), any(), any(), any(), anyBoolean(), any(), any());
     }
 
     @Test
     @DisplayName("should create externally triggerable job")
     void execute_ExternalTrigger_CreatesJobWithoutScheduledTime() {
-        // Arrange
         String jobType = "TestJob";
-        Map<String, String> parameters = Map.of();
         Map<String, Object> convertedParams = Map.of();
 
-        when(jobDefinitionDiscoveryService.findJobByType(jobType)).thenReturn(Optional.of(testJobDefinition));
-        when(validator.convertAndValidate(testJobDefinition, parameters)).thenReturn(convertedParams);
-        when(jobSchedulerPort.scheduleJob(any(), any(), any(), eq(true), isNull(), any())).thenReturn(mockJobId);
-
-        // Act
-        UUID result = useCase.execute(jobType, "External Job", parameters, null, true);
-
-        // Assert
-        assertThat(result).isEqualTo(mockJobId);
-        verify(jobSchedulerPort).scheduleJob(testJobDefinition, "External Job", convertedParams, true, null, null);
-    }
-
-    @Test
-    @DisplayName("should use two-phase creation for job with external parameters")
-    void execute_ExternalParameters_UsesTwoPhaseCreation() {
-        // Arrange
-        String jobType = "TestJobWithExternalParams";
-        String jobName = "My Test Job";
-        Map<String, String> parameters = Map.of("param1", "value1");
-        Map<String, Object> convertedParams = Map.of("param1", "value1");
-        Instant scheduledAt = Instant.now().plusSeconds(3600);
-        JobDefinition externalParamsJobDef = createJobDefinition(jobType, true);
-
-        when(jobDefinitionDiscoveryService.findJobByType(jobType)).thenReturn(Optional.of(externalParamsJobDef));
-        when(validator.convertAndValidate(externalParamsJobDef, parameters)).thenReturn(convertedParams);
-        when(jobSchedulerPort.scheduleJob(eq(externalParamsJobDef), eq(jobName), eq(Map.of()), eq(false), eq(scheduledAt), isNull()))
+        when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(testJobDefinition);
+        when(validator.convertAndValidate(testJobDefinition, Map.of())).thenReturn(convertedParams);
+        when(parameterStorageHelper.scheduleJobWithParameters(any(), any(), any(), any(), eq(true), isNull(), any()))
                 .thenReturn(mockJobId);
 
-        // Act
-        UUID result = useCase.execute(jobType, jobName, parameters, scheduledAt, false);
+        UUID result = useCase.execute(jobType, "External Job", Map.of(), null, true);
 
-        // Assert
         assertThat(result).isEqualTo(mockJobId);
-
-        // Verify Phase 1: Create job with empty params
-        verify(jobSchedulerPort).scheduleJob(externalParamsJobDef, jobName, Map.of(), false, scheduledAt, null);
-
-        // Verify Phase 2: Store parameters with job UUID
-        verify(parameterStorageHelper).storeParametersForJob(mockJobId, externalParamsJobDef, jobType, convertedParams);
-
-        // Verify Phase 3: Update job with empty parameter map
-        verify(jobSchedulerPort).updateJobParameters(mockJobId, Map.of());
+        verify(parameterStorageHelper).scheduleJobWithParameters(
+                testJobDefinition, jobType, "External Job", convertedParams, true, null, null);
     }
 
     @Test
-    @DisplayName("should use single-phase creation for job with inline parameters")
-    void execute_InlineParameters_UsesSinglePhaseCreation() {
-        // Arrange
+    @DisplayName("should pass additional labels to scheduleJobWithParameters")
+    void execute_WithAdditionalLabels_PassesLabelsThrough() {
         String jobType = "TestJob";
-        String jobName = "My Test Job";
-        Map<String, String> parameters = Map.of("param1", "value1");
-        Map<String, Object> convertedParams = Map.of("param1", "value1");
+        String jobName = "Labelled Job";
+        List<String> labels = List.of("production");
+        Map<String, String> parameters = Map.of();
+        Map<String, Object> convertedParams = Map.of();
         Instant scheduledAt = Instant.now().plusSeconds(3600);
 
-        when(jobDefinitionDiscoveryService.findJobByType(jobType)).thenReturn(Optional.of(testJobDefinition));
+        when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(testJobDefinition);
         when(validator.convertAndValidate(testJobDefinition, parameters)).thenReturn(convertedParams);
-        when(jobSchedulerPort.scheduleJob(testJobDefinition, jobName, convertedParams, false, scheduledAt, null))
+        when(parameterStorageHelper.scheduleJobWithParameters(any(), any(), any(), any(), anyBoolean(), any(), eq(labels)))
                 .thenReturn(mockJobId);
 
-        // Act
-        UUID result = useCase.execute(jobType, jobName, parameters, scheduledAt, false);
+        UUID result = useCase.execute(jobType, jobName, parameters, scheduledAt, false, labels);
 
-        // Assert
         assertThat(result).isEqualTo(mockJobId);
-
-        // Verify single-phase: Create job with inline params directly
-        verify(jobSchedulerPort).scheduleJob(testJobDefinition, jobName, convertedParams, false, scheduledAt, null);
-
-        // Verify no external parameter storage
-        verify(parameterStorageHelper, never()).storeParametersForJob(any(), any(), any(), any());
-        verify(jobSchedulerPort, never()).updateJobParameters(any(), any());
+        verify(parameterStorageHelper).scheduleJobWithParameters(
+                testJobDefinition, jobType, jobName, convertedParams, false, scheduledAt, labels);
     }
 
     // Test data builder

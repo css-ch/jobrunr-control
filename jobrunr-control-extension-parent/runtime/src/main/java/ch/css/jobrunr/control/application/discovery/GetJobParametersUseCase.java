@@ -10,7 +10,6 @@ import jakarta.inject.Inject;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Use Case: Returns the parameter schema for a selected job.
@@ -33,17 +32,14 @@ public class GetJobParametersUseCase {
      * @throws JobNotFoundException when the job is not found
      */
     public Result execute(String jobType) {
-        Optional<JobDefinition> jobDefinition = jobDefinitionDiscoveryService.findJobByType(jobType);
-
-        if (jobDefinition.isEmpty()) {
-            throw new JobNotFoundException("JobDefinition with JobType '" + jobType + "' not found");
-        }
+        JobDefinition jobDefinition = jobDefinitionDiscoveryService.findJobByType(jobType)
+                .orElseThrow(() -> new JobNotFoundException("JobDefinition with JobType '" + jobType + "' not found"));
 
         return new Result(
-                jobDefinition.get().parameters().stream()
+                jobDefinition.parameters().stream()
                         .sorted(Comparator.comparing(JobParameter::order))
                         .toList(),
-                jobDefinition.get().parameterSections().stream()
+                jobDefinition.parameterSections().stream()
                         .sorted(Comparator.comparing(JobParameterSection::order))
                         .toList()
         );

@@ -4,17 +4,12 @@ import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
-import ch.css.jobrunr.control.domain.JobSchedulerPort;
-import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.jboss.logging.Logger;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -25,16 +20,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class UpdateScheduledJobUseCase {
 
-    private static final Logger LOG = Logger.getLogger(UpdateScheduledJobUseCase.class);
-
-    // Date for externally triggerable jobs (31.12.2999)
-    private static final Instant EXTERNAL_TRIGGER_DATE =
-            LocalDate.of(2999, 12, 31)
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant();
-
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
-    private final JobSchedulerPort jobSchedulerPort;
     private final JobParameterValidator validator;
     private final ParameterStorageHelper parameterStorageHelper;
     private final AuditLoggerHelper auditLogger;
@@ -42,92 +28,30 @@ public class UpdateScheduledJobUseCase {
     @Inject
     public UpdateScheduledJobUseCase(
             JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
-            JobSchedulerPort jobSchedulerPort,
             JobParameterValidator validator,
             ParameterStorageHelper parameterStorageHelper,
             AuditLoggerHelper auditLogger) {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
-        this.jobSchedulerPort = jobSchedulerPort;
         this.validator = validator;
         this.parameterStorageHelper = parameterStorageHelper;
         this.auditLogger = auditLogger;
     }
 
-    /**
-     * Updates a scheduled job directly (without deleting and recreating it).
-     *
-     * @param jobId             ID of the job to update
-     * @param jobType           Type of the job (full class name)
-     * @param jobName           Name of the job
-     * @param parameters        New parameter map
-     * @param scheduledAt       New time of the scheduled execution
-     * @param isExternalTrigger Whether the job should be triggered externally
-     * @return UUID of the updated job (same ID as input)
-     * @throws JobNotFoundException if the job is not found
-     */
     public UUID execute(UUID jobId, String jobType, String jobName, Map<String, String> parameters,
                         Instant scheduledAt, boolean isExternalTrigger) {
         return execute(jobId, jobType, jobName, parameters, scheduledAt, isExternalTrigger, null);
     }
 
-    /**
-     * Updates a scheduled job with additional labels.
-     *
-     * @param jobId             ID of the job to update
-     * @param jobType           Type of the job (full class name)
-     * @param jobName           Name of the job
-     * @param parameters        New parameter map
-     * @param scheduledAt       New time of the scheduled execution
-     * @param isExternalTrigger Whether the job should be triggered externally
-     * @param additionalLabels  Additional labels to add to the job
-     * @return UUID of the updated job (same ID as input)
-     * @throws JobNotFoundException if the job is not found
-     */
     public UUID execute(UUID jobId, String jobType, String jobName, Map<String, String> parameters,
-                        Instant scheduledAt, boolean isExternalTrigger, java.util.List<String> additionalLabels) {
+                        Instant scheduledAt, boolean isExternalTrigger, List<String> additionalLabels) {
 
-        // Load job definition
-        Optional<JobDefinition> jobDefOpt = jobDefinitionDiscoveryService.findJobByType(jobType);
-        if (jobDefOpt.isEmpty()) {
-            throw new JobNotFoundException("Job type '" + jobType + "' not found");
-        }
-
-        JobDefinition jobDefinition = jobDefOpt.get();
-
-        // Validate and convert parameters
+        JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobType);
         Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);
 
-        // Determine time
-        Instant effectiveScheduledAt = isExternalTrigger
-                ? EXTERNAL_TRIGGER_DATE
-                : scheduledAt;
+        parameterStorageHelper.updateJobWithParameters(
+                jobId, jobDefinition, jobType, jobName, convertedParameters, isExternalTrigger, scheduledAt, additionalLabels);
 
-        if (effectiveScheduledAt == null) {
-            throw new IllegalArgumentException(
-                    "scheduledAt must not be null if isExternalTrigger is false"
-            );
-        }
-
-        if (jobDefinition.usesExternalParameters()) {
-            LOG.debugf("Updating job with external parameters: %s (ID: %s)", jobType, jobId);
-
-            // Update external parameter set in-place (preserves version)
-            parameterStorageHelper.updateParametersForJob(jobId, jobDefinition, jobType, convertedParameters);
-
-            // Update job metadata with empty parameter map (parameters are accessed via job UUID)
-            jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, Map.of(), isExternalTrigger, effectiveScheduledAt, additionalLabels);
-
-            LOG.infof("Updated job with external parameters: %s (ID: %s)", jobType, jobId);
-        } else {
-            // SINGLE-PHASE UPDATE: Inline parameters
-            LOG.debugf("Using single-phase update for job with inline parameters: %s (ID: %s)", jobType, jobId);
-            jobSchedulerPort.updateJob(jobId, jobDefinition, jobName, convertedParameters, isExternalTrigger, effectiveScheduledAt, additionalLabels);
-        }
-
-        // Audit log
         auditLogger.logJobUpdated(jobName, jobId, convertedParameters);
-
-        // Return the original job ID
         return jobId;
     }
 }

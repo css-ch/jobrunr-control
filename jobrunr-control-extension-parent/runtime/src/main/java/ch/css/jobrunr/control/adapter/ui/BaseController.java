@@ -304,4 +304,20 @@ public abstract class BaseController {
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .toList();
     }
+
+    /**
+     * Returns a comparator for sorting scheduled jobs.
+     * Handles "jobName" and "jobType" sort keys; falls back to the given default comparator.
+     *
+     * @param sortBy            the field name to sort by
+     * @param defaultComparator comparator to use when sortBy is not "jobName" or "jobType"
+     * @return comparator for the requested sort key
+     */
+    protected Comparator<ScheduledJobInfo> getComparator(String sortBy, Comparator<ScheduledJobInfo> defaultComparator) {
+        return switch (sortBy) {
+            case "jobName" -> Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
+            case "jobType" -> Comparator.comparing(ScheduledJobInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
+            default -> defaultComparator;
+        };
+    }
 }

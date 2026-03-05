@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.application.template.TemplateCloneHelper;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
+import ch.css.jobrunr.control.application.audit.TriggerSource;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
@@ -111,11 +112,8 @@ public class StartJobUseCase {
             LOG.infof("Started cloned job %s from template %s", newJobId, jobId);
 
             // Audit log
-            if (isRestCall) {
-                auditLogger.logTemplateExecutedViaRest(jobInfo.getJobName(), jobId, newJobId);
-            } else {
-                auditLogger.logTemplateExecutedViaUI(jobInfo.getJobName(), jobId, newJobId);
-            }
+            TriggerSource source = isRestCall ? TriggerSource.REST : TriggerSource.UI;
+            auditLogger.logTemplateExecuted(jobInfo.getJobName(), jobId, newJobId, source);
 
             return newJobId;
         } else {
@@ -123,11 +121,7 @@ public class StartJobUseCase {
             jobSchedulerPort.executeJobNow(jobId, parameterOverrides);
 
             // Audit log
-            if (isRestCall) {
-                auditLogger.logJobExecutedViaRest(jobInfo.getJobName(), jobId);
-            } else {
-                auditLogger.logJobExecutedViaUI(jobInfo.getJobName(), jobId);
-            }
+            auditLogger.logJobExecuted(jobInfo.getJobName(), jobId, isRestCall ? TriggerSource.REST : TriggerSource.UI);
 
             return jobId;
         }

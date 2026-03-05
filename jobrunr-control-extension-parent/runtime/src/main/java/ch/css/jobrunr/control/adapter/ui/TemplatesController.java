@@ -286,11 +286,7 @@ public class TemplatesController extends BaseController {
     }
 
     private Comparator<ScheduledJobInfo> getComparator(String sortBy) {
-        if ("jobType".equals(sortBy)) {
-            return Comparator.comparing(ScheduledJobInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
-        } else {
-            return Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
-        }
+        return getComparator(sortBy, Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER));
     }
 
 

@@ -43,13 +43,10 @@ public class GetBatchProgressUseCase {
             throw new IllegalArgumentException("jobId must not be null");
         }
 
-        Optional<JobExecutionInfo> executionInfo = jobExecutionPort.getJobExecutionById(jobId);
+        JobExecutionInfo executionInfo = jobExecutionPort.getJobExecutionById(jobId)
+                .orElseThrow(() -> new JobNotFoundException("Job with ID '" + jobId + "' not found"));
 
-        if (executionInfo.isEmpty()) {
-            throw new JobNotFoundException("Job with ID '" + jobId + "' not found");
-        }
-
-        return executionInfo.get().getBatchProgress();
+        return executionInfo.getBatchProgress();
     }
 
     /**
