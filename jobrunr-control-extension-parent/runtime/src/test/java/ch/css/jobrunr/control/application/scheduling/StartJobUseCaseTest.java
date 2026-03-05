@@ -83,7 +83,28 @@ class StartJobUseCaseTest {
         // Assert
         assertThat(result).isEqualTo(newJobId);
         verify(templateCloneHelper).cloneTemplate(templateId, postfix, parameters, null);
-        verify(jobSchedulerPort).executeJobNow(newJobId, parameters);
+        Map<String, Object> expectedMetadata = new java.util.HashMap<>(parameters);
+        expectedMetadata.put("templateName", "TemplateJob");
+        verify(jobSchedulerPort).executeJobNow(newJobId, expectedMetadata);
+    }
+
+    @Test
+    @DisplayName("should add only templateName to metadata when parameterOverrides is null")
+    void execute_TemplateJob_NullParameters_AddsOnlyTemplateName() {
+        // Arrange
+        UUID templateId = UUID.randomUUID();
+        UUID newJobId = UUID.randomUUID();
+
+        ScheduledJobInfo templateJob = createJob(templateId, "MyTemplate", List.of("template"));
+        when(jobSchedulerPort.getScheduledJobById(templateId)).thenReturn(templateJob);
+        when(templateCloneHelper.cloneTemplate(templateId, null, null, null)).thenReturn(newJobId);
+
+        // Act
+        UUID result = useCase.execute(templateId, null, null);
+
+        // Assert
+        assertThat(result).isEqualTo(newJobId);
+        verify(jobSchedulerPort).executeJobNow(newJobId, Map.of("templateName", "MyTemplate"));
     }
 
     @Test

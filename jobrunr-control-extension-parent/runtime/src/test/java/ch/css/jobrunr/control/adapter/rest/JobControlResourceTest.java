@@ -43,8 +43,8 @@ class JobControlResourceTest {
     private JobControlResource resource;
 
     @Test
-    @DisplayName("POST /jobs/{jobId}/start should start job and return 200")
-    void startJob_ValidRequest_ReturnsSuccess() {
+    @DisplayName("POST /jobs/{jobRef}/start with UUID should start job and return 200")
+    void startJob_ValidUuid_ReturnsSuccess() {
         // Arrange
         UUID jobId = UUID.randomUUID();
         UUID resultId = UUID.randomUUID();
@@ -53,7 +53,7 @@ class JobControlResourceTest {
         when(startJobUseCase.execute(eq(jobId), any(), any(), eq(true))).thenReturn(resultId);
 
         // Act
-        Response response = resource.startJob(jobId, request);
+        Response response = resource.startJob(jobId.toString(), request);
 
         // Assert
         assertThat(response.getStatus()).isEqualTo(200);
@@ -65,7 +65,27 @@ class JobControlResourceTest {
     }
 
     @Test
-    @DisplayName("POST /jobs/{jobId}/start should throw exception when job not found")
+    @DisplayName("POST /jobs/{jobRef}/start with template name should start template and return 200")
+    void startJob_TemplateName_ReturnsSuccess() {
+        // Arrange
+        String templateName = "my-template";
+        UUID resultId = UUID.randomUUID();
+        StartJobRequestDTO request = new StartJobRequestDTO(null, Map.of());
+
+        when(startJobUseCase.execute(eq(templateName), any(), any(), eq(true))).thenReturn(resultId);
+
+        // Act
+        Response response = resource.startJob(templateName, request);
+
+        // Assert
+        assertThat(response.getStatus()).isEqualTo(200);
+        StartJobResponse startJobResponse = (StartJobResponse) response.getEntity();
+        assertThat(startJobResponse.jobId()).isEqualTo(resultId);
+        assertThat(startJobResponse.message()).isEqualTo("Template job started successfully");
+    }
+
+    @Test
+    @DisplayName("POST /jobs/{jobRef}/start should throw exception when job not found")
     void startJob_JobNotFound_ThrowsException() {
         // Arrange
         UUID jobId = UUID.randomUUID();
@@ -74,13 +94,13 @@ class JobControlResourceTest {
                 .thenThrow(new JobNotFoundException("Job not found: " + jobId));
 
         // Act & Assert
-        assertThatThrownBy(() -> resource.startJob(jobId, new StartJobRequestDTO(null, Map.of())))
+        assertThatThrownBy(() -> resource.startJob(jobId.toString(), new StartJobRequestDTO(null, Map.of())))
                 .isInstanceOf(JobNotFoundException.class)
                 .hasMessageContaining("Job not found");
     }
 
     @Test
-    @DisplayName("POST /jobs/{jobId}/start should handle parameter override")
+    @DisplayName("POST /jobs/{jobRef}/start should handle parameter override")
     void startJob_WithParameterOverride_PassesParametersToUseCase() {
         // Arrange
         UUID jobId = UUID.randomUUID();
@@ -92,7 +112,7 @@ class JobControlResourceTest {
                 .thenReturn(resultId);
 
         // Act
-        Response response = resource.startJob(jobId, request);
+        Response response = resource.startJob(jobId.toString(), request);
 
         // Assert
         assertThat(response.getStatus()).isEqualTo(200);
@@ -101,7 +121,7 @@ class JobControlResourceTest {
     }
 
     @Test
-    @DisplayName("POST /jobs/{jobId}/start with template should return appropriate message")
+    @DisplayName("POST /jobs/{jobRef}/start with template UUID should return template message")
     void startJob_Template_ReturnsTemplateMessage() {
         // Arrange
         UUID jobId = UUID.randomUUID();
@@ -110,7 +130,7 @@ class JobControlResourceTest {
         when(startJobUseCase.execute(eq(jobId), any(), any(), eq(true))).thenReturn(differentResultId);
 
         // Act
-        Response response = resource.startJob(jobId, new StartJobRequestDTO(null, Map.of()));
+        Response response = resource.startJob(jobId.toString(), new StartJobRequestDTO(null, Map.of()));
 
         // Assert
         StartJobResponse startJobResponse = (StartJobResponse) response.getEntity();
@@ -118,7 +138,7 @@ class JobControlResourceTest {
     }
 
     @Test
-    @DisplayName("POST /jobs/{jobId}/start with regular job should return appropriate message")
+    @DisplayName("POST /jobs/{jobRef}/start with regular job UUID should return job started message")
     void startJob_RegularJob_ReturnsJobStartedMessage() {
         // Arrange
         UUID jobId = UUID.randomUUID();
@@ -127,7 +147,7 @@ class JobControlResourceTest {
         when(startJobUseCase.execute(eq(jobId), any(), any(), eq(true))).thenReturn(jobId);
 
         // Act
-        Response response = resource.startJob(jobId, new StartJobRequestDTO(null, Map.of()));
+        Response response = resource.startJob(jobId.toString(), new StartJobRequestDTO(null, Map.of()));
 
         // Assert
         StartJobResponse startJobResponse = (StartJobResponse) response.getEntity();
@@ -135,12 +155,12 @@ class JobControlResourceTest {
     }
 
     @Test
-    @DisplayName("POST /jobs/{jobId}/start should throw BadRequestException when jobId is null")
-    void startJob_NullJobId_ThrowsBadRequestException() {
+    @DisplayName("POST /jobs/{jobRef}/start should throw BadRequestException when jobRef is blank")
+    void startJob_BlankJobRef_ThrowsBadRequestException() {
         // Act & Assert
-        assertThatThrownBy(() -> resource.startJob(null, new StartJobRequestDTO(null, Map.of())))
+        assertThatThrownBy(() -> resource.startJob("  ", new StartJobRequestDTO(null, Map.of())))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("jobId is required");
+                .hasMessageContaining("jobRef is required");
     }
 
     @Test

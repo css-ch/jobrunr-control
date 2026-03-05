@@ -57,18 +57,22 @@ public class JobControlResource {
      * Starts a job (regular or template) immediately.
      * If the job is a template, it will be cloned first with an optional postfix, then started.
      * If it's a regular job, it will be started directly (postfix is ignored).
+     * <p>
+     * The {@code jobRef} path parameter is interpreted as a UUID if it can be parsed as one,
+     * otherwise it is treated as a template name (name-based lookup only finds templates).
      *
-     * @param jobId   Job ID from path parameter
+     * @param jobRef  Job UUID or template name from path parameter
      * @param request Request body containing optional postfix and parameter overrides
      * @return Response containing the started job ID and message
      */
     @POST
-    @Path("jobs/{jobId}/start")
+    @Path("jobs/{jobRef}/start")
     @RolesAllowed({"api-executor", "admin"})
     @Operation(
             summary = "Start a job",
             description = "Starts a job immediately. If the job is a template, it will be cloned and started. " +
                     "If it's a regular scheduled job, it will be started directly. " +
+                    "The jobRef path parameter accepts either a UUID or a template name. " +
                     "Optionally accepts a postfix for template job names and parameter overrides."
     )
     @APIResponses({
@@ -91,29 +95,39 @@ public class JobControlResource {
             )
     })
     public Response startJob(
-            @Parameter(description = "Job ID", required = true)
-            @PathParam("jobId") UUID jobId,
+            @Parameter(description = "Job UUID or template name", required = true)
+            @PathParam("jobRef") String jobRef,
             @RequestBody(description = "Optional postfix and parameter overrides", required = false,
                     content = @Content(schema = @Schema(implementation = StartJobRequestDTO.class)))
             StartJobRequestDTO request) {
 
-        if (jobId == null) {
-            LOG.errorf("Invalid request: jobId is required");
-            throw new BadRequestException("jobId is required");
+        if (jobRef == null || jobRef.isBlank()) {
+            LOG.errorf("Invalid request: jobRef is required");
+            throw new BadRequestException("jobRef is required");
         }
 
         String postfix = request != null ? request.postfix() : null;
         java.util.Map<String, Object> parameters = request != null ? request.parameters() : null;
 
-        LOG.infof("Starting job with ID: %s, postfix: %s, with %s parameter override(s)",
-                jobId,
-                postfix != null ? postfix : "none",
-                parameters != null ? parameters.size() : 0);
+        UUID resultJobId;
+        UUID parsedJobId = tryParseUuid(jobRef);
 
-        UUID resultJobId = startJobUseCase.execute(jobId, postfix, parameters, true);
+        if (parsedJobId != null) {
+            LOG.infof("Starting job with ID: %s, postfix: %s, with %s parameter override(s)",
+                    parsedJobId,
+                    postfix != null ? postfix : "none",
+                    parameters != null ? parameters.size() : 0);
+            resultJobId = startJobUseCase.execute(parsedJobId, postfix, parameters, true);
+        } else {
+            LOG.infof("Starting template by name: %s, postfix: %s, with %s parameter override(s)",
+                    jobRef,
+                    postfix != null ? postfix : "none",
+                    parameters != null ? parameters.size() : 0);
+            resultJobId = startJobUseCase.execute(jobRef, postfix, parameters, true);
+        }
 
         // Determine if this was a template (ID changed) or a regular job (ID stayed the same)
-        boolean wasTemplate = !resultJobId.equals(jobId);
+        boolean wasTemplate = parsedJobId == null || !resultJobId.equals(parsedJobId);
         String message = wasTemplate ? "Template job started successfully" : "Job started successfully";
 
         StartJobResponse response = new StartJobResponse(
@@ -123,6 +137,14 @@ public class JobControlResource {
 
         LOG.infof("Job started with ID: %s", resultJobId);
         return Response.ok(response).build();
+    }
+
+    private static UUID tryParseUuid(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     /**

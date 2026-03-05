@@ -1,13 +1,35 @@
 <div>
     <div class="progress" style="height: 20px;">
-        <div class="progress-bar progress-bar-striped progress-bar-animated"
-             role="progressbar"
-             style="width: {progress.progress}%"
-             aria-valuenow="{progress.processed}"
-             aria-valuemin="0"
-             aria-valuemax="{progress.total}">
-            {progress.progress}%
-        </div>
+        {#if progress.pending == 0}
+            {#if progress.failed > 0}
+                <div class="progress-bar bg-danger"
+                     role="progressbar"
+                     style="width: 100%"
+                     aria-valuenow="{progress.processed}"
+                     aria-valuemin="0"
+                     aria-valuemax="{progress.total}">
+                    {progress.progress}%
+                </div>
+            {#else}
+                <div class="progress-bar bg-success"
+                     role="progressbar"
+                     style="width: 100%"
+                     aria-valuenow="{progress.processed}"
+                     aria-valuemin="0"
+                     aria-valuemax="{progress.total}">
+                    {progress.progress}%
+                </div>
+            {/if}
+        {#else}
+            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                 role="progressbar"
+                 style="width: {progress.progress}%"
+                 aria-valuenow="{progress.processed}"
+                 aria-valuemin="0"
+                 aria-valuemax="{progress.total}">
+                {progress.progress}%
+            </div>
+        {/if}
     </div>
     <small class="text-muted mt-1 d-block">
         {progress.processed} / {progress.total}

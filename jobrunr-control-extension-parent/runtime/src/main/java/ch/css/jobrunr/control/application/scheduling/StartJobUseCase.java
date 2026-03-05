@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import org.jboss.logging.Logger;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -99,8 +100,13 @@ public class StartJobUseCase {
                     null  // No additional labels - this is not a template, it's an executable job
             );
 
-            // Start the job immediately
-            jobSchedulerPort.executeJobNow(newJobId, parameterOverrides);
+            // Start the job immediately, including the source template name as metadata
+            Map<String, Object> metadata = new HashMap<>();
+            if (parameterOverrides != null) {
+                metadata.putAll(parameterOverrides);
+            }
+            metadata.put("templateName", jobInfo.getJobName());
+            jobSchedulerPort.executeJobNow(newJobId, metadata);
 
             LOG.infof("Started cloned job %s from template %s", newJobId, jobId);
 
