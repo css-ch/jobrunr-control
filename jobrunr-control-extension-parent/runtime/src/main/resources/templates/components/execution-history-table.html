@@ -25,7 +25,7 @@
                             <i class="bi bi-arrow-down-up text-muted"></i>
                         {/if}
                     </th>
-                    <th style="white-space: nowrap;">UUID</th>
+                    {#if showUuid}<th style="white-space: nowrap;">UUID</th>{/if}
                     <th class="sortable"
                         style="cursor: pointer;"
                         hx-get="/q/jobrunr-control/history/table?sortBy=jobType&sortOrder={#if sortBy == 'jobType'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
@@ -105,9 +105,11 @@
                                 <strong>{execution.jobName}</strong>
                             </a>
                         </td>
+                        {#if showUuid}
                         <td style="white-space: nowrap;">
                             <code class="small user-select-all">{execution.jobId}</code>
                         </td>
+                        {/if}
                         <td><code class="text-muted small">{execution.jobType}</code></td>
                         <td>
                                 <span class="status-badge status-{execution.status.name().toLowerCase()}">

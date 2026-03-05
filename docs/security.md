@@ -124,7 +124,17 @@ filter. JobRunr Pro never sees an unauthenticated or unauthorised request.
 | Roles | HTTP | Path | Method |
 |---|---|---|---|
 | `api-reader`, `api-executor`, `admin` | GET | `/jobs/{jobId}` | `JobControlResource.getJobStatus()` |
-| `api-executor`, `admin` | POST | `/jobs/{jobId}/start` | `JobControlResource.startJob()` |
+| `api-executor`, `admin` | POST | `/jobs/{jobRef}/start` | `JobControlResource.startJob()` |
+
+> `{jobRef}` accepts a UUID or a template name. UUID format is detected automatically; otherwise the value is treated as a template name (templates only).
+
+**Error responses for `/jobs/{jobRef}/start`:**
+
+| Status | Condition |
+|---|---|
+| 200 | Job started successfully |
+| 404 | No job/template found for the given UUID or name |
+| 409 | Template name already exists (on create/update, not on start) |
 
 ---
 
@@ -427,6 +437,15 @@ Add to `application.properties` scoped to the relevant profile:
 ---
 
 ## Changelog
+
+### 2026-03-05: Template name uniqueness, REST name-based start, UI error fix, config warnings
+
+- **Template name uniqueness**: Template names are now unique system-wide. `CreateTemplateUseCase` and `UpdateTemplateUseCase` check for duplicates and throw `DuplicateTemplateNameException` (→ HTTP 409). `JobRunrSchedulerAdapter` enforces the same constraint at the persistence layer as a second barrier.
+- **Clone auto-naming**: Cloning a template generates a unique name automatically (`{name}-1`, `{name}-2`, …) to avoid conflicts.
+- **REST start by name**: `POST /jobs/{jobRef}/start` now accepts either a UUID or a template name. UUID detection is format-based; name-based lookup searches templates only.
+- **UI error response fix**: `BaseController.buildErrorResponse` now uses `HX-Retarget`/`HX-Reswap` headers instead of `hx-swap-oob`. The previous approach caused HTMX to replace `#jobs-table` with empty content on error, breaking subsequent form submissions.
+- **Extension config registration**: `JobRunrControlUiConfig` now carries `@ConfigRoot(phase = ConfigPhase.RUN_TIME)`, eliminating the `Unrecognized configuration key "quarkus.jobrunr-control.ui.show-job-uuid"` warning.
+- **Logging min-level**: Added `quarkus.log.category."org.jobrunr".min-level=TRACE` to the example `application.properties` to eliminate the build-time promotion warning for TRACE log level.
 
 ### 2026-03-04: Dual-tenant OIDC architecture, role-claim-path, debug log cleanup
 

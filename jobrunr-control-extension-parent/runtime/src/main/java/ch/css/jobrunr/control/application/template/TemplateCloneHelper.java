@@ -47,7 +47,10 @@ public class TemplateCloneHelper {
         validateTemplateId(templateId);
 
         ScheduledJobInfo sourceJob = loadTemplateJob(templateId);
-        String newJobName = generateJobName(sourceJob.jobName(), postfix);
+        boolean isTemplateCopy = additionalLabels != null && additionalLabels.contains("template");
+        String newJobName = isTemplateCopy
+                ? generateUniqueTemplateName(sourceJob.jobName(), postfix)
+                : generateJobName(sourceJob.jobName(), postfix);
 
         LOG.infof("Cloning template job %s (%s)", templateId, sourceJob.jobName());
 
@@ -161,5 +164,29 @@ public class TemplateCloneHelper {
             return baseJobName;
         }
         return baseJobName + "-" + postfix;
+    }
+
+    /**
+     * Generates a unique template name by appending a numeric suffix (-1, -2, ...) until the name is free.
+     * If a postfix is provided, it is used as-is (no numeric suffix search).
+     *
+     * @param baseJobName Base job name
+     * @param postfix     Optional explicit postfix; if blank, a numeric suffix is searched
+     * @return A name not yet used by any existing template
+     */
+    private String generateUniqueTemplateName(String baseJobName, String postfix) {
+        if (postfix != null && !postfix.isBlank()) {
+            return baseJobName + "-" + postfix;
+        }
+        java.util.Set<String> existingNames = jobSchedulerPort.getScheduledJobs().stream()
+                .filter(j -> j.isTemplate())
+                .map(j -> j.getJobName())
+                .collect(java.util.stream.Collectors.toSet());
+        int counter = 1;
+        String candidate;
+        do {
+            candidate = baseJobName + "-" + counter++;
+        } while (existingNames.contains(candidate));
+        return candidate;
     }
 }

@@ -25,7 +25,7 @@
                             <i class="bi bi-arrow-down-up text-muted"></i>
                         {/if}
                     </th>
-                    <th style="white-space: nowrap;">UUID</th>
+                    {#if showUuid}<th style="white-space: nowrap;">UUID</th>{/if}
                     <th class="sortable"
                         style="cursor: pointer;"
                         hx-get="/q/jobrunr-control/templates/table?sortBy=jobType&sortOrder={#if sortBy == 'jobType'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&jobType={jobType}"
@@ -52,9 +52,11 @@
                     <tr>
                         <td><strong><a href="{dashboard.jobUrl(job.jobId)}"
                                        target="_blank">{job.jobName}</a></strong></td>
+                        {#if showUuid}
                         <td style="white-space: nowrap;">
                             <code class="small user-select-all">{job.jobId}</code>
                         </td>
+                        {/if}
                         <td><a href="{dashboard.jobsByLabelUrl(job.jobType)}" target="_blank"><code
                                         class="text-muted small">{job.jobType}</code></a></td>
                         <td>

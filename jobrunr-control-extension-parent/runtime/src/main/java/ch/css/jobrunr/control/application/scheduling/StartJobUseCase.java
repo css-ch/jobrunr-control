@@ -51,6 +51,26 @@ public class StartJobUseCase {
     }
 
     /**
+     * Starts a template job by name. The template is cloned and started.
+     *
+     * @param templateName       Name of the template to start
+     * @param postfix            Optional postfix for the cloned job name
+     * @param parameterOverrides Optional parameters to override
+     * @param isRestCall         Whether the call originated from REST API
+     * @return UUID of the newly created and started job
+     * @throws NotFoundException if no template with the given name is found
+     */
+    public UUID execute(String templateName, String postfix, Map<String, Object> parameterOverrides, boolean isRestCall) {
+        UUID templateId = jobSchedulerPort.getScheduledJobs().stream()
+                .filter(j -> j.isTemplate() && templateName.equals(j.getJobName()))
+                .map(ScheduledJobInfo::getJobId)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Template with name '" + templateName + "' not found"));
+
+        return execute(templateId, postfix, parameterOverrides, isRestCall);
+    }
+
+    /**
      * Starts a job. If the job is a template, it will be cloned and started.
      * If it's a regular job, it will be started directly.
      *

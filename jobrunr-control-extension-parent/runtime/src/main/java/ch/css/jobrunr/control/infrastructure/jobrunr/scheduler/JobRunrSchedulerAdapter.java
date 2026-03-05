@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import ch.css.jobrunr.control.domain.exceptions.DuplicateTemplateNameException;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import ch.css.jobrunr.control.domain.exceptions.JobSchedulingException;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobParameterExtractor;
@@ -70,6 +71,9 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
     }
 
     private UUID createOrUpdateJob(UUID jobId, JobDefinition jobDefinition, String jobName, Map<String, Object> parameters, boolean isExternalTrigger, Instant scheduledAt, List<String> additionalLabels) {
+        if (additionalLabels != null && additionalLabels.contains("template")) {
+            assertUniqueTemplateName(jobName, jobId);
+        }
         try {
             Instant effectiveScheduledAt = scheduledAt;
             if (isExternalTrigger) {
@@ -310,6 +314,22 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
         } catch (Exception e) {
             LOG.errorf(e, "Error updating job parameters: %s", jobId);
             throw new JobSchedulingException("Error updating job parameters: " + jobId, e);
+        }
+    }
+
+    /**
+     * Throws DuplicateTemplateNameException if any other scheduled template already uses the given name.
+     *
+     * @param jobName   the candidate name
+     * @param currentId the current job ID to exclude (null for new jobs)
+     */
+    private void assertUniqueTemplateName(String jobName, UUID currentId) {
+        boolean duplicate = getScheduledJobs().stream()
+                .filter(ScheduledJobInfo::isTemplate)
+                .anyMatch(j -> jobName.equals(j.getJobName())
+                        && (currentId == null || !currentId.equals(j.getJobId())));
+        if (duplicate) {
+            throw new DuplicateTemplateNameException(jobName);
         }
     }
 

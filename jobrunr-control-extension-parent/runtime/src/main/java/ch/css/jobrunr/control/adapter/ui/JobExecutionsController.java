@@ -6,6 +6,7 @@ import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import ch.css.jobrunr.control.domain.JobStatus;
+
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
@@ -49,7 +50,8 @@ public class JobExecutionsController {
                                                                     PaginationHelper.PaginationMetadata pagination,
                                                                     List<TemplateExtensions.PageItem> pageRange,
                                                                     String search, String statusFilter,
-                                                                    String sortBy, String sortOrder);
+                                                                    String sortBy, String sortOrder,
+                                                                    boolean showUuid);
 
         public static native TemplateInstance batchProgress(BatchProgress progress);
     }
@@ -57,15 +59,18 @@ public class JobExecutionsController {
     private final GetJobExecutionHistoryUseCase getHistoryUseCase;
     private final ResolveParametersUseCase resolveParametersUseCase;
     private final GetBatchProgressUseCase getBatchProgressUseCase;
+    private final JobRunrControlUiConfig uiConfig;
 
     @Inject
     public JobExecutionsController(
             GetJobExecutionHistoryUseCase getHistoryUseCase,
             ResolveParametersUseCase resolveParametersUseCase,
-            GetBatchProgressUseCase getBatchProgressUseCase) {
+            GetBatchProgressUseCase getBatchProgressUseCase,
+            JobRunrControlUiConfig uiConfig) {
         this.getHistoryUseCase = getHistoryUseCase;
         this.resolveParametersUseCase = resolveParametersUseCase;
         this.getBatchProgressUseCase = getBatchProgressUseCase;
+        this.uiConfig = uiConfig;
     }
 
     @GET
@@ -123,7 +128,8 @@ public class JobExecutionsController {
                 search != null ? search : "",
                 statusFilter,
                 sortBy,
-                sortOrder
+                sortOrder,
+                uiConfig.showJobUuid()
         );
     }
 

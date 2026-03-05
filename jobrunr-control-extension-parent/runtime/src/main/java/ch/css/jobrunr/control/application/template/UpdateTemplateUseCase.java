@@ -6,6 +6,7 @@ import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobSchedulerPort;
+import ch.css.jobrunr.control.domain.exceptions.DuplicateTemplateNameException;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -69,6 +70,13 @@ public class UpdateTemplateUseCase {
         }
 
         JobDefinition jobDefinition = jobDefOpt.get();
+
+        // Check for duplicate template name (excluding current template)
+        boolean nameExists = jobSchedulerPort.getScheduledJobs().stream()
+                .anyMatch(j -> j.isTemplate() && jobName.equals(j.getJobName()) && !templateId.equals(j.getJobId()));
+        if (nameExists) {
+            throw new DuplicateTemplateNameException(jobName);
+        }
 
         // Validate and convert parameters
         Map<String, Object> convertedParameters = validator.convertAndValidate(jobDefinition, parameters);

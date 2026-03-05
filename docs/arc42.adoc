@@ -529,13 +529,18 @@ Base path: `/q/jobrunr-control/api`
 |Method |Path |Description
 
 |POST
-|`/jobs/{jobId}/start`
-|Start a job or template immediately. If the job is a template, it is cloned and the clone is executed.
+|`/jobs/{jobRef}/start`
+|Start a job or template immediately. `{jobRef}` is interpreted as a UUID if it parses as one, otherwise as a template name. If the target is a template, it is cloned and the clone is executed.
 
 |GET
 |`/jobs/{jobId}`
 |Get current status and progress of a job
 |===
+
+[NOTE]
+====
+The `{jobRef}` path parameter accepts either a UUID (e.g. `550e8400-e29b-41d4-a716-446655440000`) or a template name (e.g. `monthly-report`). Name-based lookup only finds templates; regular scheduled jobs must be addressed by UUID.
+====
 
 === Template Jobs
 
@@ -544,6 +549,7 @@ Base path: `/q/jobrunr-control/api`
 Template jobs are a special type of scheduled job designed for reusability:
 
 * Marked with the `"template"` label in JobRunr
+* **Names are unique** across all templates — enforced at two layers (application and persistence)
 * Never executed directly
 * Serve as blueprints for creating and executing job instances
 * Managed through dedicated UI and REST API endpoints
@@ -563,10 +569,10 @@ Template jobs have their own application layer package (`ch.css.jobrunr.control.
 |Retrieves a single template job
 
 |`CreateTemplateUseCase`
-|Creates a new template (always with external trigger and "template" label)
+|Creates a new template (always with external trigger and "template" label). Rejects duplicate names with `DuplicateTemplateNameException`.
 
 |`UpdateTemplateUseCase`
-|Updates an existing template
+|Updates an existing template. Rejects duplicate names (excluding the current template) with `DuplicateTemplateNameException`.
 
 |`DeleteTemplateUseCase`
 |Deletes a template
@@ -575,11 +581,20 @@ Template jobs have their own application layer package (`ch.css.jobrunr.control.
 |Clones a template and executes the clone with optional parameter overrides
 |===
 
+==== Name Uniqueness
+
+Template names are unique system-wide, enforced at two independent layers:
+
+. **Application layer** (`CreateTemplateUseCase`, `UpdateTemplateUseCase`): checks existing templates before scheduling. Throws `DuplicateTemplateNameException` (→ HTTP 409) if a name conflict is detected.
+. **Persistence layer** (`JobRunrSchedulerAdapter`): re-checks uniqueness immediately before calling `createOrReplace`. Acts as a second barrier for any code path that bypasses the application layer.
+
+When cloning a template (template → template copy), a unique name is generated automatically: `{template-name}-1`, `{template-name}-2`, etc.
+
 ==== Template Execution Flow
 
 When a template is executed:
 
-. The template job is retrieved by ID
+. The template job is retrieved by ID (or by name when called from the REST API)
 . A new job instance is created by cloning the template
 . The new job name is created: `{template-name}-{postfix}`
 . Parameters can be optionally overridden

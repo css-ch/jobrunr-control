@@ -6,6 +6,7 @@ import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.application.scheduling.StartJobUseCase;
 import ch.css.jobrunr.control.application.template.*;
 import ch.css.jobrunr.control.domain.*;
+
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
@@ -51,7 +52,8 @@ public class TemplatesController extends BaseController {
                                                              List<TemplateExtensions.PageItem> pageRange,
                                                              String search,
                                                              String jobType,
-                                                             String sortBy, String sortOrder);
+                                                             String sortBy, String sortOrder,
+                                                             boolean showUuid);
     }
 
     @CheckedTemplate(basePath = "modals", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -77,6 +79,7 @@ public class TemplatesController extends BaseController {
     private final DeleteTemplateUseCase deleteTemplateUseCase;
     private final CloneTemplateUseCase cloneTemplateUseCase;
     private final StartJobUseCase startJobUseCase;
+    private final JobRunrControlUiConfig uiConfig;
 
     @Inject
     public TemplatesController(
@@ -89,7 +92,8 @@ public class TemplatesController extends BaseController {
             UpdateTemplateUseCase updateTemplateUseCase,
             DeleteTemplateUseCase deleteTemplateUseCase,
             CloneTemplateUseCase cloneTemplateUseCase,
-            StartJobUseCase startJobUseCase) {
+            StartJobUseCase startJobUseCase,
+            JobRunrControlUiConfig uiConfig) {
         this.discoverJobsUseCase = discoverJobsUseCase;
         this.getJobParametersUseCase = getJobParametersUseCase;
         this.resolveParametersUseCase = resolveParametersUseCase;
@@ -100,6 +104,7 @@ public class TemplatesController extends BaseController {
         this.deleteTemplateUseCase = deleteTemplateUseCase;
         this.cloneTemplateUseCase = cloneTemplateUseCase;
         this.startJobUseCase = startJobUseCase;
+        this.uiConfig = uiConfig;
     }
 
     @GET
@@ -141,7 +146,8 @@ public class TemplatesController extends BaseController {
                 search != null ? search : "",
                 jobType != null ? jobType : "all",
                 sortBy,
-                sortOrder
+                sortOrder,
+                uiConfig.showJobUuid()
         );
     }
 

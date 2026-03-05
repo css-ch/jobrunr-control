@@ -6,6 +6,7 @@ import ch.css.jobrunr.control.application.monitoring.GetScheduledJobsUseCase;
 import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.application.scheduling.*;
 import ch.css.jobrunr.control.domain.*;
+
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
@@ -54,7 +55,8 @@ public class ScheduledJobsController extends BaseController {
                                                                  PaginationHelper.PaginationMetadata pagination,
                                                                  List<TemplateExtensions.PageItem> pageRange,
                                                                  String search, String filter, String jobType,
-                                                                 String sortBy, String sortOrder);
+                                                                 String sortBy, String sortOrder,
+                                                                 boolean showUuid);
 
         public static native TemplateInstance paramInputs(List<JobParameter> parameters,
                                                           List<JobParameterSection> parameterSections,
@@ -85,6 +87,7 @@ public class ScheduledJobsController extends BaseController {
     private final UpdateScheduledJobUseCase updateJobUseCase;
     private final DeleteScheduledJobUseCase deleteJobUseCase;
     private final ExecuteScheduledJobUseCase executeScheduledJobUseCase;
+    private final JobRunrControlUiConfig uiConfig;
 
     @Inject
     public ScheduledJobsController(
@@ -96,7 +99,8 @@ public class ScheduledJobsController extends BaseController {
             CreateScheduledJobUseCase createJobUseCase,
             UpdateScheduledJobUseCase updateJobUseCase,
             DeleteScheduledJobUseCase deleteJobUseCase,
-            ExecuteScheduledJobUseCase executeScheduledJobUseCase) {
+            ExecuteScheduledJobUseCase executeScheduledJobUseCase,
+            JobRunrControlUiConfig uiConfig) {
         this.discoverJobsUseCase = discoverJobsUseCase;
         this.getJobParametersUseCase = getJobParametersUseCase;
         this.resolveParametersUseCase = resolveParametersUseCase;
@@ -106,7 +110,7 @@ public class ScheduledJobsController extends BaseController {
         this.updateJobUseCase = updateJobUseCase;
         this.deleteJobUseCase = deleteJobUseCase;
         this.executeScheduledJobUseCase = executeScheduledJobUseCase;
-
+        this.uiConfig = uiConfig;
     }
 
     @GET
@@ -170,7 +174,8 @@ public class ScheduledJobsController extends BaseController {
                 filter,
                 jobType != null ? jobType : "all",
                 sortBy,
-                sortOrder
+                sortOrder,
+                uiConfig.showJobUuid()
         );
     }
 

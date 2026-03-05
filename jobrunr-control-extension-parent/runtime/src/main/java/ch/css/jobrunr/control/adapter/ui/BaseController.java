@@ -44,15 +44,15 @@ public abstract class BaseController {
      */
     protected Response buildErrorResponse(String errorMessage) {
         String errorHtml = String.format(
-                "<div id=\"form-alerts\" hx-swap-oob=\"true\">" +
-                        "<div class=\"alert alert-danger alert-dismissible fade show\" role=\"alert\">" +
+                "<div class=\"alert alert-danger alert-dismissible fade show\" role=\"alert\">" +
                         "<i class=\"bi bi-exclamation-triangle-fill\"></i> <strong>Error:</strong> %s" +
                         "<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button>" +
-                        "</div>" +
                         "</div>",
                 errorMessage
         );
         return Response.ok(errorHtml)
+                .header("HX-Retarget", "#form-alerts")
+                .header("HX-Reswap", "innerHTML")
                 .header("HX-Trigger", "scrollToError")
                 .build();
     }
