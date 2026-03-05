@@ -7,8 +7,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.Job;
-import org.jobrunr.jobs.states.AbstractInitialJobState;
-import org.jobrunr.jobs.states.EnqueuedState;
 import org.jobrunr.jobs.states.StateName;
 import org.jobrunr.storage.JobSearchRequest;
 import org.jobrunr.storage.JobSearchRequestBuilder;
@@ -17,7 +15,6 @@ import org.jobrunr.storage.navigation.AmountRequest;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Factory for creating JobRunr JobSearchRequest instances.
@@ -95,11 +92,7 @@ public class ConfigurableJobSearchAdapter {
     }
 
     private boolean isChildJobOfBatch(Job job, JobDefinition jobDefinition) {
-        return jobDefinition.isBatchJob() && getParentJob(job) != null;
-    }
-
-    private UUID getParentJob(Job job) {
-        return job.getJobStatesOfType(EnqueuedState.class).findFirst().map(AbstractInitialJobState::getParentJobId).orElse(null);
+        return jobDefinition.isBatchJob() && !job.isBatchJob();
     }
 
     /**
