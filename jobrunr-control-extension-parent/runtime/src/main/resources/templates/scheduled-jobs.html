@@ -99,33 +99,13 @@
             htmx.trigger('#jobs-table', 'load');
         }, 10000);
 
-        // Close modal after successful form submission and table update
-        document.body.addEventListener('htmx:afterSwap', function(event) {
-            // Only close modal if the swap was triggered by the job form
-            if (event.detail.target.id === 'jobs-table' &&
-                (event.detail.requestConfig.elt.id === 'jobForm' || event.detail.requestConfig.elt.id === 'templateForm')) {
-
-                // Check if error alert exists in form-alerts
-                const formAlerts = document.querySelector('#form-alerts');
-                const hasError = formAlerts && formAlerts.querySelector('.alert-danger');
-
-                // Only close modal if NO error occurred
-                if (!hasError) {
-                    const modalElement = document.getElementById('jobModal');
-                    const modal = bootstrap.Modal.getInstance(modalElement);
-                    if (modal) {
-                        modal.hide();
-                    }
-                }
-            }
-        });
-
-        // Close modal after successful form submission and table update
-        document.body.addEventListener('htmx:afterSwap', function(event) {
-            // Scroll modal body to top to show the error
-            const modalBody = document.querySelector('#jobModal .modal-body');
-            if (modalBody) {
-                modalBody.scrollTop = 0;
+        // Close modal after successful form submission (HTMX 2.x best practice)
+        // The server sends HX-Trigger: closeModal on success responses
+        document.body.addEventListener('closeModal', function() {
+            const modalElement = document.getElementById('jobModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
             }
         });
 
@@ -135,7 +115,15 @@
             htmx.trigger('#modal-content', 'load');
         });
 
-        // Clear form alerts when form is submitted
+        // Scroll modal to top on error (server sends HX-Trigger: scrollToError)
+        document.body.addEventListener('scrollToError', function() {
+            const modalBody = document.querySelector('#jobModal .modal-body');
+            if (modalBody) {
+                modalBody.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+
+        // Clear form alerts when form is submitted (HTMX 2.x event API)
         document.body.addEventListener('htmx:beforeRequest', function(event) {
             const form = event.detail.elt;
             if (form && (form.id === 'templateForm' || form.id === 'jobForm')) {

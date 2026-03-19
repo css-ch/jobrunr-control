@@ -24,14 +24,18 @@ public abstract class BaseController {
     private static final Logger LOG = Logger.getLogger(BaseController.class);
 
     /**
-     * Builds a response that returns the updated content.
-     * The modal will be closed automatically via htmx:afterSwap event listener.
+     * Builds a response that returns the updated content and triggers modal close.
+     * Uses the HTMX 2.x {@code HX-Trigger} response header to fire a custom
+     * {@code closeModal} event on the client, which the JavaScript listener
+     * uses to dismiss the Bootstrap modal.
      *
      * @param content the template instance to return
-     * @return response with the updated content
+     * @return response with the updated content and closeModal trigger
      */
     protected Response buildModalCloseResponse(TemplateInstance content) {
-        return Response.ok(content).build();
+        return Response.ok(content)
+                .header("HX-Trigger", "closeModal")
+                .build();
     }
 
     /**
