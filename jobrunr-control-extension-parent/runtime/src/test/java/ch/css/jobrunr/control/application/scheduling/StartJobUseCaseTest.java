@@ -148,7 +148,7 @@ class StartJobUseCaseTest {
         JobDefinition jobDef = new JobDefinition(
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
                 List.of(), List.of(),
-                new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
+                new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", ""),
                 false, null
         );
         return new ScheduledJobInfo(

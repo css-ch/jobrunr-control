@@ -90,7 +90,7 @@ class DiscoverJobsUseCaseTest {
                         new JobParameter("param1", "param1", null, JobParameterType.STRING, true, null, List.of(), 0, "default")
                 ),
                 List.of(),
-                new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
+                new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
                 false,
                 null
         );

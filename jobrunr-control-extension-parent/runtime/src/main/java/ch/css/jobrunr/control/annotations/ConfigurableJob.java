@@ -100,4 +100,17 @@ public @interface ConfigurableJob {
      * Format: duration1!duration2 (e.g., PT5M!PT10H).
      */
     String deleteOnFailure() default "";
+
+    /**
+     * The Result-Page-URL for the Result-Page which is linked on the history-page
+     * The Result-Page-URL is e completed URL. The following variables can be used:
+     * - jobId          JobId-UUID of the selected Job
+     * - startDate      Start-Date of the Job
+     * - endDate        End-Date of the Job. If the Job is still running, the actual Date.
+     * - stage          The Stage on which the application is running (dev, int, vpr, prd)
+     * - host           The host of the application
+     * - port           The HTTP-port of the application
+     * Format https://{host}:{port}/mybatch/result/{jobId}?start={startDate}
+     */
+    String resultPageUrl() default "";
 }

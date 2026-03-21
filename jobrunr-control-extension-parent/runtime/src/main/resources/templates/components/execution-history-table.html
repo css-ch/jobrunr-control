@@ -99,11 +99,25 @@
                 {#for execution in executions}
                     <tr>
                         <td>
+                            {#set resultPage = resultPageUrl.resultPageUrl(execution,host,port)}
+                            {#if resultPage}
+                                <a href="{resultPage}"
+                                   target="_blank"
+                                   class="text-decoration-none">
+                                    <strong>{execution.jobName}</strong>
+                                </a>
+                                <a href="{dashboard.jobUrl(execution.jobId)}"
+                                   target="_blank"
+                                   class="text-decoration-none">
+                                    (<i>JobRunr-Dashboard</i>)
+                                </a>
+                            {#else}
                             <a href="{dashboard.jobUrl(execution.jobId)}"
                                target="_blank"
                                class="text-decoration-none">
                                 <strong>{execution.jobName}</strong>
                             </a>
+                            {/if}
                         </td>
                         {#if showUuid}
                         <td style="white-space: nowrap;">

@@ -18,7 +18,7 @@ class JobDefinitionTest {
         JobParameter param1 = new JobParameter("param1", "param1", null, JobParameterType.STRING, true, null, List.of(), 0, "default");
         JobParameter param2 = new JobParameter("param2", "param2", null, JobParameterType.INTEGER, false, "10", List.of(), 1, "default");
         List<JobParameter> parameters = List.of(param1, param2);
-        JobSettings settings = new JobSettings("Test", false, 3, List.of(), List.of(), "", "", "", "", "", "", "");
+        JobSettings settings = new JobSettings("Test", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null);
 
         // Act
         JobDefinition definition = new JobDefinition(

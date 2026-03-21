@@ -73,7 +73,8 @@ public class JobDefinitionBuilder {
                 "",    // initialDelayExpression
                 "",    // zoneId
                 "",    // amountOfRetriesExpression
-                ""     // retryBackOffTimeSeedExpression
+                "",     // retryBackOffTimeSeedExpression
+                null
         );
         return this;
     }
@@ -110,7 +111,8 @@ public class JobDefinitionBuilder {
                 "",     // initialDelayExpression
                 "",     // zoneId
                 "",     // amountOfRetriesExpression
-                ""      // retryBackOffTimeSeedExpression
+                "",      // retryBackOffTimeSeedExpression
+                null
         );
     }
 }

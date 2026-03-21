@@ -172,7 +172,8 @@ class JobDefinitionDiscoveryAdapterTest {
                         null,                               // rateLimiter
                         null,                               // processTimeOut
                         null,                               // deleteOnSuccess
-                        null                                // deleteOnFailure
+                        null,                                // deleteOnFailure
+                        null
                 ),
                 externalParams,                             // usesExternalParameters
                 externalParams ? "parameterSet" : null      // parameterSetFieldName

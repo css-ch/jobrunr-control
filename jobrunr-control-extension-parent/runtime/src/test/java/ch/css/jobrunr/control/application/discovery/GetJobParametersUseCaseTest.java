@@ -104,7 +104,7 @@ class GetJobParametersUseCaseTest {
                 jobType + "Handler",
                 parameters,
                 List.of(),
-                new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
+                new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
                 false,
                 null
         );
