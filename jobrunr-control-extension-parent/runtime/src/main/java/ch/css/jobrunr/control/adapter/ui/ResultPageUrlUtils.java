@@ -6,6 +6,7 @@ import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.time.LocalDate;
@@ -22,9 +23,10 @@ public class ResultPageUrlUtils {
     private final String stage;
 
     @Inject
-    public ResultPageUrlUtils(JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
+    public ResultPageUrlUtils(JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
+                              @ConfigProperty(name = "stage", defaultValue = "dev") String stage) {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
-        this.stage = "dev";
+        this.stage = stage.toLowerCase();
     }
 
     public String getResultPageUrl(JobExecutionInfo job, String host, String port) {
