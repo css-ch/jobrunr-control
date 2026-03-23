@@ -7,7 +7,7 @@ import org.jobrunr.jobs.lambdas.JobRequestHandler;
 @ApplicationScoped
 public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParameterDemoJobRequest> {
     @Override
-    @ConfigurableJob(isBatch = true)
+    @ConfigurableJob(isBatch = true, resultPageUrl = "http://{host}:{port}/mybatch/result/{jobId}?stage={stage}&startDate={startDate}&endDate={endDate}")
     public void run(ComplexParameterDemoJobRequest complexParameterDemoJobRequest) throws Exception {
 
     }

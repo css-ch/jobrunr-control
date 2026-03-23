@@ -35,7 +35,7 @@ class ResolveParametersUseCaseTest {
         JobDefinition jobDef = new JobDefinition(
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
                 List.of(), List.of(),
-                new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
+                new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null, null),
                 false, null
         );
         return new ScheduledJobInfo(jobId, "Test Job", jobDef, Instant.now(), params, false);
@@ -45,7 +45,7 @@ class ResolveParametersUseCaseTest {
         JobDefinition jobDef = new JobDefinition(
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
                 List.of(), List.of(),
-                new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null),
+                new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null, null),
                 true, "parameterSetId"
         );
         return new ScheduledJobInfo(jobId, "Test Job", jobDef, Instant.now(), Map.of(), false);

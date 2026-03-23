@@ -27,6 +27,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Result Page -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-qute</artifactId>
+        </dependency>
+
         <!-- Database -->
         <dependency>
             <groupId>io.quarkus</groupId>

@@ -12,7 +12,9 @@ import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.UriInfo;
 import org.jboss.logging.Logger;
 
 import java.util.Comparator;
@@ -51,7 +53,7 @@ public class JobExecutionsController {
                                                                     List<TemplateExtensions.PageItem> pageRange,
                                                                     String search, String statusFilter,
                                                                     String sortBy, String sortOrder,
-                                                                    boolean showUuid);
+                                                                    boolean showUuid, String host, String port);
 
         public static native TemplateInstance batchProgress(BatchProgress progress);
     }
@@ -85,6 +87,7 @@ public class JobExecutionsController {
     @RolesAllowed({"viewer", "configurator", "admin"})
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance getExecutionHistoryTable(
+            @Context UriInfo uriInfo,
             @QueryParam("search") String search,
             @QueryParam("status-filter") @DefaultValue("all") String statusFilter,
             @QueryParam("page") @DefaultValue("0") int page,
@@ -94,6 +97,10 @@ public class JobExecutionsController {
 
         LOG.infof("getExecutionHistoryTable called with page=%d, size=%d, sortBy=%s, sortOrder=%s, search=%s, statusFilter=%s",
                 page, size, sortBy, sortOrder, search, statusFilter);
+
+        // Host und Port aus der aktuellen Request auslesen
+        String host = uriInfo.getBaseUri().getHost();
+        String port = String.valueOf(uriInfo.getBaseUri().getPort());
 
         List<JobExecutionInfo> executions = getHistoryUseCase.execute();
 
@@ -129,7 +136,9 @@ public class JobExecutionsController {
                 statusFilter,
                 sortBy,
                 sortOrder,
-                uiConfig.showJobUuid()
+                uiConfig.showJobUuid(),
+                host,
+                port
         );
     }
 

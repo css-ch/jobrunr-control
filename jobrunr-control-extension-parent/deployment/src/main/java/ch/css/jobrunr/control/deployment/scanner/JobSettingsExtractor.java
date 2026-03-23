@@ -55,6 +55,7 @@ public class JobSettingsExtractor {
         String processTimeOut = getAnnotationValue(annotation, "processTimeOut", "");
         String deleteOnSuccess = getAnnotationValue(annotation, "deleteOnSuccess", "");
         String deleteOnFailure = getAnnotationValue(annotation, "deleteOnFailure", "");
+        String resultPageUrl = getAnnotationValue(annotation, "resultPageUrl", "");
 
         return new JobSettings(
                 name,
@@ -68,7 +69,8 @@ public class JobSettingsExtractor {
                 rateLimiter,
                 processTimeOut,
                 deleteOnSuccess,
-                deleteOnFailure
+                deleteOnFailure,
+                resultPageUrl
         );
     }
 
@@ -94,6 +96,7 @@ public class JobSettingsExtractor {
                 ConfigurableJob.NBR_OF_RETRIES_NOT_PROVIDED,
                 List.of(),
                 List.of(),
+                "",
                 "",
                 "",
                 "",

@@ -17,6 +17,7 @@ import java.util.List;
  * @param processTimeOut     Maximum processing duration
  * @param deleteOnSuccess    Deletion schedule for successful jobs
  * @param deleteOnFailure    Deletion schedule for failed jobs
+ * @param resultPageUrl      URL for job result page in the history-tab
  */
 public record JobSettings(
         String name,
@@ -30,6 +31,7 @@ public record JobSettings(
         String rateLimiter,
         String processTimeOut,
         String deleteOnSuccess,
-        String deleteOnFailure
+        String deleteOnFailure,
+        String resultPageUrl
 ) {
 }

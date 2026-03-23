@@ -68,7 +68,7 @@ class GetTemplatesUseCaseTest {
         JobDefinition jobDef = new JobDefinition(
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
                 List.of(), List.of(),
-                new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", ""),
+                new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
                 false, null
         );
         return new ScheduledJobInfo(
