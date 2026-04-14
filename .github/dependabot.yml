@@ -1,0 +1,30 @@
+version: 2
+
+registries:
+  jobrunr-pro:
+    type: maven-repository
+    url: https://repo.jobrunr.io/private-releases/
+    username: ${{ secrets.JOBRUNR_USERNAME }}
+    password: ${{ secrets.JOBRUNR_PASSWORD }}
+
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    registries:
+      - jobrunr-pro
+    open-pull-requests-limit: 5
+    groups:
+      quarkus:
+        patterns:
+          - "io.quarkus*"
+          - "io.quarkus.platform*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
