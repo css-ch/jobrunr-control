@@ -46,7 +46,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-        <quarkus.platform.version>3.32.3</quarkus.platform.version>
+        <quarkus.platform.version>3.34.3</quarkus.platform.version>
         <jobrunr.version>8.5.1</jobrunr.version>
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <jacoco-plugin.version>0.8.14</jacoco-plugin.version>
