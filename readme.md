@@ -78,7 +78,9 @@ quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/yourdb
 
 ### 1. Create the JobRequest
 
-Define your parameters as a Java record:
+Define your parameters as a Java record. `JobRequest` types **must be records** —
+regular classes are not discovered as configurable jobs, because parameter extraction relies on
+record components (canonical order, immutability, type metadata):
 
 ```java
 public record MyJobRequest(

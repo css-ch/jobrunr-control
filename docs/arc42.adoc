@@ -30,6 +30,8 @@ The community edition of JobRunr is not supported.
 . **Quarkus Only**: Built as a Quarkus extension; other frameworks (Spring Boot, Micronaut) are not supported.
 . **JobRequest Pattern Only**: Strictly supports the `JobRequest` / `JobRequestHandler` pattern.
 Lambda-based jobs are not supported for configurable jobs.
+. **Records Only for JobRequest Types**: `JobRequest` implementations must be Java records.
+Regular classes are not discovered as configurable jobs, because parameter extraction relies on record components (canonical order, immutability, type metadata).
 . **Native Mode Not Tested**: The extension has not been tested for Quarkus native mode compilation.
 ====
 
