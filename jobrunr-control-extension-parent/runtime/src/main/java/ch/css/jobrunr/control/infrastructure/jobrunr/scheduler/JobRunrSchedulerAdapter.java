@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -109,7 +110,10 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
             var amountRequest = new org.jobrunr.storage.navigation.AmountRequest("scheduledAt:ASC", 10000);
             List<org.jobrunr.jobs.Job> scheduledJobs = storageProvider.getJobList(searchRequest, amountRequest);
             LOG.debugf("Found scheduled jobs: %s", scheduledJobs.size());
-            return scheduledJobs.stream().map(this::mapToScheduledJobInfo).toList();
+            return scheduledJobs.stream()
+                    .map(this::mapToScheduledJobInfo)
+                    .flatMap(Optional::stream)
+                    .toList();
         });
     }
 
@@ -118,28 +122,32 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
         return executeOrDefault(null, "Error retrieving job: " + jobId, () -> {
             org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
             if (job != null && job.getState() == StateName.SCHEDULED) {
-                return mapToScheduledJobInfo(job);
+                return mapToScheduledJobInfo(job).orElse(null);
             }
             return null;
         });
     }
 
-    private ScheduledJobInfo mapToScheduledJobInfo(org.jobrunr.jobs.Job job) {
+    private Optional<ScheduledJobInfo> mapToScheduledJobInfo(org.jobrunr.jobs.Job job) {
         UUID jobId = job.getId();
+
+        // Job type: Extract simple class name of the job class
+        String fullyQualifiedClassName = job.getJobDetails().getClassName();
+        String jobType = extractSimpleClassName(fullyQualifiedClassName);
+
+        // Get JobDefinition for this job type. Handlers without @ConfigurableJob are not
+        // managed by this extension and are silently skipped.
+        Optional<JobDefinition> jobDefinition = jobDefinitionDiscoveryService.findJobByType(jobType);
+        if (jobDefinition.isEmpty()) {
+            LOG.debugf("Skipping job %s: no @ConfigurableJob definition found for type '%s'", jobId, jobType);
+            return Optional.empty();
+        }
 
         // Job name: Retrieved from JobRunr job name (set as a parameter during creation)
         String jobName = job.getJobName();
         if (jobName == null || jobName.isEmpty()) {
             jobName = "Unnamed Job";
         }
-
-        // Job type: Extract simple class name of the job class
-        String fullyQualifiedClassName = job.getJobDetails().getClassName();
-        String jobType = extractSimpleClassName(fullyQualifiedClassName);
-
-        // Get JobDefinition for this job type
-        JobDefinition jobDefinition = jobDefinitionDiscoveryService.findJobByType(jobType)
-                .orElseThrow(() -> new IllegalStateException("Job definition not found for type: " + jobType));
 
         // Get scheduledAt from ScheduledState
         Instant scheduledAt = job.getJobStates().stream()
@@ -158,15 +166,15 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
         // Extract labels
         List<String> labels = new ArrayList<>(job.getLabels());
 
-        return new ScheduledJobInfo(
+        return Optional.of(new ScheduledJobInfo(
                 jobId,
                 jobName,
-                jobDefinition,
+                jobDefinition.get(),
                 scheduledAt,
                 parameters,
                 isExternallyTriggerable,
                 labels
-        );
+        ));
     }
 
     private String extractSimpleClassName(String fullyQualifiedClassName) {
