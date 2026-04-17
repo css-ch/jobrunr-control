@@ -7,7 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * UI test for creating an ExampleBatchJob with external trigger and verifying execution in history.
+ * UI test for creating an ExampleBatchJob with external trigger and verifying
+ * execution in history.
  */
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
