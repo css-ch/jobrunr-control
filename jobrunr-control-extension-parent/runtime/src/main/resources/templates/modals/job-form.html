@@ -1,8 +1,8 @@
 <form id="jobForm"
         {#if isEdit}
-            hx-put="/q/jobrunr-control/scheduled/{job.jobId}"
+            hx-put="{cp}/scheduled/{job.jobId}"
         {#else}
-            hx-post="/q/jobrunr-control/scheduled"
+            hx-post="{cp}/scheduled"
         {/if}
       hx-target="#jobs-table"
       hx-swap="outerHTML"
@@ -17,7 +17,7 @@
                 class="form-select"
                 required
                 {#if isEdit}disabled{/if}
-                hx-get="/q/jobrunr-control/scheduled/modal/parameters"
+                hx-get="{cp}/scheduled/modal/parameters"
                 hx-target="#parameters-container"
                 hx-swap="innerHTML">
             <option value="">-- Job-Typ auswählen --</option>

@@ -56,10 +56,34 @@ quarkus.jobrunr-control.api.enabled=true
 Use standard Quarkus HTTP configuration to customize paths:
 
 ```properties
-# Set custom root path for all endpoints
+# Set custom root path for all endpoints (affects UI dashboard and REST API alike)
 quarkus.http.root-path=/scheduler
-# Or set REST-specific path
+# Set custom path for all JAX-RS resources (affects the consumer app's resources
+# and the JobRunr Control REST API)
 quarkus.rest.path=/api
+```
+
+**UI dashboard vs. REST API under custom `quarkus.rest.path` / `@ApplicationPath`:**
+
+| Endpoint group | Path | Affected by `quarkus.rest.path` / `@ApplicationPath`? |
+| --- | --- | --- |
+| UI dashboard (HTML + HTMX) | `/q/jobrunr-control/*` | No — registered under the non-application root path |
+| REST API (JSON, external triggers) | `/q/jobrunr-control/api/*` | Yes — prefixed, e.g. `/api/q/jobrunr-control/api/*` |
+
+The UI is mounted as Vert.x routes under Quarkus' non-application root path
+(`quarkus.http.non-application-root-path`, default `/q`), so navigation links and HTMX
+targets always resolve correctly — exactly like `/q/health`, `/q/openapi` or the JobRunr
+Pro dashboard.
+
+The REST API remains a JAX-RS resource (to preserve the MicroProfile OpenAPI annotations
+used in `/q/swagger-ui`). Consumers that declare `@ApplicationPath("/api")` or set
+`quarkus.rest.path=/api` will therefore reach the external trigger API at
+`/api/q/jobrunr-control/api/jobs/{jobRef}/start` instead of
+`/q/jobrunr-control/api/jobs/{jobRef}/start`. Update HTTP auth permission paths for the
+REST API accordingly, e.g.
+
+```properties
+quarkus.http.auth.permission.jobrunr-control-api.paths=/api/q/jobrunr-control/api/*
 ```
 
 ### JobRunr Configuration

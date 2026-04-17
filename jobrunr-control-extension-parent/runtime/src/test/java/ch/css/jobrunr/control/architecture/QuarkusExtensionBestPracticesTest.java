@@ -93,17 +93,21 @@ public class QuarkusExtensionBestPracticesTest {
     }
 
     /**
-     * Recorder classes should follow naming convention and be in infrastructure package.
-     * Recorders are the bridge between deployment and runtime.
+     * Recorder classes should follow naming convention.
+     * Recorders bridge deployment and runtime. Most live in {@code infrastructure}; recorders
+     * that register Vert.x routes for UI handlers need to invoke {@code adapter.ui} beans and
+     * therefore live alongside the adapter they support.
      */
     @Test
     @DisplayName("Recorder classes should follow naming convention")
     void recordersShouldFollowNamingConvention() {
         ArchRule rule = classes()
                 .that().haveSimpleNameEndingWith("Recorder")
-                .should().resideInAPackage("..infrastructure..")
+                .should().resideInAnyPackage("..infrastructure..", "..adapter..")
                 .andShould().notBeInterfaces()
-                .because("Recorders are runtime infrastructure components used by deployment module");
+                .because("Recorders are runtime components used by the deployment module; "
+                        + "they live either in infrastructure (default) or with the adapter they support "
+                        + "when they need to invoke adapter-layer beans (e.g. Vert.x route registration)");
 
         rule.check(importedClasses);
     }

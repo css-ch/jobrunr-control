@@ -52,7 +52,7 @@ class JobTriggerForParameterDemoJobUITest extends JobTriggerUITestBase {
                 .contentType(ContentType.JSON)
                 .body(requestBody)
                 .when()
-                .post(baseUrl + "q/jobrunr-control/api/jobs/" + scheduledJobId + "/start")
+                .post(baseUrl + "api/q/jobrunr-control/api/jobs/" + scheduledJobId + "/start")
                 .then()
                 .statusCode(200)
                 .extract()

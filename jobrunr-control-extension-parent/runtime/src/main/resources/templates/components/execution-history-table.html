@@ -11,7 +11,7 @@
                 <tr>
                     <th class="sortable"
                         style="cursor: pointer;"
-                        hx-get="/q/jobrunr-control/history/table?sortBy=jobName&sortOrder={#if sortBy == 'jobName'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                        hx-get="{cp}/history/table?sortBy=jobName&sortOrder={#if sortBy == 'jobName'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
                         hx-target="#history-table"
                         hx-swap="outerHTML">
                         Job-Name
@@ -28,7 +28,7 @@
                     {#if showUuid}<th style="white-space: nowrap;">UUID</th>{/if}
                     <th class="sortable"
                         style="cursor: pointer;"
-                        hx-get="/q/jobrunr-control/history/table?sortBy=jobType&sortOrder={#if sortBy == 'jobType'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                        hx-get="{cp}/history/table?sortBy=jobType&sortOrder={#if sortBy == 'jobType'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
                         hx-target="#history-table"
                         hx-swap="outerHTML">
                         Job-Typ
@@ -44,7 +44,7 @@
                     </th>
                     <th class="sortable"
                         style="cursor: pointer;"
-                        hx-get="/q/jobrunr-control/history/table?sortBy=status&sortOrder={#if sortBy == 'status'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                        hx-get="{cp}/history/table?sortBy=status&sortOrder={#if sortBy == 'status'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
                         hx-target="#history-table"
                         hx-swap="outerHTML">
                         Status
@@ -60,7 +60,7 @@
                     </th>
                     <th class="sortable"
                         style="cursor: pointer;"
-                        hx-get="/q/jobrunr-control/history/table?sortBy=startedAt&sortOrder={#if sortBy == 'startedAt'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                        hx-get="{cp}/history/table?sortBy=startedAt&sortOrder={#if sortBy == 'startedAt'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
                         hx-target="#history-table"
                         hx-swap="outerHTML">
                         Gestartet
@@ -76,7 +76,7 @@
                     </th>
                     <th class="sortable"
                         style="cursor: pointer;"
-                        hx-get="/q/jobrunr-control/history/table?sortBy=finishedAt&sortOrder={#if sortBy == 'finishedAt'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                        hx-get="{cp}/history/table?sortBy=finishedAt&sortOrder={#if sortBy == 'finishedAt'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
                         hx-target="#history-table"
                         hx-swap="outerHTML">
                         Beendet
@@ -162,7 +162,7 @@
                                     {#include components/batch-progress progress = execution.getBatchProgress().get() /}
                             {#else}
                                 {#if execution.status.name() == 'PROCESSING'}
-                                    <div hx-get="/q/jobrunr-control/history/{execution.jobId}/batch-progress"
+                                    <div hx-get="{cp}/history/{execution.jobId}/batch-progress"
                                          hx-trigger="load delay:1s"
                                          hx-swap="outerHTML">
                                         <small class="skeleton">Lädt...</small>
@@ -189,7 +189,7 @@
                     <li class="page-item {#if ! pagination.hasPrevious}disabled{/if}">
                         <button class="page-link"
                                 {#if pagination.hasPrevious}
-                                    hx-get="/q/jobrunr-control/history/table?page=0&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
+                                    hx-get="{cp}/history/table?page=0&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
                                     hx-target="#history-table"
                                     hx-swap="outerHTML"
                                 {#else}
@@ -202,7 +202,7 @@
                     <li class="page-item {#if ! pagination.hasPrevious}disabled{/if}">
                         <button class="page-link"
                                 {#if pagination.hasPrevious}
-                                    hx-get="/q/jobrunr-control/history/table?page={pagination.previousPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
+                                    hx-get="{cp}/history/table?page={pagination.previousPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
                                     hx-target="#history-table"
                                     hx-swap="outerHTML"
                                 {#else}
@@ -216,7 +216,7 @@
                     {#for pageItem in pageRange}
                         <li class="page-item {#if pageItem.index == pagination.page}active{/if}">
                             <button class="page-link"
-                                    hx-get="/q/jobrunr-control/history/table?page={pageItem.index}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
+                                    hx-get="{cp}/history/table?page={pageItem.index}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
                                     hx-target="#history-table"
                                     hx-swap="outerHTML">
                                 {pageItem.label}
@@ -227,7 +227,7 @@
                     <li class="page-item {#if ! pagination.hasNext}disabled{/if}">
                         <button class="page-link"
                                 {#if pagination.hasNext}
-                                    hx-get="/q/jobrunr-control/history/table?page={pagination.nextPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
+                                    hx-get="{cp}/history/table?page={pagination.nextPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
                                     hx-target="#history-table"
                                     hx-swap="outerHTML"
                                 {#else}
@@ -240,7 +240,7 @@
                     <li class="page-item {#if ! pagination.hasNext}disabled{/if}">
                         <button class="page-link"
                                 {#if pagination.hasNext}
-                                    hx-get="/q/jobrunr-control/history/table?page={pagination.lastPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
+                                    hx-get="{cp}/history/table?page={pagination.lastPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&status-filter={statusFilter}"
                                     hx-target="#history-table"
                                     hx-swap="outerHTML"
                                 {#else}
@@ -255,7 +255,7 @@
             <div>
                 <select class="form-select form-select-sm"
                         style="width: auto;"
-                        hx-get="/q/jobrunr-control/history/table"
+                        hx-get="{cp}/history/table"
                         hx-trigger="change"
                         hx-vals='js:&#123;"page": 0, "sortBy": "{sortBy}", "sortOrder": "{sortOrder}", "search": "{search}", "status-filter": "{statusFilter}", "size": event.target.value&#125;'
                         hx-target="#history-table"

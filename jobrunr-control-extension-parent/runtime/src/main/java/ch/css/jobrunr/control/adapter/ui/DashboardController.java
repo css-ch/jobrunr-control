@@ -1,26 +1,21 @@
 package ch.css.jobrunr.control.adapter.ui;
 
-import io.quarkus.qute.TemplateInstance;
-import jakarta.annotation.security.RolesAllowed;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
+import io.vertx.ext.web.RoutingContext;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.List;
 
 /**
  * Main Dashboard Controller.
- * Root path redirects to scheduled jobs using type-safe Qute templates.
+ * Root handler delegates to the scheduled-jobs template.
  */
-@Path("/q/jobrunr-control")
+@ApplicationScoped
 public class DashboardController {
 
-    @GET
-    @RolesAllowed({"viewer", "configurator", "admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance index() {
-        // Redirect to scheduler overview - use the template from ScheduledJobsController
-        return ScheduledJobsController.Templates.scheduledJobs(List.of());
+    public void handleIndex(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
+            return;
+        }
+        UiRoutingSupport.renderHtml(ctx, ScheduledJobsController.Templates.scheduledJobs(List.of()));
     }
 }

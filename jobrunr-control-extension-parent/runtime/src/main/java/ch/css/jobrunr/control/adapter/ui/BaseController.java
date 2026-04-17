@@ -4,9 +4,7 @@ import ch.css.jobrunr.control.application.discovery.DiscoverJobsUseCase;
 import ch.css.jobrunr.control.application.discovery.GetJobParametersUseCase;
 import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.domain.*;
-import io.quarkus.qute.TemplateInstance;
 import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
@@ -22,44 +20,6 @@ import java.util.function.Function;
 public abstract class BaseController {
 
     private static final Logger LOG = Logger.getLogger(BaseController.class);
-
-    /**
-     * Builds a response that returns the updated content and triggers modal close.
-     * Uses the HTMX 2.x {@code HX-Trigger} response header to fire a custom
-     * {@code closeModal} event on the client, which the JavaScript listener
-     * uses to dismiss the Bootstrap modal.
-     *
-     * @param content the template instance to return
-     * @return response with the updated content and closeModal trigger
-     */
-    protected Response buildModalCloseResponse(TemplateInstance content) {
-        return Response.ok(content)
-                .header("HX-Trigger", "closeModal")
-                .build();
-    }
-
-    /**
-     * Builds an error response that displays in the modal's alert area.
-     * The modal stays open so the user can fix the error.
-     * Uses HTMX out-of-band (OOB) swap to reliably target the alert container.
-     *
-     * @param errorMessage the error message to display
-     * @return response with error alert HTML
-     */
-    protected Response buildErrorResponse(String errorMessage) {
-        String errorHtml = String.format(
-                "<div class=\"alert alert-danger alert-dismissible fade show\" role=\"alert\">" +
-                        "<i class=\"bi bi-exclamation-triangle-fill\"></i> <strong>Error:</strong> %s" +
-                        "<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button>" +
-                        "</div>",
-                errorMessage
-        );
-        return Response.ok(errorHtml)
-                .header("HX-Retarget", "#form-alerts")
-                .header("HX-Reswap", "innerHTML")
-                .header("HX-Trigger", "scrollToError")
-                .build();
-    }
 
     /**
      * Parses a scheduled time string into an Instant.

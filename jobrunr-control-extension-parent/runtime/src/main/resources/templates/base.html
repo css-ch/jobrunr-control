@@ -53,7 +53,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/q/jobrunr-control/scheduled">
+            <a class="navbar-brand" href="{cp}/scheduled">
                 <i class="bi bi-clock-history"></i> JobRunr Control
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -62,23 +62,23 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/q/jobrunr-control/templates">
+                        <a class="nav-link" href="{cp}/templates">
                             <i class="bi bi-file-earmark-text"></i> Templates
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/q/jobrunr-control/scheduled">
+                        <a class="nav-link" href="{cp}/scheduled">
                             <i class="bi bi-calendar-check"></i> Geplante Jobs
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/q/jobrunr-control/history">
+                        <a class="nav-link" href="{cp}/history">
                             <i class="bi bi-clock-history"></i> Historie
                         </a>
                     </li>
                     {#if security:isOidcEnabled()}
                     <li class="nav-item">
-                        <a class="nav-link" href="/q/jobrunr-control/logout">
+                        <a class="nav-link" href="{cp}/logout">
                             <i class="bi bi-person-circle"></i> {security:currentUser()} (<i class="bi bi-box-arrow-right"></i> Logout)
                         </a>
                     </li>

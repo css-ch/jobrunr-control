@@ -11,7 +11,7 @@
                 <tr>
                     <th class="sortable"
                         style="cursor: pointer;"
-                        hx-get="/q/jobrunr-control/templates/table?sortBy=jobName&sortOrder={#if sortBy == 'jobName'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&jobType={jobType}"
+                        hx-get="{cp}/templates/table?sortBy=jobName&sortOrder={#if sortBy == 'jobName'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&jobType={jobType}"
                         hx-target="#jobs-table"
                         hx-swap="outerHTML">
                         Job-Name
@@ -28,7 +28,7 @@
                     {#if showUuid}<th style="white-space: nowrap;">UUID</th>{/if}
                     <th class="sortable"
                         style="cursor: pointer;"
-                        hx-get="/q/jobrunr-control/templates/table?sortBy=jobType&sortOrder={#if sortBy == 'jobType'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&jobType={jobType}"
+                        hx-get="{cp}/templates/table?sortBy=jobType&sortOrder={#if sortBy == 'jobType'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&jobType={jobType}"
                         hx-target="#jobs-table"
                         hx-swap="outerHTML">
                         Job-Typ
@@ -71,7 +71,7 @@
                             <div class="btn-group btn-group-sm" role="group">
                                 {#if security:hasOneOfRole('admin')}
                                 <button class="btn btn-outline-success"
-                                        hx-post="/q/jobrunr-control/templates/{job.jobId}/start"
+                                        hx-post="{cp}/templates/{job.jobId}/start"
                                         hx-confirm="Template '{job.jobName}' jetzt starten?"
                                         hx-target="#jobs-table"
                                         hx-swap="outerHTML"
@@ -86,7 +86,7 @@
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <button class="btn btn-outline-info"
-                                        hx-post="/q/jobrunr-control/templates/{job.jobId}/clone"
+                                        hx-post="{cp}/templates/{job.jobId}/clone"
                                         hx-confirm="Template '{job.jobName}' wirklich klonen?"
                                         hx-target="#jobs-table"
                                         hx-swap="outerHTML"
@@ -94,7 +94,7 @@
                                     <i class="bi bi-copy"></i>
                                 </button>
                                 <button class="btn btn-outline-danger"
-                                        hx-delete="/q/jobrunr-control/templates/{job.jobId}"
+                                        hx-delete="{cp}/templates/{job.jobId}"
                                         hx-confirm="Template '{job.jobName}' wirklich löschen?"
                                         hx-target="#jobs-table"
                                         hx-swap="outerHTML"
@@ -121,7 +121,7 @@
                     <li class="page-item {#if !pagination.hasPrevious}disabled{/if}">
                          <button class="page-link"
                                 {#if pagination.hasPrevious}
-                                hx-get="/q/jobrunr-control/templates/table?page=0&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
+                                hx-get="{cp}/templates/table?page=0&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
                                 hx-target="#jobs-table"
                                 hx-swap="outerHTML"
                                 {#else}
@@ -134,7 +134,7 @@
                     <li class="page-item {#if !pagination.hasPrevious}disabled{/if}">
                         <button class="page-link"
                                 {#if pagination.hasPrevious}
-                                hx-get="/q/jobrunr-control/templates/table?page={pagination.previousPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
+                                hx-get="{cp}/templates/table?page={pagination.previousPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
                                 hx-target="#jobs-table"
                                 hx-swap="outerHTML"
                                 {#else}
@@ -148,7 +148,7 @@
                     {#for pageItem in pageRange}
                         <li class="page-item {#if pageItem.index == pagination.page}active{/if}">
                             <button class="page-link"
-                                    hx-get="/q/jobrunr-control/templates/table?page={pageItem.index}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
+                                    hx-get="{cp}/templates/table?page={pageItem.index}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
                                     hx-target="#jobs-table"
                                     hx-swap="outerHTML">
                                 {pageItem.label}
@@ -159,7 +159,7 @@
                     <li class="page-item {#if !pagination.hasNext}disabled{/if}">
                         <button class="page-link"
                                 {#if pagination.hasNext}
-                                hx-get="/q/jobrunr-control/templates/table?page={pagination.nextPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
+                                hx-get="{cp}/templates/table?page={pagination.nextPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
                                 hx-target="#jobs-table"
                                 hx-swap="outerHTML"
                                 {#else}
@@ -172,7 +172,7 @@
                     <li class="page-item {#if !pagination.hasNext}disabled{/if}">
                         <button class="page-link"
                                 {#if pagination.hasNext}
-                                hx-get="/q/jobrunr-control/templates/table?page={pagination.lastPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
+                                hx-get="{cp}/templates/table?page={pagination.lastPage}&size={pagination.size}&sortBy={sortBy}&sortOrder={sortOrder}&search={search}&jobType={jobType}"
                                 hx-target="#jobs-table"
                                 hx-swap="outerHTML"
                                 {#else}
@@ -188,7 +188,7 @@
             <div>
                 <select class="form-select form-select-sm"
                         style="width: auto;"
-                        hx-get="/q/jobrunr-control/templates/table"
+                        hx-get="{cp}/templates/table"
                         hx-trigger="change"
                         hx-vals='js:{"page": 0, "sortBy": "{sortBy}", "sortOrder": "{sortOrder}", "search": "{search}", "jobType": "{jobType}", "size": event.target.value}'
                         hx-target="#jobs-table"
@@ -208,7 +208,7 @@
                 const content = document.getElementById('modal-content');
                 document.getElementById('jobModalLabel').textContent = 'Template bearbeiten';
                 // Verwende htmx.trigger anstelle von htmx.ajax um Qute-Parser-Konflikte zu vermeiden
-                content.setAttribute('hx-get', '/q/jobrunr-control/templates/modal/' + jobId + '/edit');
+                content.setAttribute('hx-get', '{cp}/templates/modal/' + jobId + '/edit');
                 htmx.process(content);
                 htmx.trigger(content, 'load');
                 modal.show();

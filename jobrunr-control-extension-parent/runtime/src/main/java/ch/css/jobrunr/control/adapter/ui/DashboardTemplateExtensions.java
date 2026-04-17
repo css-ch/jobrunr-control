@@ -26,6 +26,17 @@ public class DashboardTemplateExtensions {
     }
 
     /**
+     * Absolute URL prefix of the JobRunr Control dashboard (e.g. {@code /q/jobrunr-control}).
+     * Available in templates as {@code {cp}}.
+     * Used for navigation links and HTMX targets so URLs work under any
+     * {@code quarkus.http.root-path} / {@code quarkus.http.non-application-root-path} combination.
+     */
+    @TemplateGlobal
+    public static String cp() {
+        return Arc.container().instance(DashboardPaths.class).get().basePath();
+    }
+
+    /**
      * Dashboard helper class that provides URL methods in type-safe templates.
      * Usage:
      * - {dashboard.url()} - Dashboard root URL

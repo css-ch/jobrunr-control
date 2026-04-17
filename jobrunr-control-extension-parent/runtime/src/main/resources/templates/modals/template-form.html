@@ -1,8 +1,8 @@
 <form id="templateForm"
         {#if isEdit}
-            hx-put="/q/jobrunr-control/templates/{job.jobId}"
+            hx-put="{cp}/templates/{job.jobId}"
         {#else}
-            hx-post="/q/jobrunr-control/templates"
+            hx-post="{cp}/templates"
         {/if}
       hx-target="#jobs-table"
       hx-swap="outerHTML"
@@ -17,7 +17,7 @@
                 class="form-select"
                 required
                 {#if isEdit}disabled{/if}
-                hx-get="/q/jobrunr-control/templates/modal/parameters"
+                hx-get="{cp}/templates/modal/parameters"
                 hx-target="#parameters-container"
                 hx-swap="innerHTML">
             <option value="">-- Job-Typ auswählen --</option>

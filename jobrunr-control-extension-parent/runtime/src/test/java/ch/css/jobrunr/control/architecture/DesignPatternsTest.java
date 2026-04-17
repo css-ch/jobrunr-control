@@ -187,14 +187,17 @@ class DesignPatternsTest {
     // ========================================
 
     @Test
-    @DisplayName("Controllers should use JAX-RS @Path annotation")
-    void controllersShouldUsePathAnnotation() {
+    @DisplayName("UI controllers should be CDI beans, not JAX-RS resources")
+    void uiControllersShouldBeCdiBeans() {
         ArchRule rule = classes()
                 .that().resideInAPackage("..adapter.ui..")
                 .and().haveSimpleNameEndingWith("Controller")
                 .and().areNotAssignableTo(ch.css.jobrunr.control.adapter.ui.BaseController.class)
-                .should().beAnnotatedWith("jakarta.ws.rs.Path")
-                .because("Controllers are JAX-RS resources");
+                .should().beAnnotatedWith("jakarta.enterprise.context.ApplicationScoped")
+                .andShould().notBeAnnotatedWith("jakarta.ws.rs.Path")
+                .because("UI controllers are mounted as Vert.x routes under the non-application "
+                        + "root path to remain independent of @ApplicationPath; they must be CDI beans, "
+                        + "not JAX-RS resources");
 
         rule.check(importedClasses);
     }

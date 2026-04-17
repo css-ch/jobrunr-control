@@ -14,7 +14,7 @@
                                    title="Suche nach Job-Name oder Job-Typ. Verwenden Sie 'key=value' für Parameter- oder Metadaten-Suche (z.B. 'userId=123' oder 'clonedFrom=template-456')"
                                    data-bs-toggle="tooltip"
                                    data-bs-placement="top"
-                                   hx-get="/q/jobrunr-control/history/table"
+                                   hx-get="{cp}/history/table"
                                    hx-trigger="keyup changed delay:300ms"
                                    hx-target="#history-table"
                                    hx-include="[name='status-filter']">
@@ -22,7 +22,7 @@
                         <div class="col-md-4">
                             <select name="status-filter"
                                     class="form-select"
-                                    hx-get="/q/jobrunr-control/history/table"
+                                    hx-get="{cp}/history/table"
                                     hx-target="#history-table"
                                     hx-include="[name='search']">
                                 <option value="all">Alle Status</option>
@@ -35,7 +35,7 @@
                         <div class="col-md-3 text-end">
                             <button class="btn btn-secondary"
                                     id="refresh-btn"
-                                    hx-get="/q/jobrunr-control/history/table"
+                                    hx-get="{cp}/history/table"
                                     hx-target="#history-table"
                                     hx-include="[name='search'],[name='status-filter']"
                                     hx-disabled-elt="this">
@@ -50,7 +50,7 @@
     </div>
 
     <div id="history-table"
-         hx-get="/q/jobrunr-control/history/table"
+         hx-get="{cp}/history/table"
          hx-trigger="load"
          hx-swap="innerHTML">
         <div class="text-center py-5">
