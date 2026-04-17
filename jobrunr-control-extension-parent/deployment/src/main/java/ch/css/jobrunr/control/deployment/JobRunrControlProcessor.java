@@ -15,12 +15,16 @@ import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigurationDefaultBuildItem;
+import io.quarkus.vertx.http.deployment.NonApplicationRootPathBuildItem;
+import io.quarkus.vertx.http.deployment.RouteBuildItem;
+import io.quarkus.vertx.http.runtime.HandlerType;
 
 import java.util.List;
 
 public class JobRunrControlProcessor {
 
     private static final String FEATURE = "jobrunr-control";
+    private static final String UI_BASE = "jobrunr-control";
 
     @BuildStep
     FeatureBuildItem feature() {
@@ -28,8 +32,9 @@ public class JobRunrControlProcessor {
     }
 
     /**
-     * Register JAX-RS controllers as beans.
-     * Setting unremovable ensures @RolesAllowed annotations are processed.
+     * Register UI controllers and REST resources as beans.
+     * Setting unremovable ensures that controllers referenced only by the Vert.x routes
+     * (and no longer by JAX-RS scanning) survive ArC removal.
      */
     @BuildStep
     AdditionalBeanBuildItem registerControllers() {
@@ -46,17 +51,161 @@ public class JobRunrControlProcessor {
     }
 
     /**
-     * Register default HTTP authentication policy for all JobRunr Control paths.
-     * Sets "authenticated" as the default policy so consuming apps don't need to add
-     * these properties manually. The consuming app can override with:
-     * quarkus.http.auth.permission.jobrunr-control.policy=permit
+     * Register Vert.x routes for the JobRunr Control UI under the non-application root path
+     * (default {@code /q}). This decouples the UI from JAX-RS {@code @ApplicationPath} so the
+     * dashboard always lives at {@code /q/jobrunr-control} regardless of consumer configuration.
      */
     @BuildStep
-    List<RunTimeConfigurationDefaultBuildItem> registerDefaultHttpAuthPolicy() {
+    @Record(ExecutionTime.STATIC_INIT)
+    void registerUiRoutes(
+            NonApplicationRootPathBuildItem nonApp,
+            JobRunrControlRouteRecorder recorder,
+            io.quarkus.deployment.annotations.BuildProducer<RouteBuildItem> routes) {
+
+        // ---- Dashboard root ----
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE)
+                .handler(recorder.dashboardIndex())
+                .handlerType(HandlerType.BLOCKING)
+                .displayOnNotFoundPage("JobRunr Control Dashboard")
+                .build());
+
+        // ---- Scheduled Jobs ----
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/scheduled", HttpMethodFilter.GET)
+                .handler(recorder.scheduledJobsIndex())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/scheduled", HttpMethodFilter.POST)
+                .handler(recorder.scheduledJobsCreate())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/scheduled/table")
+                .handler(recorder.scheduledJobsTable())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/scheduled/modal/new")
+                .handler(recorder.scheduledJobsNewModal())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/scheduled/modal/:id/edit")
+                .handler(recorder.scheduledJobsEditModal())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/scheduled/modal/parameters")
+                .handler(recorder.scheduledJobsParametersModal())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/scheduled/:id", HttpMethodFilter.PUT)
+                .handler(recorder.scheduledJobsUpdate())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/scheduled/:id", HttpMethodFilter.DELETE)
+                .handler(recorder.scheduledJobsDelete())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/scheduled/:id/execute", HttpMethodFilter.POST)
+                .handler(recorder.scheduledJobsExecute())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+
+        // ---- Templates ----
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/templates", HttpMethodFilter.GET)
+                .handler(recorder.templatesIndex())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/templates", HttpMethodFilter.POST)
+                .handler(recorder.templatesCreate())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/templates/table")
+                .handler(recorder.templatesTable())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/templates/modal/new")
+                .handler(recorder.templatesNewModal())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/templates/modal/:id/edit")
+                .handler(recorder.templatesEditModal())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/templates/modal/parameters")
+                .handler(recorder.templatesParametersModal())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/templates/:id", HttpMethodFilter.PUT)
+                .handler(recorder.templatesUpdate())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/templates/:id", HttpMethodFilter.DELETE)
+                .handler(recorder.templatesDelete())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/templates/:id/clone", HttpMethodFilter.POST)
+                .handler(recorder.templatesClone())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .routeFunction(UI_BASE + "/templates/:id/start", HttpMethodFilter.POST)
+                .handler(recorder.templatesStart())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+
+        // ---- Execution History ----
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/history")
+                .handler(recorder.historyIndex())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/history/table")
+                .handler(recorder.historyTable())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/history/:id/batch-progress")
+                .handler(recorder.historyBatchProgress())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+    }
+
+    /**
+     * Register a default HTTP authentication policy for the JobRunr Control UI paths.
+     * Paths are resolved from the non-application root path so they stay in sync with the
+     * actually mounted routes (including any custom {@code quarkus.http.root-path} or
+     * {@code quarkus.http.non-application-root-path}).
+     * <p>
+     * The REST API ({@code JobControlResource}) is still a JAX-RS resource and is therefore
+     * prefixed by {@code quarkus.http.root-path} and {@code quarkus.rest.path}/{@code @ApplicationPath}.
+     * Consumers must configure the API auth permission separately.
+     */
+    @BuildStep
+    List<RunTimeConfigurationDefaultBuildItem> registerDefaultHttpAuthPolicy(
+            NonApplicationRootPathBuildItem nonApp) {
+        String uiPath = nonApp.resolvePath(UI_BASE);
+        String uiWildcard = uiPath + "/*";
         return List.of(
                 new RunTimeConfigurationDefaultBuildItem(
                         "quarkus.http.auth.permission.jobrunr-control.paths",
-                        "/q/jobrunr-control,/q/jobrunr-control/*"
+                        uiPath + "," + uiWildcard
                 ),
                 new RunTimeConfigurationDefaultBuildItem(
                         "quarkus.http.auth.permission.jobrunr-control.policy",
@@ -74,6 +223,7 @@ public class JobRunrControlProcessor {
                 .addBeanClasses(
                         DashboardUrlUtils.class,
                         DashboardTemplateExtensions.class,
+                        DashboardPaths.class,
                         BuildTimeConfigurationAdapter.class,
                         ParameterCleanupJobFilter.class,
                         JobRunrControlRoleAugmentor.class
@@ -109,5 +259,3 @@ public class JobRunrControlProcessor {
     }
 
 }
-
-

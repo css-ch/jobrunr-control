@@ -9,12 +9,9 @@ import ch.css.jobrunr.control.domain.JobStatus;
 
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import jakarta.annotation.security.RolesAllowed;
+import io.vertx.ext.web.RoutingContext;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.UriInfo;
 import org.jboss.logging.Logger;
 
 import java.util.Comparator;
@@ -26,7 +23,7 @@ import java.util.UUID;
  * UI Controller for job execution history.
  * Renders execution details and batch progress using type-safe Qute templates.
  */
-@Path("/q/jobrunr-control/history")
+@ApplicationScoped
 public class JobExecutionsController {
 
     private static final Logger LOG = Logger.getLogger(JobExecutionsController.class);
@@ -75,36 +72,33 @@ public class JobExecutionsController {
         this.uiConfig = uiConfig;
     }
 
-    @GET
-    @RolesAllowed({"viewer", "configurator", "admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getExecutionHistoryView() {
-        return Templates.executionHistory();
+    public void handleIndex(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
+            return;
+        }
+        UiRoutingSupport.renderHtml(ctx, Templates.executionHistory());
     }
 
-    @GET
-    @Path("/table")
-    @RolesAllowed({"viewer", "configurator", "admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getExecutionHistoryTable(
-            @Context UriInfo uriInfo,
-            @QueryParam("search") String search,
-            @QueryParam("status-filter") @DefaultValue("all") String statusFilter,
-            @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("10") int size,
-            @QueryParam("sortBy") @DefaultValue("startedAt") String sortBy,
-            @QueryParam("sortOrder") @DefaultValue("desc") String sortOrder) {
+    public void handleTable(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
+            return;
+        }
 
-        LOG.infof("getExecutionHistoryTable called with page=%d, size=%d, sortBy=%s, sortOrder=%s, search=%s, statusFilter=%s",
+        String search = UiRoutingSupport.queryParam(ctx, "search");
+        String statusFilter = UiRoutingSupport.queryParam(ctx, "status-filter", "all");
+        int page = UiRoutingSupport.intQueryParam(ctx, "page", 0);
+        int size = UiRoutingSupport.intQueryParam(ctx, "size", 10);
+        String sortBy = UiRoutingSupport.queryParam(ctx, "sortBy", "startedAt");
+        String sortOrder = UiRoutingSupport.queryParam(ctx, "sortOrder", "desc");
+
+        LOG.infof("handleTable page=%d, size=%d, sortBy=%s, sortOrder=%s, search=%s, statusFilter=%s",
                 page, size, sortBy, sortOrder, search, statusFilter);
 
-        // Host und Port aus der aktuellen Request auslesen
-        String host = uriInfo.getBaseUri().getHost();
-        String port = String.valueOf(uriInfo.getBaseUri().getPort());
+        String host = ctx.request().authority() != null ? ctx.request().authority().host() : "";
+        String port = ctx.request().authority() != null ? String.valueOf(ctx.request().authority().port()) : "";
 
         List<JobExecutionInfo> executions = getHistoryUseCase.execute();
 
-        // Filter nach Status
         if (statusFilter != null && !"all".equals(statusFilter)) {
             final JobStatus filterStatus = JobStatus.valueOf(statusFilter);
             executions = executions.stream()
@@ -114,7 +108,6 @@ public class JobExecutionsController {
 
         executions = JobSearchUtils.applySearchToExecutions(search, executions);
 
-        // Sortierung anwenden
         Comparator<JobExecutionInfo> comparator = getExecutionComparator(sortBy);
         if ("desc".equalsIgnoreCase(sortOrder)) {
             comparator = comparator.reversed();
@@ -123,12 +116,11 @@ public class JobExecutionsController {
                 .sorted(comparator)
                 .toList();
 
-        // Pagination anwenden
         PaginationHelper.PaginationResult<JobExecutionInfo> paginationResult = PaginationHelper.paginate(executions, page, size);
 
         LOG.infof("Returning %d executions to template (expected max: %d)", paginationResult.pageItems().size(), size);
 
-        return Components.executionHistoryTable(
+        UiRoutingSupport.renderHtml(ctx, Components.executionHistoryTable(
                 paginationResult.pageItems(),
                 paginationResult.metadata(),
                 paginationResult.pageRange(),
@@ -139,20 +131,20 @@ public class JobExecutionsController {
                 uiConfig.showJobUuid(),
                 host,
                 port
-        );
+        ));
     }
 
-    @GET
-    @Path("/{id}/batch-progress")
-    @RolesAllowed({"viewer", "configurator", "admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public String getBatchProgressFragment(@PathParam("id") UUID jobId) {
+    public void handleBatchProgress(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
+            return;
+        }
+        UUID jobId = UiRoutingSupport.pathUuid(ctx, "id");
         Optional<BatchProgress> progress = getBatchProgressUseCase.execute(jobId);
 
         if (progress.isPresent()) {
-            return Components.batchProgress(progress.get()).render();
+            UiRoutingSupport.renderHtml(ctx, Components.batchProgress(progress.get()).render());
         } else {
-            return "<small>Kein Batch-Job</small>";
+            UiRoutingSupport.renderHtml(ctx, "<small>Kein Batch-Job</small>");
         }
     }
 

@@ -194,7 +194,47 @@ The extension uses **Jackson ObjectMapper** for:
 * Converting UI form data to JobRequest objects
 * REST API request/response handling
 
-=== AD-6: Role-Based Access Control (RBAC)
+=== AD-6: UI Served Under the Non-Application Root Path
+
+The UI dashboard is mounted as **Vert.x routes under Quarkus' non-application root path**
+(`quarkus.http.non-application-root-path`, default `/q`), **not** as JAX-RS resources.
+Routes are registered at build time via `NonApplicationRootPathBuildItem.routeBuilder()`
+in `JobRunrControlProcessor.registerUiRoutes(...)`, identical to the mechanism that hosts
+`/q/health`, `/q/openapi`, `/q/swagger-ui` and the JobRunr Pro dashboard.
+
+.Rationale
+* UI paths must be stable regardless of whether the consuming application declares
+  `@ApplicationPath("/...")` or sets `quarkus.rest.path=/...`. A JAX-RS-based UI would be
+  shifted by that configuration, breaking hard-coded navigation links and HTMX targets in
+  the Qute templates and leaving the registered auth-permission paths mismatched against
+  the actually served URLs.
+* The REST API (`JobControlResource`) **remains** JAX-RS so the MicroProfile OpenAPI
+  annotations keep producing the schema visible in `/q/swagger-ui`.
+
+.Consequences
+* UI handlers are plain CDI `@ApplicationScoped` beans with `handle*(RoutingContext)`
+  methods; role checks are performed programmatically via `SecurityIdentity` extracted
+  from `QuarkusHttpUser` (`@RolesAllowed` is not honored on Vert.x routes).
+* Each UI handler runs with `HandlerType.BLOCKING` and activates the CDI request context
+  via `UiRoutingSupport.withRequestContext(...)` so Qute template extensions that depend
+  on request-scoped beans (e.g. `SecurityTemplateExtension`) keep working.
+* The REST API is prefixed by `quarkus.rest.path` / `@ApplicationPath` — consumers must
+  document and configure auth permissions accordingly.
+
+[cols="1,2,1"]
+|===
+|Endpoint group |Path |Shifted by `quarkus.rest.path` / `@ApplicationPath`?
+
+|UI dashboard
+|`/q/jobrunr-control/*`
+|No
+
+|REST API (external triggers)
+|`/q/jobrunr-control/api/*`
+|Yes — e.g. `/api/q/jobrunr-control/api/*`
+|===
+
+=== AD-7: Role-Based Access Control (RBAC)
 
 The extension provides two distinct RBAC surfaces:
 

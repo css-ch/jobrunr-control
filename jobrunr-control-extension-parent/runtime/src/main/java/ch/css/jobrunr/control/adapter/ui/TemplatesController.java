@@ -9,12 +9,10 @@ import ch.css.jobrunr.control.domain.*;
 
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import jakarta.annotation.security.RolesAllowed;
+import io.vertx.ext.web.RoutingContext;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
 import java.util.Comparator;
@@ -27,7 +25,7 @@ import java.util.UUID;
  * Renders type-safe Qute templates and processes HTMX requests.
  * Template jobs are jobs with the "template" label that cannot be executed directly.
  */
-@Path("/q/jobrunr-control/templates")
+@ApplicationScoped
 public class TemplatesController extends BaseController {
 
     private static final Logger LOG = Logger.getLogger(TemplatesController.class);
@@ -107,34 +105,169 @@ public class TemplatesController extends BaseController {
         this.uiConfig = uiConfig;
     }
 
-    @GET
-    @RolesAllowed({"viewer", "configurator", "admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getTemplatesView() {
+    public void handleIndex(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
+            return;
+        }
         List<String> availableJobTypes = getAvailableJobTypes(discoverJobsUseCase);
-        return Templates.templates(availableJobTypes);
+        UiRoutingSupport.renderHtml(ctx, Templates.templates(availableJobTypes));
     }
 
-    @GET
-    @Path("/table")
-    @RolesAllowed({"viewer", "configurator", "admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getTemplatesTable(
-            @QueryParam("search") String search,
-            @QueryParam("jobType") String jobType,
-            @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("10") int size,
-            @QueryParam("sortBy") @DefaultValue("jobName") String sortBy,
-            @QueryParam("sortOrder") @DefaultValue("asc") String sortOrder) {
+    public void handleTable(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
+            return;
+        }
+        UiRoutingSupport.renderHtml(ctx, buildTemplatesTable(
+                UiRoutingSupport.queryParam(ctx, "search"),
+                UiRoutingSupport.queryParam(ctx, "jobType"),
+                UiRoutingSupport.intQueryParam(ctx, "page", 0),
+                UiRoutingSupport.intQueryParam(ctx, "size", 10),
+                UiRoutingSupport.queryParam(ctx, "sortBy", "jobName"),
+                UiRoutingSupport.queryParam(ctx, "sortOrder", "asc")));
+    }
 
-        // Get all template jobs
+    public void handleNewModal(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "configurator", "admin")) {
+            return;
+        }
+        List<JobDefinition> jobDefinitions = getSortedJobDefinitions(discoverJobsUseCase);
+        UiRoutingSupport.renderHtml(ctx, Modals.templateForm(jobDefinitions, false, null, null, null));
+    }
+
+    public void handleEditModal(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "configurator", "admin")) {
+            return;
+        }
+        UUID jobId = UiRoutingSupport.pathUuid(ctx, "id");
+        List<JobDefinition> jobDefinitions = getSortedJobDefinitions(discoverJobsUseCase);
+
+        ScheduledJobInfo jobInfo = getTemplateByIdUseCase.execute(jobId)
+                .orElse(null);
+        if (jobInfo == null) {
+            ctx.fail(404);
+            return;
+        }
+
+        ResolvedJobData resolvedData = resolveJobParameters(
+                jobInfo,
+                resolveParametersUseCase::execute,
+                getJobParametersUseCase::execute
+        );
+
+        UiRoutingSupport.renderHtml(ctx, Modals.templateForm(jobDefinitions, true,
+                resolvedData.jobInfoWithResolvedParams, resolvedData.parameters, resolvedData.parameterSections));
+    }
+
+    public void handleParametersModal(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
+            return;
+        }
+        String jobType = UiRoutingSupport.queryParam(ctx, "jobType");
+        LOG.infof("handleParametersModal jobType='%s'", jobType);
+
+        if (jobType == null || jobType.isBlank()) {
+            LOG.warnf("jobType is empty");
+            UiRoutingSupport.renderHtml(ctx,
+                    ScheduledJobsController.Components.paramInputs(List.of(), List.of(), null));
+            return;
+        }
+
+        try {
+            GetJobParametersUseCase.Result result = getJobParametersUseCase.execute(jobType);
+            UiRoutingSupport.renderHtml(ctx,
+                    ScheduledJobsController.Components.paramInputs(result.parameters(), result.parameterSections(), null));
+        } catch (Exception e) {
+            LOG.errorf(e, "Error getting parameters for job type '%s'", jobType);
+            UiRoutingSupport.renderHtml(ctx,
+                    ScheduledJobsController.Components.paramInputs(List.of(), List.of(), null));
+        }
+    }
+
+    public void handleCreate(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "configurator", "admin")) {
+            return;
+        }
+        try {
+            String jobType = UiRoutingSupport.formAttr(ctx, "jobType");
+            String jobName = UiRoutingSupport.formAttr(ctx, "jobName");
+            MultivaluedMap<String, String> allFormParams = UiRoutingSupport.allFormParams(ctx);
+
+            if (jobType == null || jobType.isBlank()) {
+                LOG.warnf("Job type is empty");
+                UiRoutingSupport.sendFormError(ctx, "Job type is required");
+                return;
+            }
+
+            Map<String, String> paramMap = extractParameterMap(allFormParams);
+
+            createTemplateUseCase.execute(jobType, jobName, paramMap);
+
+            UiRoutingSupport.sendModalClose(ctx, getDefaultTemplatesTable());
+        } catch (Exception e) {
+            LOG.errorf(e, "Error creating template");
+            UiRoutingSupport.sendFormError(ctx, "Error creating template: " + e.getMessage());
+        }
+    }
+
+    public void handleUpdate(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "configurator", "admin")) {
+            return;
+        }
+        UUID jobId = UiRoutingSupport.pathUuid(ctx, "id");
+        try {
+            String jobType = UiRoutingSupport.formAttr(ctx, "jobType");
+            String jobName = UiRoutingSupport.formAttr(ctx, "jobName");
+            MultivaluedMap<String, String> allFormParams = UiRoutingSupport.allFormParams(ctx);
+
+            LOG.debugf("Updating template %s - jobType=%s, jobName=%s", jobId, jobType, jobName);
+            if (jobType == null || jobType.isBlank()) {
+                LOG.warnf("Job type is empty");
+                UiRoutingSupport.sendFormError(ctx, "Job type is required");
+                return;
+            }
+            Map<String, String> paramMap = extractParameterMap(allFormParams);
+            updateTemplateUseCase.execute(jobId, jobType, jobName, paramMap);
+            UiRoutingSupport.sendModalClose(ctx, getDefaultTemplatesTable());
+        } catch (Exception e) {
+            LOG.errorf(e, "Error updating template %s", jobId);
+            UiRoutingSupport.sendFormError(ctx, "Error updating template: " + e.getMessage());
+        }
+    }
+
+    public void handleDelete(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "configurator", "admin")) {
+            return;
+        }
+        UUID jobId = UiRoutingSupport.pathUuid(ctx, "id");
+        deleteTemplateUseCase.execute(jobId);
+        UiRoutingSupport.renderHtml(ctx, getDefaultTemplatesTable());
+    }
+
+    public void handleClone(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "configurator", "admin")) {
+            return;
+        }
+        UUID jobId = UiRoutingSupport.pathUuid(ctx, "id");
+        cloneTemplateUseCase.execute(jobId, null);
+        UiRoutingSupport.renderHtml(ctx, getDefaultTemplatesTable());
+    }
+
+    public void handleStart(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "admin")) {
+            return;
+        }
+        UUID templateId = UiRoutingSupport.pathUuid(ctx, "id");
+        startJobUseCase.execute(templateId, null, null, false);
+        UiRoutingSupport.renderHtml(ctx, getDefaultTemplatesTable());
+    }
+
+    private TemplateInstance buildTemplatesTable(String search, String jobType,
+                                                 int page, int size, String sortBy, String sortOrder) {
         List<ScheduledJobInfo> jobs = getTemplatesUseCase.execute();
 
-        // Use base controller helper for filter, search, sort, paginate
         PaginationHelper.PaginationResult<ScheduledJobInfo> paginationResult =
                 filterSortAndPaginate(jobs, jobType, search, sortBy, sortOrder, page, size, this::getComparator);
 
-        // Convert to view models with resolved parameters
         List<ScheduledJobInfoView> jobViews = paginationResult.pageItems().stream()
                 .map(job -> toView(job, resolveParametersUseCase))
                 .toList();
@@ -151,146 +284,11 @@ public class TemplatesController extends BaseController {
         );
     }
 
-    @GET
-    @Path("/modal/new")
-    @RolesAllowed({"configurator", "admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getNewTemplateModal() {
-        List<JobDefinition> jobDefinitions = getSortedJobDefinitions(discoverJobsUseCase);
-        return Modals.templateForm(jobDefinitions, false, null, null, null);
-    }
-
-    @GET
-    @Path("/modal/{id}/edit")
-    @RolesAllowed({"configurator", "admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getEditTemplateModal(@PathParam("id") UUID jobId) {
-        List<JobDefinition> jobDefinitions = getSortedJobDefinitions(discoverJobsUseCase);
-
-        ScheduledJobInfo jobInfo = getTemplateByIdUseCase.execute(jobId)
-                .orElseThrow(() -> new NotFoundException("Template nicht gefunden: " + jobId));
-
-        // Use base controller helper to resolve parameters
-        ResolvedJobData resolvedData = resolveJobParameters(
-                jobInfo,
-                resolveParametersUseCase::execute,
-                getJobParametersUseCase::execute
-        );
-
-        return Modals.templateForm(jobDefinitions, true,
-                resolvedData.jobInfoWithResolvedParams, resolvedData.parameters, resolvedData.parameterSections);
-    }
-
-    @GET
-    @Path("/modal/parameters")
-    @RolesAllowed({"viewer", "configurator", "admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getJobParameters(@QueryParam("jobType") String jobType) {
-        LOG.infof("getJobParameters called with jobType='%s'", jobType);
-
-        if (jobType == null || jobType.isBlank()) {
-            LOG.warnf("jobType is empty");
-            return ScheduledJobsController.Components.paramInputs(List.of(), List.of(), null);
-        }
-
-        try {
-            GetJobParametersUseCase.Result result = getJobParametersUseCase.execute(jobType);
-            return ScheduledJobsController.Components.paramInputs(result.parameters(), result.parameterSections(), null);
-        } catch (Exception e) {
-            LOG.errorf(e, "Error getting parameters for job type '%s'", jobType);
-            return ScheduledJobsController.Components.paramInputs(List.of(), List.of(), null);
-        }
-    }
-
-    @POST
-    @RolesAllowed({"configurator", "admin"})
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces(MediaType.TEXT_HTML)
-    public Response createTemplate(
-            @FormParam("jobType") String jobType,
-            @FormParam("jobName") String jobName,
-            MultivaluedMap<String, String> allFormParams) {
-
-        try {
-            if (jobType == null || jobType.isBlank()) {
-                LOG.warnf("Job type is empty");
-                return buildErrorResponse("Job type is required");
-            }
-
-            Map<String, String> paramMap = extractParameterMap(allFormParams);
-
-            // Create template job
-            createTemplateUseCase.execute(jobType, jobName, paramMap);
-
-            return buildModalCloseResponse(getDefaultTemplatesTable());
-        } catch (Exception e) {
-            LOG.errorf(e, "Error creating template");
-            return buildErrorResponse("Error creating template: " + e.getMessage());
-        }
-    }
-
-    @PUT
-    @Path("/{id}")
-    @RolesAllowed({"configurator", "admin"})
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces(MediaType.TEXT_HTML)
-    public Response updateTemplate(
-            @PathParam("id") UUID jobId,
-            @FormParam("jobType") String jobType,
-            @FormParam("jobName") String jobName,
-            MultivaluedMap<String, String> allFormParams) {
-
-        try {
-            LOG.debugf("Updating template %s - jobType=%s, jobName=%s", jobId, jobType, jobName);
-            if (jobType == null || jobType.isBlank()) {
-                LOG.warnf("Job type is empty");
-                return buildErrorResponse("Job type is required");
-            }
-            Map<String, String> paramMap = extractParameterMap(allFormParams);
-            // Update template job
-            updateTemplateUseCase.execute(jobId, jobType, jobName, paramMap);
-            return buildModalCloseResponse(getDefaultTemplatesTable());
-        } catch (Exception e) {
-            LOG.errorf(e, "Error updating template %s", jobId);
-            return buildErrorResponse("Error updating template: " + e.getMessage());
-        }
-    }
-
-    @DELETE
-    @Path("/{id}")
-    @RolesAllowed({"configurator", "admin"})
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance deleteTemplate(@PathParam("id") UUID jobId) {
-        deleteTemplateUseCase.execute(jobId);
-        return getDefaultTemplatesTable();
-    }
-
-    @POST
-    @Path("/{id}/clone")
-    @RolesAllowed({"configurator", "admin"})
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance cloneTemplate(@PathParam("id") UUID jobId) {
-        cloneTemplateUseCase.execute(jobId, null);
-        return getDefaultTemplatesTable();
-    }
-
-    @POST
-    @Path("/{id}/start")
-    @RolesAllowed({"admin"})
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance startTemplate(@PathParam("id") UUID templateId) {
-        startJobUseCase.execute(templateId, null, null, false);
-        return getDefaultTemplatesTable();
-    }
-
     private Comparator<ScheduledJobInfo> getComparator(String sortBy) {
         return getComparator(sortBy, Comparator.comparing(ScheduledJobInfo::getJobName, String.CASE_INSENSITIVE_ORDER));
     }
 
-
     private TemplateInstance getDefaultTemplatesTable() {
-        return getTemplatesTable(null, "all", 0, 10, "jobName", "asc");
+        return buildTemplatesTable(null, "all", 0, 10, "jobName", "asc");
     }
 }
