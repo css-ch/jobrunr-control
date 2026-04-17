@@ -43,6 +43,13 @@ public @interface JobParameterDefinition {
     int order() default 9999;
 
     /**
+     * Whether the parameter must be provided by the user.
+     * Defaults to {@code true}. Set to {@code false} to declare an optional parameter.
+     * A {@link #defaultValue()} does not influence this flag; the two properties are independent.
+     */
+    boolean required() default true;
+
+    /**
      * The default value of the parameter as a String.
      * It will be parsed to the target type at runtime.
      * Use standard formats:

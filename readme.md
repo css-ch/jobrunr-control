@@ -82,9 +82,9 @@ Define your parameters as a Java record:
 
 ```java
 public record MyJobRequest(
-        @JobParameterDefinition(name = "Message", defaultValue = "Hello")
+        @JobParameterDefinition(name = "Message", required = false, defaultValue = "Hello")
         String message,
-        @JobParameterDefinition(defaultValue = "1")
+        @JobParameterDefinition(required = false, defaultValue = "1")
         Integer count
 ) implements JobRequest {
 

@@ -8,23 +8,23 @@ import java.time.LocalDateTime;
 import java.util.EnumSet;
 
 public record ParameterDemoJobRequest(
-        @JobParameterDefinition(defaultValue = "Default String")
+        @JobParameterDefinition(required = false, defaultValue = "Default String")
         String stringParameter,
-        @JobParameterDefinition(type = "MULTILINE", defaultValue = "Line 1\nLine 2\nLine 3")
+        @JobParameterDefinition(required = false, type = "MULTILINE", defaultValue = "Line 1\nLine 2\nLine 3")
         String multilineParameter,
-        @JobParameterDefinition(defaultValue = "42")
+        @JobParameterDefinition(required = false, defaultValue = "42")
         Integer integerParameter,
-        @JobParameterDefinition(defaultValue = "3.14159")
+        @JobParameterDefinition(required = false, defaultValue = "3.14159")
         Double doubleParameter,
-        @JobParameterDefinition(defaultValue = "true")
+        @JobParameterDefinition(required = false, defaultValue = "true")
         Boolean booleanParameter,
-        @JobParameterDefinition(defaultValue = "2024-01-01")
+        @JobParameterDefinition(required = false, defaultValue = "2024-01-01")
         LocalDate dateParameter,
-        @JobParameterDefinition(defaultValue = "2024-01-01T12:00:00")
+        @JobParameterDefinition(required = false, defaultValue = "2024-01-01T12:00:00")
         LocalDateTime dateTimeParameter,
-        @JobParameterDefinition(defaultValue = "OPTION_B")
+        @JobParameterDefinition(required = false, defaultValue = "OPTION_B")
         EnumParameter enumParameter,
-        @JobParameterDefinition(defaultValue = "OPTION_A,OPTION_C")
+        @JobParameterDefinition(required = false, defaultValue = "OPTION_A,OPTION_C")
         EnumSet<EnumParameter> multiEnumParameter) implements JobRequest {
     @Override
     public Class<ParameterDemoJob> getJobRequestHandler() {

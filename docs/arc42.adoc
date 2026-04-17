@@ -448,15 +448,17 @@ public void run(MyJobRequest request) { ... }
 
 ==== @JobParameterDefinition
 
-Annotates record components to define parameter metadata:
+Annotates record components to define parameter metadata. The `required` attribute (default `true`) controls whether the user must provide a value. A `defaultValue` does not automatically mark a parameter as optional; set `required = false` explicitly for optional parameters:
 
 [source,java]
 ----
 public record MyJobRequest(
-    @JobParameterDefinition(name = "Count", defaultValue = "100")
+    // Required parameter (no defaultValue)
+    @JobParameterDefinition(name = "Count")
     Integer count,
 
-    @JobParameterDefinition(defaultValue = "OPTION_A")
+    // Optional parameter with default value
+    @JobParameterDefinition(required = false, defaultValue = "OPTION_A")
     MyEnum option
 ) implements JobRequest { ... }
 ----
@@ -470,9 +472,9 @@ The job handler retrieves external parameters using the job's own UUID via `Thre
 [source,java]
 ----
 @JobParameterSet({
-    @JobParameterDefinition(name = "description", type = "MULTILINE", defaultValue = ""),
-    @JobParameterDefinition(name = "batchSize", type = "java.lang.Integer", defaultValue = "1000"),
-    @JobParameterDefinition(name = "mode", type = "com.example.Mode", defaultValue = "STANDARD")
+    @JobParameterDefinition(name = "description", required = false, type = "MULTILINE", defaultValue = ""),
+    @JobParameterDefinition(name = "batchSize", required = false, type = "java.lang.Integer", defaultValue = "1000"),
+    @JobParameterDefinition(name = "mode", required = false, type = "com.example.Mode", defaultValue = "STANDARD")
 })
 public record LargeJobRequest() implements JobRequest { ... }
 ----

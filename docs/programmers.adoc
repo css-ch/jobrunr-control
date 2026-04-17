@@ -452,11 +452,12 @@ Use this annotation on record components to define parameter metadata:
 public record MyJobRequest(
     @JobParameterDefinition(
         name = "Customer Name",    // Display name in UI
+        required = false,          // Optional parameter
         defaultValue = "Default"   // Pre-filled value
     )
     String customerName,
 
-    @JobParameterDefinition(defaultValue = "100")
+    @JobParameterDefinition(required = false, defaultValue = "100")
     Integer maxResults
 ) implements JobRequest { ... }
 ----
@@ -469,8 +470,11 @@ public record MyJobRequest(
 |`name`
 |Display name in the UI (defaults to field name)
 
+|`required`
+|Whether the user must provide a value. Defaults to `true`. Independent of `defaultValue`.
+
 |`defaultValue`
-|Default value as String (parsed to target type)
+|Default value as String (parsed to target type). Does not change the `required` flag.
 |===
 
 === Supported Parameter Types
@@ -559,17 +563,19 @@ The values are stored as a comma-separated string and automatically converted to
 === Required vs Optional Parameters
 
 By default, all parameters are **required**.
-A parameter becomes optional when:
-
-* It has a `defaultValue` specified in `@JobParameterDefinition`
+A parameter becomes optional only when explicitly annotated with `required = false`.
+Providing a `defaultValue` does *not* make a parameter optional — the two properties are independent.
 
 [source,java]
 ----
 public record MyJobRequest(
-    String requiredParam,  // Required - no default
+    String requiredParam,  // Required - no annotation
 
-    @JobParameterDefinition(defaultValue = "optional")
-    String optionalParam   // Optional - has default
+    @JobParameterDefinition(defaultValue = "ignored")
+    String stillRequired,  // Required - defaultValue alone does not opt out
+
+    @JobParameterDefinition(required = false, defaultValue = "optional")
+    String optionalParam   // Optional - explicit required = false
 ) implements JobRequest { ... }
 ----
 
