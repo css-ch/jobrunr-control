@@ -115,7 +115,7 @@ abstract class JobTriggerUITestBase {
                 .contentType(ContentType.JSON)
                 .body(requestBody)
                 .when()
-                .post(baseUrl + "q/jobrunr-control/api/jobs/" + jobId + "/start")
+                .post(baseUrl + "api/q/jobrunr-control/api/jobs/" + jobId + "/start")
                 .then()
                 .statusCode(200)
                 .extract()

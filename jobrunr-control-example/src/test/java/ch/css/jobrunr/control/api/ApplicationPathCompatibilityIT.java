@@ -1,40 +1,27 @@
 package ch.css.jobrunr.control.api;
 
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.quarkus.test.junit.QuarkusTestProfile;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 
 /**
- * Verifies that the JobRunr Control dashboard and REST API remain reachable when the
- * consuming application configures a non-default JAX-RS root path (equivalent to declaring
- * {@code @ApplicationPath("/api")}).
- * <p>
- * The UI endpoints are registered under Quarkus' non-application root path and must stay at
- * {@code /q/jobrunr-control/*} independent of {@code quarkus.rest.path}. The REST API remains
- * a JAX-RS resource and is therefore shifted to {@code {rest-path}/q/jobrunr-control/api/*}.
+ * Verifies the issue-#25 fix in-situ: the example application declares
+ * {@code @ApplicationPath("/api")} via {@link ch.css.jobrunr.control.rest.ExampleApplication},
+ * so JAX-RS resources are prefixed with {@code /api}. The JobRunr Control UI must remain
+ * reachable at {@code /q/jobrunr-control/*} because it is registered under the
+ * non-application root path, not as a JAX-RS resource.
  */
 @QuarkusTest
-@TestProfile(ApplicationPathCompatibilityTest.CustomRestPathProfile.class)
-@DisplayName("Dashboard and REST API remain reachable when quarkus.rest.path is customized")
-class ApplicationPathCompatibilityTest {
-
-    public static class CustomRestPathProfile implements QuarkusTestProfile {
-        @Override
-        public Map<String, String> getConfigOverrides() {
-            return Map.of("quarkus.rest.path", "/api");
-        }
-    }
+@DisplayName("Dashboard stays at /q/jobrunr-control/* while REST API is prefixed by @ApplicationPath")
+class ApplicationPathCompatibilityIT {
 
     @Test
-    @DisplayName("UI dashboard stays at /q/jobrunr-control/scheduled regardless of quarkus.rest.path")
+    @DisplayName("UI dashboard stays at /q/jobrunr-control/scheduled regardless of @ApplicationPath")
     void uiDashboardReachableAtNonApplicationRootPath() {
         RestAssured.given()
                 .when()
@@ -65,13 +52,13 @@ class ApplicationPathCompatibilityTest {
     }
 
     @Test
-    @DisplayName("REST API is prefixed by quarkus.rest.path (Option B from issue #25)")
+    @DisplayName("REST API is prefixed by @ApplicationPath (Option B from issue #25)")
     void restApiPrefixedByApplicationPath() {
         UUID nonExistentJob = UUID.randomUUID();
 
-        // The REST resource at @Path("/q/jobrunr-control/api") is now mounted under /api:
-        // 404 (job not found) proves the route reached the handler; 405/415/200 would also
-        // confirm it is mounted — anything except 404-from-router is a pass.
+        // JobControlResource's @Path("/q/jobrunr-control/api") is now mounted under /api.
+        // 404 (job not found) proves the route reached the handler; 200 would also confirm
+        // it is mounted. Anything other than that is a regression.
         int statusOnConfiguredPath = RestAssured.given()
                 .when()
                 .get("/api/q/jobrunr-control/api/jobs/" + nonExistentJob)
@@ -83,7 +70,7 @@ class ApplicationPathCompatibilityTest {
                 "Expected REST endpoint to respond at /api/q/jobrunr-control/api/... but got "
                         + statusOnConfiguredPath);
 
-        // Legacy path must return 404 because @ApplicationPath/quarkus.rest.path moved JAX-RS to /api.
+        // Legacy path must return 404 because @ApplicationPath moved JAX-RS to /api.
         RestAssured.given()
                 .when()
                 .get("/q/jobrunr-control/api/jobs/" + nonExistentJob)

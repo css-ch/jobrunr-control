@@ -158,7 +158,7 @@ class TemplateJobUITest extends JobTriggerUITestBase {
                 .contentType(ContentType.JSON)
                 .body(requestBody)
                 .when()
-                .post(baseUrl + "q/jobrunr-control/api/jobs/" + templateId + "/start")
+                .post(baseUrl + "api/q/jobrunr-control/api/jobs/" + templateId + "/start")
                 .then()
                 .statusCode(200)
                 .extract()

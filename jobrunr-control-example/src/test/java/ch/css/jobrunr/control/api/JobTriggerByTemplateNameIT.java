@@ -24,7 +24,9 @@ class JobTriggerByTemplateNameIT {
 
     private static final String JOB_TYPE = "ParameterDemoJob";
     private static final String TEMPLATE_NAME = "IT Template - Trigger By Name";
-    private static final String API_BASE = "/q/jobrunr-control/api/jobs/";
+    // ExampleApplication declares @ApplicationPath("/api"); the REST API is therefore
+    // served at /api/q/jobrunr-control/api/* instead of /q/jobrunr-control/api/*.
+    private static final String API_BASE = "/api/q/jobrunr-control/api/jobs/";
     private static final int STATUS_POLL_TIMEOUT_SECONDS = 30;
 
     @Inject
