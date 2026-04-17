@@ -39,6 +39,7 @@ class ParameterExtractorTest {
         indexClass(indexer, MultiEnumParameterRecord.class);
         indexClass(indexer, CustomNameParametersRecord.class);
         indexClass(indexer, MultilineParameterRecord.class);
+        indexClass(indexer, RequiredFlagRecord.class);
         indexClass(indexer, TestEnum.class);
         indexClass(indexer, NoRecordParameterSetClass.class);
         index = indexer.complete();
@@ -165,11 +166,36 @@ class ParameterExtractorTest {
         var param1 = result.parameters().getFirst();
         assertEquals("Custom Name", param1.name());
         assertEquals("default value", param1.defaultValue());
-        assertFalse(param1.required());
+        assertTrue(param1.required());
 
         var param2 = result.parameters().get(1);
         assertEquals("Another Custom Name", param2.name());
         assertTrue(param2.required());
+    }
+
+    @Test
+    void shouldHonorExplicitRequiredFlag() {
+        ClassInfo recordClass = index.getClassByName(RequiredFlagRecord.class.getName());
+
+        ParameterExtractor.AnalyzedParameters result = extractor.analyzeRecordParameters(recordClass);
+
+        assertEquals(4, result.parameters().size());
+
+        var optionalWithDefault = findParam(result, "optionalWithDefault");
+        assertFalse(optionalWithDefault.required());
+        assertEquals("value", optionalWithDefault.defaultValue());
+
+        var optionalWithoutDefault = findParam(result, "optionalWithoutDefault");
+        assertFalse(optionalWithoutDefault.required());
+        assertNull(optionalWithoutDefault.defaultValue());
+
+        var requiredWithDefault = findParam(result, "requiredWithDefault");
+        assertTrue(requiredWithDefault.required());
+        assertEquals("value", requiredWithDefault.defaultValue());
+
+        var requiredByDefault = findParam(result, "requiredByDefault");
+        assertTrue(requiredByDefault.required());
+        assertNull(requiredByDefault.defaultValue());
     }
 
     @Test
@@ -244,6 +270,18 @@ class ParameterExtractorTest {
     public record MultilineParameterRecord(
             @JobParameterDefinition(type = "MULTILINE")
             String description
+    ) {
+    }
+
+    public record RequiredFlagRecord(
+            @JobParameterDefinition(required = false, defaultValue = "value")
+            String optionalWithDefault,
+            @JobParameterDefinition(required = false)
+            String optionalWithoutDefault,
+            @JobParameterDefinition(required = true, defaultValue = "value")
+            String requiredWithDefault,
+            @JobParameterDefinition
+            String requiredByDefault
     ) {
     }
 

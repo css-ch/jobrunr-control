@@ -155,7 +155,12 @@ public class ParameterExtractor {
             AnnotationValue defaultValueAnnotation = jobParamAnnotation.value("defaultValue");
             if (defaultValueAnnotation != null && !defaultValueAnnotation.asString().equals(JobParameterDefinition.NO_DEFAULT_VALUE)) {
                 defaultValue = defaultValueAnnotation.asString();
-                required = false;
+            }
+
+            // Extract required flag if specified
+            AnnotationValue requiredAnnotation = jobParamAnnotation.value("required");
+            if (requiredAnnotation != null) {
+                required = requiredAnnotation.asBoolean();
             }
 
             // Check for explicit type override (e.g., "MULTILINE")

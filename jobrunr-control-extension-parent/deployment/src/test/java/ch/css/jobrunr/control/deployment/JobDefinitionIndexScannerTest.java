@@ -286,12 +286,12 @@ class JobDefinitionIndexScannerTest {
      * Complex job request with multiple parameter types
      */
     public record ComplexJobRequest(
-            @JobParameterDefinition(defaultValue = "default") String stringParam,
+            @JobParameterDefinition(required = false, defaultValue = "default") String stringParam,
             Integer intParam,
-            @JobParameterDefinition(defaultValue = "true") Boolean boolParam,
-            @JobParameterDefinition(defaultValue = "2024-01-01") LocalDate dateParam,
+            @JobParameterDefinition(required = false, defaultValue = "true") Boolean boolParam,
+            @JobParameterDefinition(required = false, defaultValue = "2024-01-01") LocalDate dateParam,
             LocalDateTime dateTimeParam,
-            @JobParameterDefinition(defaultValue = "OPTION_A") EnumParameter enumParam
+            @JobParameterDefinition(required = false, defaultValue = "OPTION_A") EnumParameter enumParam
     ) implements JobRequest {
         @Override
         public Class<ComplexJobHandler> getJobRequestHandler() {
@@ -321,12 +321,12 @@ class JobDefinitionIndexScannerTest {
      * Custom parameter job request with all parameter types using custom names
      */
     public record CustomParameterJobRequest(
-            @JobParameterDefinition(name = "customStringName", defaultValue = "customDefault") String stringField,
+            @JobParameterDefinition(name = "customStringName", required = false, defaultValue = "customDefault") String stringField,
             @JobParameterDefinition(name = "customIntName") Integer intField,
-            @JobParameterDefinition(name = "customBoolName", defaultValue = "false") Boolean boolField,
-            @JobParameterDefinition(name = "customDateName", defaultValue = "2025-12-31") LocalDate dateField,
+            @JobParameterDefinition(name = "customBoolName", required = false, defaultValue = "false") Boolean boolField,
+            @JobParameterDefinition(name = "customDateName", required = false, defaultValue = "2025-12-31") LocalDate dateField,
             @JobParameterDefinition(name = "customDateTimeName") LocalDateTime dateTimeField,
-            @JobParameterDefinition(name = "customEnumName", defaultValue = "OPTION_B") EnumParameter enumField
+            @JobParameterDefinition(name = "customEnumName", required = false, defaultValue = "OPTION_B") EnumParameter enumField
     ) implements JobRequest {
         @Override
         public Class<CustomParameterJobHandler> getJobRequestHandler() {
