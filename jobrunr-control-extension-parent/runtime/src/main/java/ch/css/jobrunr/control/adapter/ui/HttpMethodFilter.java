@@ -15,6 +15,11 @@ import java.util.function.Consumer;
  * the non-application root path — without it {@code ctx.request().getFormAttribute(...)} and
  * {@code ctx.body().buffer()} are empty for {@code application/x-www-form-urlencoded} POSTs.
  * <p>
+ * File-upload handling is disabled ({@code BodyHandler.create(false)}): the UI only accepts
+ * {@code application/x-www-form-urlencoded} submissions, and leaving uploads enabled makes
+ * Vert.x create its default {@code file-uploads/} directory eagerly on every request — which
+ * breaks deployments on read-only root filesystems.
+ * <p>
  * A named class (not a lambda in the deployment module) is required because the consumer is
  * stored in a build item and reconstructed at runtime by Quarkus' bytecode recorder; a lambda
  * from the deployment module would not be on the runtime classpath. The method is held as a
@@ -51,7 +56,7 @@ public class HttpMethodFilter implements Consumer<Route> {
         HttpMethod httpMethod = HttpMethod.valueOf(method);
         route.method(httpMethod);
         if (httpMethod == HttpMethod.POST || httpMethod == HttpMethod.PUT || httpMethod == HttpMethod.PATCH) {
-            route.handler(BodyHandler.create());
+            route.handler(BodyHandler.create(false));
         }
     }
 }
