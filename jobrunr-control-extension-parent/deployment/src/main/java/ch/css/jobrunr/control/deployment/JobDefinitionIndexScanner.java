@@ -75,16 +75,17 @@ final class JobDefinitionIndexScanner {
                 continue;
             }
 
-            // Extract job metadata
-            String jobType = classInfo.simpleName();
-            boolean isBatchJob = settingsExtractor.getBatchJobFlag(runMethod);
-
             // Analyze parameters
             ParameterExtractor.AnalyzedParameters analyzedParams =
                     parameterExtractor.analyzeRecordParameters(requestClassInfo);
 
             // Extract job settings
             JobSettings jobSettings = settingsExtractor.extractJobSettings(runMethod);
+
+            boolean isBatchJob = settingsExtractor.getBatchJobFlag(runMethod);
+            String jobType = jobSettings.name() != null && !jobSettings.name().isBlank()
+                ? jobSettings.name()
+                : classInfo.simpleName();
 
             // Log discovered job
             LOG.infof("Discovered job: %s (batch=%s, externalParams=%s) with %s parameters",
