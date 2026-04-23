@@ -38,7 +38,7 @@ public class ScheduledJobsController extends BaseController {
             // Qute class
         }
 
-        public static native TemplateInstance scheduledJobs(List<String> availableJobTypes);
+        public static native TemplateInstance scheduledJobs(List<JobDefinition> availableJobTypes);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -115,7 +115,7 @@ public class ScheduledJobsController extends BaseController {
         if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
             return;
         }
-        List<String> availableJobTypes = getAvailableJobTypes(discoverJobsUseCase);
+        List<JobDefinition> availableJobTypes = getAvailableJobDefinitions(discoverJobsUseCase);
         UiRoutingSupport.renderHtml(ctx, Templates.scheduledJobs(availableJobTypes));
     }
 

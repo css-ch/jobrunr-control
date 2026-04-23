@@ -256,16 +256,16 @@ public abstract class BaseController {
     }
 
     /**
-     * Gets all available job types sorted alphabetically.
-     * Common helper used by multiple controllers.
+     * Gets all available job definitions sorted alphabetically by display name.
+     * Templates render {@link JobDefinition#displayName()} as the user-facing label while
+     * keeping {@link JobDefinition#jobType()} as the stable filter value.
      *
      * @param discoverJobsUseCase the discovery use case
-     * @return sorted list of job type strings
+     * @return sorted list of job definitions
      */
-    protected List<String> getAvailableJobTypes(DiscoverJobsUseCase discoverJobsUseCase) {
+    protected List<JobDefinition> getAvailableJobDefinitions(DiscoverJobsUseCase discoverJobsUseCase) {
         return discoverJobsUseCase.execute().stream()
-                .map(JobDefinition::jobType)
-                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .sorted(Comparator.comparing(JobDefinition::displayName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 

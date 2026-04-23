@@ -31,4 +31,15 @@ public record JobDefinition(String jobType,
                 .map(JobParameter::name)
                 .toList();
     }
+
+    /**
+     * User-facing label for dropdowns and filter lists. Returns the explicit
+     * {@code @ConfigurableJob.name()} value when set; otherwise falls back to {@link #jobType()}
+     * (the handler simple class name) so the label is never empty.
+     */
+    @SuppressWarnings("unused") // Used in type-safe qute templates
+    public String displayName() {
+        String configured = jobSettings != null ? jobSettings.name() : null;
+        return configured != null && !configured.isBlank() ? configured : jobType;
+    }
 }

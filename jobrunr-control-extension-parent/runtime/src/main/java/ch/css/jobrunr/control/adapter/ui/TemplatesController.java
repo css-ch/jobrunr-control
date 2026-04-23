@@ -36,7 +36,7 @@ public class TemplatesController extends BaseController {
             // Utility class
         }
 
-        public static native TemplateInstance templates(List<String> availableJobTypes);
+        public static native TemplateInstance templates(List<JobDefinition> availableJobTypes);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -109,7 +109,7 @@ public class TemplatesController extends BaseController {
         if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
             return;
         }
-        List<String> availableJobTypes = getAvailableJobTypes(discoverJobsUseCase);
+        List<JobDefinition> availableJobTypes = getAvailableJobDefinitions(discoverJobsUseCase);
         UiRoutingSupport.renderHtml(ctx, Templates.templates(availableJobTypes));
     }
 
