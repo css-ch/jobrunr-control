@@ -207,6 +207,55 @@ class JobDefinitionIndexScannerTest {
     }
 
     @Test
+    void testFindJobSpecifications_jobTypeStaysHandlerSimpleNameEvenWithAnnotationName() throws IOException {
+        // Regression for the bug where jobType fell back to @ConfigurableJob.name(), breaking
+        // JobRunrSchedulerAdapter.mapToScheduledJobInfo (which looks up definitions via the
+        // handler simple class name derived from JobDetails.getClassName()). If this test fails,
+        // scheduled jobs and templates with a named @ConfigurableJob will disappear from the UI.
+        Indexer indexer = new Indexer();
+        indexClass(indexer, NamedJobHandler.class);
+        indexClass(indexer, NamedJobRequest.class);
+        indexClass(indexer, JobRequestHandler.class);
+        indexClass(indexer, JobRequest.class);
+        indexClass(indexer, ConfigurableJob.class);
+        IndexView namedIndex = indexer.complete();
+
+        var results = JobDefinitionIndexScanner.findJobSpecifications(namedIndex);
+
+        assertEquals(1, results.size());
+        JobDefinition result = results.iterator().next();
+        assertEquals("NamedJobHandler", result.jobType(),
+                "jobType must stay the handler simple name so the runtime lookup by JobDetails.getClassName() keeps working");
+        assertEquals("My Named Job", result.jobSettings().name(),
+                "The display name from @ConfigurableJob must remain accessible via JobSettings.name()");
+    }
+
+    @Test
+    void testFindJobSpecifications_failsOnDuplicateHandlerSimpleName() throws IOException {
+        // Two handlers living in different nested classes but sharing the same simple name
+        // would otherwise silently collide in findJobByType() and in the "jobtype:" label.
+        Indexer indexer = new Indexer();
+        indexClass(indexer, DuplicateSimpleNameContainerA.CollidingHandler.class);
+        indexClass(indexer, DuplicateSimpleNameContainerA.CollidingRequest.class);
+        indexClass(indexer, DuplicateSimpleNameContainerB.CollidingHandler.class);
+        indexClass(indexer, DuplicateSimpleNameContainerB.CollidingRequest.class);
+        indexClass(indexer, JobRequestHandler.class);
+        indexClass(indexer, JobRequest.class);
+        indexClass(indexer, ConfigurableJob.class);
+        IndexView duplicateIndex = indexer.complete();
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> JobDefinitionIndexScanner.findJobSpecifications(duplicateIndex));
+
+        assertTrue(ex.getMessage().contains("CollidingHandler"),
+                "Error message should name the colliding jobType; was: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains(DuplicateSimpleNameContainerA.CollidingHandler.class.getName()),
+                "Error message should list the first colliding FQN; was: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains(DuplicateSimpleNameContainerB.CollidingHandler.class.getName()),
+                "Error message should list the second colliding FQN; was: " + ex.getMessage());
+    }
+
+    @Test
     void testFindJobSpecifications_noMatchingJob() throws IOException {
         // Create an index without any @ConfigurableJob annotated classes
         Indexer indexer = new Indexer();
@@ -342,6 +391,70 @@ class JobDefinitionIndexScannerTest {
         @Override
         public void run(CustomParameterJobRequest request) {
             // Test implementation
+        }
+    }
+
+    /**
+     * Job request for a handler that carries a @ConfigurableJob(name = ...) annotation.
+     */
+    public record NamedJobRequest() implements JobRequest {
+        @Override
+        public Class<NamedJobHandler> getJobRequestHandler() {
+            return NamedJobHandler.class;
+        }
+    }
+
+    /**
+     * Handler with an explicit display name — used to prove that the display name does not
+     * leak into JobDefinition.jobType.
+     */
+    public static class NamedJobHandler implements JobRequestHandler<NamedJobRequest> {
+        @ConfigurableJob(name = "My Named Job")
+        @Override
+        public void run(NamedJobRequest request) {
+            // Test implementation
+        }
+    }
+
+    /**
+     * First container carrying a handler whose simple name collides with another handler in
+     * {@link DuplicateSimpleNameContainerB}. Used to verify the uniqueness guard.
+     */
+    public static final class DuplicateSimpleNameContainerA {
+        public record CollidingRequest() implements JobRequest {
+            @Override
+            public Class<CollidingHandler> getJobRequestHandler() {
+                return CollidingHandler.class;
+            }
+        }
+
+        public static class CollidingHandler implements JobRequestHandler<CollidingRequest> {
+            @ConfigurableJob
+            @Override
+            public void run(CollidingRequest request) {
+                // Test implementation
+            }
+        }
+    }
+
+    /**
+     * Second container with a handler that intentionally shares a simple name with
+     * {@link DuplicateSimpleNameContainerA}.
+     */
+    public static final class DuplicateSimpleNameContainerB {
+        public record CollidingRequest() implements JobRequest {
+            @Override
+            public Class<CollidingHandler> getJobRequestHandler() {
+                return CollidingHandler.class;
+            }
+        }
+
+        public static class CollidingHandler implements JobRequestHandler<CollidingRequest> {
+            @ConfigurableJob
+            @Override
+            public void run(CollidingRequest request) {
+                // Test implementation
+            }
         }
     }
 }
