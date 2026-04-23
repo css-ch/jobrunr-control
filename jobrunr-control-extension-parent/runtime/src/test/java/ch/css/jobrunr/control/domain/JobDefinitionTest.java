@@ -64,6 +64,30 @@ class JobDefinitionTest {
     }
 
     @Test
+    @DisplayName("displayName returns @ConfigurableJob.name() when set")
+    void displayNameReturnsConfiguredNameWhenSet() {
+        JobSettings settings = new JobSettings("My Named Job", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null);
+        JobDefinition definition = new JobDefinitionBuilder()
+                .withJobType("NamedJobHandler")
+                .withSettings(settings)
+                .build();
+
+        assertThat(definition.displayName()).isEqualTo("My Named Job");
+    }
+
+    @Test
+    @DisplayName("displayName falls back to jobType when @ConfigurableJob.name() is blank")
+    void displayNameFallsBackToJobTypeWhenBlank() {
+        JobSettings settings = new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null);
+        JobDefinition definition = new JobDefinitionBuilder()
+                .withJobType("FallbackHandler")
+                .withSettings(settings)
+                .build();
+
+        assertThat(definition.displayName()).isEqualTo("FallbackHandler");
+    }
+
+    @Test
     @DisplayName("getParameterNames should return list of parameter names")
     void getParameterNamesShouldReturnListOfNames() {
         // Arrange

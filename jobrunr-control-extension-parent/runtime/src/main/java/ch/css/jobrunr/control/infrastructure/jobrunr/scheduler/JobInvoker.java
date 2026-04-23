@@ -106,10 +106,12 @@ public class JobInvoker {
     }
 
     /**
-     * Applies all job settings from JobSettings to the JobBuilder.
+     * Applies all job settings from JobSettings to the JobBuilder. Note that the JobRunr job name
+     * is set in {@link #scheduleJob} from the caller-supplied {@code jobName} argument and is
+     * intentionally not touched here — {@code @ConfigurableJob.name()} is a display name for the
+     * job type (used in the Control UI dropdowns), not a per-instance job name override.
      */
     private void applyJobSettings(JobBuilder jobBuilder, JobSettings settings, List<String> additionalLabels) {
-        applyName(jobBuilder, settings);
         applyRetries(jobBuilder, settings);
         applyLabels(jobBuilder, settings, additionalLabels);
         applyQueue(jobBuilder, settings);
@@ -119,12 +121,6 @@ public class JobInvoker {
         applyProcessTimeout(jobBuilder, settings);
         applyDeleteOnSuccess(jobBuilder, settings);
         applyDeleteOnFailure(jobBuilder, settings);
-    }
-
-    private void applyName(JobBuilder jobBuilder, JobSettings settings) {
-        if (isNotEmpty(settings.name())) {
-            jobBuilder.withName(settings.name());
-        }
     }
 
     private void applyRetries(JobBuilder jobBuilder, JobSettings settings) {

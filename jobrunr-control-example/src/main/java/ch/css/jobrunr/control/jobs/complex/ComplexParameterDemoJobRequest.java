@@ -15,7 +15,6 @@ public record ComplexParameterDemoJobRequest(
                 order = 1,
                 layout = JobParameterSectionLayout.TWO_VALUES_ON_LINE_LABEL_ABOVE)
         @JobParameterDefinition(displayName = "Hauptfälligkeit",
-                required = false,
                 defaultValue = "",
                 sectionId = "filter",
                 order = 1,
@@ -34,7 +33,6 @@ public record ComplexParameterDemoJobRequest(
                 order = 3)
         WunschVersandArt filterWunschVersandArt,
         @JobParameterDefinition(displayName = "PolicenNrs Einschluss",
-                required = false,
                 type = "MULTILINE",
                 defaultValue = "",
                 sectionId = "filter",

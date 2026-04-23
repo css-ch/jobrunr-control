@@ -30,8 +30,8 @@
                                     hx-vals='{"page": "0", "size": "10", "sortBy": "jobName", "sortOrder": "asc"}'
                                     hx-include="[name='search']">
                                 <option value="all">Alle Job-Typen</option>
-                                {#for jobType in availableJobTypes}
-                                    <option value="{jobType}">{jobType}</option>
+                                {#for jobDef in availableJobTypes}
+                                    <option value="{jobDef.jobType()}">{jobDef.displayName()}</option>
                                 {/for}
                             </select>
                         </div>

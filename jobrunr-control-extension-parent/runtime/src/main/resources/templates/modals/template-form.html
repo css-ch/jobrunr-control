@@ -23,7 +23,7 @@
             <option value="">-- Job-Typ auswählen --</option>
             {#for jobDef in jobDefinitions}
                 <option value="{jobDef.jobType()}"
-                        {#if isEdit && job.jobType == jobDef.jobType()}selected{/if}>{jobDef.jobType()}</option>
+                        {#if isEdit && job.jobType == jobDef.jobType()}selected{/if}>{jobDef.displayName()}</option>
             {/for}
         </select>
         {#if isEdit}
