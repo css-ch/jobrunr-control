@@ -5,7 +5,8 @@ import java.util.List;
 /**
  * Represents a job definition with metadata about parameters and execution settings.
  *
- * @param jobType                The simple class name of the job handler
+ * @param jobType                Stable identifier of the job handler; defaults to the simple
+ *                               class name, or the explicit value from {@code @ConfigurableJob(jobType = "...")} when set
  * @param isBatchJob             Whether this job processes batches
  * @param jobRequestTypeName     Fully qualified name of the JobRequest class
  * @param handlerClassName       Fully qualified name of the JobRequestHandler class

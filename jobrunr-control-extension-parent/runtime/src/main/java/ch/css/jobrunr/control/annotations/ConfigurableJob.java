@@ -27,6 +27,18 @@ public @interface ConfigurableJob {
     String name() default "";
 
     /**
+     * Optional override for the handler's {@code jobType}.
+     * <p>
+     * By default the jobType is the handler's simple class name. Set this attribute when the
+     * simple class name is too long for the {@code jobtype:} label on scheduled jobs (JobRunr
+     * enforces a 45-character limit per label, leaving 37 characters for the jobType itself).
+     * <p>
+     * Allowed characters: {@code A-Z}, {@code a-z}, {@code 0-9}, {@code _}, {@code -}. Must be
+     * unique across all discovered handlers. When empty, the handler's simple class name is used.
+     */
+    String jobType() default "";
+
+    /**
      * Indicates whether this job should be processed as a batch job.
      * <p>
      * <strong>Important:</strong> If this default value is changed, also update

@@ -75,6 +75,20 @@ public class JobSettingsExtractor {
     }
 
     /**
+     * Reads the optional {@code jobType} override from the {@code @ConfigurableJob} annotation.
+     *
+     * @param method the method to check
+     * @return the configured jobType, or an empty string if the attribute was not set
+     */
+    public String getJobTypeOverride(MethodInfo method) {
+        AnnotationInstance annotation = method.annotation(ConfigurableJob.class);
+        if (annotation == null) {
+            return "";
+        }
+        return getAnnotationValue(annotation, "jobType", "");
+    }
+
+    /**
      * Gets the batch job flag from a method's @ConfigurableJob annotation.
      *
      * @param method the method to check
