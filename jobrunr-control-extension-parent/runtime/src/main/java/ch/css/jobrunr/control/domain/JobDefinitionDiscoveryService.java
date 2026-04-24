@@ -27,6 +27,17 @@ public interface JobDefinitionDiscoveryService {
     Optional<JobDefinition> findJobByType(String type);
 
     /**
+     * Finds a job definition by the fully qualified handler class name. Use this when resolving
+     * a JobDefinition from data originating in JobRunr itself (e.g. {@code JobDetails.getClassName()}),
+     * where the handler FQN is authoritative and the simple class name may diverge from the
+     * {@link JobDefinition#jobType()} whenever {@code @ConfigurableJob(jobType = "...")} is set.
+     *
+     * @param handlerClassName Fully qualified name of the {@code JobRequestHandler} implementation
+     * @return Optional with the job definition, if found
+     */
+    Optional<JobDefinition> findJobByHandlerClassName(String handlerClassName);
+
+    /**
      * Returns the job definition for the given type, or throws if not found.
      *
      * @param type Job type

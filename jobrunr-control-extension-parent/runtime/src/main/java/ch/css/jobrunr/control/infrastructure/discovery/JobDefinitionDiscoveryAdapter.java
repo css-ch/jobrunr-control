@@ -39,6 +39,12 @@ public class JobDefinitionDiscoveryAdapter implements JobDefinitionDiscoveryServ
                 .filter(jd -> Objects.equals(jd.jobType(), jobType))
                 .findFirst();
     }
+
+    @Override
+    public Optional<JobDefinition> findJobByHandlerClassName(String handlerClassName) {
+        return Optional.ofNullable(
+                JobDefinitionRecorder.JobDefinitionRegistry.INSTANCE.getDefinition(handlerClassName));
+    }
 }
 
 

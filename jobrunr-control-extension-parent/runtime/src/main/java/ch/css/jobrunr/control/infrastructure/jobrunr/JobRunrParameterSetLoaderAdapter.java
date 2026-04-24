@@ -42,10 +42,9 @@ public class JobRunrParameterSetLoaderAdapter implements ParameterSetLoaderPort 
         var job = storageProvider.getJobById(jobId);
 
         String handlerClassName = job.getJobDetails().getClassName();
-        String simpleClassName = handlerClassName.substring(handlerClassName.lastIndexOf('.') + 1);
 
         boolean usesExternalParameters = jobDefinitionDiscoveryService
-                .findJobByType(simpleClassName)
+                .findJobByHandlerClassName(handlerClassName)
                 .map(JobDefinition::usesExternalParameters)
                 .orElse(false);
 

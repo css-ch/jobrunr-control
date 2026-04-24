@@ -82,7 +82,7 @@ class ParameterCleanupJobFilterTest {
         // Arrange
         UUID jobId = UUID.randomUUID();
         when(job.getId()).thenReturn(jobId);
-        when(jobDefinitionDiscoveryService.findJobByType(SIMPLE_CLASS))
+        when(jobDefinitionDiscoveryService.findJobByHandlerClassName(HANDLER_CLASS))
                 .thenReturn(Optional.of(externalJobDefinition()));
 
         // Act
@@ -132,7 +132,7 @@ class ParameterCleanupJobFilterTest {
                 new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null, null),
                 false, null
         );
-        when(jobDefinitionDiscoveryService.findJobByType(SIMPLE_CLASS))
+        when(jobDefinitionDiscoveryService.findJobByHandlerClassName(HANDLER_CLASS))
                 .thenReturn(Optional.of(inlineJobDef));
 
         // Act
@@ -148,7 +148,7 @@ class ParameterCleanupJobFilterTest {
         // Arrange
         UUID jobId = UUID.randomUUID();
         when(job.getId()).thenReturn(jobId);
-        when(jobDefinitionDiscoveryService.findJobByType(SIMPLE_CLASS)).thenReturn(Optional.empty());
+        when(jobDefinitionDiscoveryService.findJobByHandlerClassName(HANDLER_CLASS)).thenReturn(Optional.empty());
 
         // Act
         filter.onStateApplied(job, null, deletedState);
@@ -163,7 +163,7 @@ class ParameterCleanupJobFilterTest {
         // Arrange
         UUID jobId = UUID.randomUUID();
         when(job.getId()).thenReturn(jobId);
-        when(jobDefinitionDiscoveryService.findJobByType(SIMPLE_CLASS))
+        when(jobDefinitionDiscoveryService.findJobByHandlerClassName(HANDLER_CLASS))
                 .thenReturn(Optional.of(externalJobDefinition()));
         doThrow(new RuntimeException("Storage error")).when(parameterStoragePort).deleteById(jobId);
 
