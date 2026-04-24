@@ -131,15 +131,16 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
     private Optional<ScheduledJobInfo> mapToScheduledJobInfo(org.jobrunr.jobs.Job job) {
         UUID jobId = job.getId();
 
-        // Job type: Extract simple class name of the job class
+        // Resolve via the fully qualified handler class name (authoritative in JobDetails), not
+        // the simple name — with @ConfigurableJob(jobType = "...") the two can diverge.
+        // Handlers without @ConfigurableJob are not managed by this extension and are silently
+        // skipped.
         String fullyQualifiedClassName = job.getJobDetails().getClassName();
-        String jobType = extractSimpleClassName(fullyQualifiedClassName);
-
-        // Get JobDefinition for this job type. Handlers without @ConfigurableJob are not
-        // managed by this extension and are silently skipped.
-        Optional<JobDefinition> jobDefinition = jobDefinitionDiscoveryService.findJobByType(jobType);
+        Optional<JobDefinition> jobDefinition =
+                jobDefinitionDiscoveryService.findJobByHandlerClassName(fullyQualifiedClassName);
         if (jobDefinition.isEmpty()) {
-            LOG.debugf("Skipping job %s: no @ConfigurableJob definition found for type '%s'", jobId, jobType);
+            LOG.debugf("Skipping job %s: no @ConfigurableJob definition found for handler '%s'",
+                    jobId, fullyQualifiedClassName);
             return Optional.empty();
         }
 
@@ -175,11 +176,6 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
                 isExternallyTriggerable,
                 labels
         ));
-    }
-
-    private String extractSimpleClassName(String fullyQualifiedClassName) {
-        int lastDotIndex = fullyQualifiedClassName.lastIndexOf('.');
-        return lastDotIndex >= 0 ? fullyQualifiedClassName.substring(lastDotIndex + 1) : fullyQualifiedClassName;
     }
 
     @Override
@@ -224,9 +220,9 @@ public class JobRunrSchedulerAdapter implements JobSchedulerPort {
                             .orElse(existingJob.getCreatedAt())
                     : existingJob.getCreatedAt();
 
-            String simpleClassName = extractSimpleClassName(jobDetails.getClassName());
-            JobDefinition jobDefinition = jobDefinitionDiscoveryService.findJobByType(simpleClassName)
-                    .orElseThrow(() -> new IllegalStateException("Job definition not found for: " + simpleClassName));
+            String handlerClassName = jobDetails.getClassName();
+            JobDefinition jobDefinition = jobDefinitionDiscoveryService.findJobByHandlerClassName(handlerClassName)
+                    .orElseThrow(() -> new IllegalStateException("Job definition not found for handler: " + handlerClassName));
 
             jobInvoker.scheduleJob(jobId, jobName, jobDefinition, parameters, scheduledAt, new ArrayList<>(existingJob.getLabels()));
             LOG.infof("Updated parameters for job: %s", jobId);

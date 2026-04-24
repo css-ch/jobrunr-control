@@ -267,10 +267,12 @@ Jobs without this annotation will not appear in the UI.
 
 The scanner extracts:
 
-* Job type (simple class name of handler)
+* Job type (simple class name of the handler, or an explicit value from `@ConfigurableJob(jobType = "...")`)
 * JobRequest class name
 * Parameter definitions from record components
 * Job settings from `@ConfigurableJob` annotation
+
+The job type is stamped onto every scheduled job as a `jobtype:<jobType>` label. JobRunr caps every label at 45 characters and the `jobtype:` prefix consumes 8, so the effective jobType budget is **37 characters** (only `[A-Za-z0-9_-]` is allowed). The scanner fails the build when a handler violates this — use the `jobType` attribute on `@ConfigurableJob` to supply a short, safe identifier without renaming the handler class.
 
 == Implementing Simple Jobs
 
@@ -1080,6 +1082,10 @@ For detailed per-job analysis, click the deep-link to JobRunr Pro Dashboard.
     // Job identification
     name = "My Job Name",
 
+    // Optional jobType override — defaults to the handler's simple class name.
+    // Use when the handler class name exceeds the 37-character label budget.
+    jobType = "MyShortType",
+
     // Batch job flag
     isBatch = false,
 
@@ -1116,6 +1122,10 @@ For detailed per-job analysis, click the deep-link to JobRunr Pro Dashboard.
 |`name`
 |String
 |Display name for the job
+
+|`jobType`
+|String
+|Optional override for the stable jobType identifier. Defaults to the handler's simple class name. Must be at most 37 characters and only contain `[A-Za-z0-9_-]`. Use when the handler class name is too long for the `jobtype:` label.
 
 |`isBatch`
 |boolean

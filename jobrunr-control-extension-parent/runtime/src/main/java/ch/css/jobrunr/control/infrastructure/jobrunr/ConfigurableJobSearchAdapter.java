@@ -106,7 +106,7 @@ public class ConfigurableJobSearchAdapter {
         return JobSearchRequestBuilder
                 .aJobSearchRequest()
                 .withStateName(state)
-                .withLabel("jobtype:" + jobType)
+                .withLabel(JobTypeLabel.stamp(jobType))
                 .build();
     }
 
@@ -123,6 +123,6 @@ public class ConfigurableJobSearchAdapter {
                 .aJobSearchRequest()
                 .withOnlyBatchJobs(true)
                 .withStateName(state)
-                .withLabel("jobtype:" + jobType).build();
+                .withLabel(JobTypeLabel.stamp(jobType)).build();
     }
 }

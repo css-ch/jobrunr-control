@@ -61,9 +61,9 @@ class JobRunrSchedulerAdapterTest {
 
         when(storageProvider.getJobList(any(JobSearchRequest.class), any(AmountRequest.class)))
                 .thenReturn(List.of(configurableJob, adHocJob));
-        when(jobDefinitionDiscoveryService.findJobByType("ConfigurableHandler"))
+        when(jobDefinitionDiscoveryService.findJobByHandlerClassName("com.example.ConfigurableHandler"))
                 .thenReturn(Optional.of(jobDefinition("ConfigurableHandler", "com.example.ConfigurableHandler")));
-        when(jobDefinitionDiscoveryService.findJobByType("AdHocHandler"))
+        when(jobDefinitionDiscoveryService.findJobByHandlerClassName("com.example.AdHocHandler"))
                 .thenReturn(Optional.empty());
 
         List<ScheduledJobInfo> result = adapter.getScheduledJobs();
@@ -79,7 +79,7 @@ class JobRunrSchedulerAdapterTest {
         Job job = mockJob(jobId, "com.example.AdHocHandler", "AdHoc");
 
         when(storageProvider.getJobById(jobId)).thenReturn(job);
-        when(jobDefinitionDiscoveryService.findJobByType("AdHocHandler"))
+        when(jobDefinitionDiscoveryService.findJobByHandlerClassName("com.example.AdHocHandler"))
                 .thenReturn(Optional.empty());
 
         ScheduledJobInfo result = adapter.getScheduledJobById(jobId);

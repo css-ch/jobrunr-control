@@ -256,6 +256,94 @@ class JobDefinitionIndexScannerTest {
     }
 
     @Test
+    void testFindJobSpecifications_customJobTypeFromAnnotation() throws IOException {
+        // @ConfigurableJob(jobType = "...") overrides the default simple-class-name based jobType
+        // so handlers with long class names can still produce a label that fits JobRunr's limit.
+        Indexer indexer = new Indexer();
+        indexClass(indexer, CustomJobTypeHandlerWithLongClassName.class);
+        indexClass(indexer, CustomJobTypeRequest.class);
+        indexClass(indexer, JobRequestHandler.class);
+        indexClass(indexer, JobRequest.class);
+        indexClass(indexer, ConfigurableJob.class);
+        IndexView customTypeIndex = indexer.complete();
+
+        var results = JobDefinitionIndexScanner.findJobSpecifications(customTypeIndex);
+
+        assertEquals(1, results.size());
+        JobDefinition result = results.iterator().next();
+        assertEquals("ShortType", result.jobType(),
+                "jobType must come from @ConfigurableJob(jobType) when the attribute is set");
+        assertEquals("My Display Name", result.jobSettings().name(),
+                "Display name must remain independent of the jobType override");
+    }
+
+    @Test
+    void testFindJobSpecifications_failsOnJobTypeTooLong() throws IOException {
+        // Simulates a handler whose simple class name alone would blow the 45-char label limit
+        // once the "jobtype:" prefix is prepended. The scanner must fail the build and point
+        // developers at the escape hatch.
+        Indexer indexer = new Indexer();
+        indexClass(indexer, HandlerWithClassNameExceedingJobTypeBudgetAndThenSome.class);
+        indexClass(indexer, TooLongRequest.class);
+        indexClass(indexer, JobRequestHandler.class);
+        indexClass(indexer, JobRequest.class);
+        indexClass(indexer, ConfigurableJob.class);
+        IndexView tooLongIndex = indexer.complete();
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> JobDefinitionIndexScanner.findJobSpecifications(tooLongIndex));
+
+        assertTrue(ex.getMessage().contains("jobType"),
+                "Error message should mention jobType; was: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("@ConfigurableJob(jobType"),
+                "Error message should point at the escape hatch; was: " + ex.getMessage());
+    }
+
+    @Test
+    void testFindJobSpecifications_failsOnInvalidJobTypeCharacters() throws IOException {
+        // A jobType override must only contain [A-Za-z0-9_-] so it is safe for URLs, search
+        // filters, and the "jobtype:" label.
+        Indexer indexer = new Indexer();
+        indexClass(indexer, InvalidCharJobTypeHandler.class);
+        indexClass(indexer, InvalidCharRequest.class);
+        indexClass(indexer, JobRequestHandler.class);
+        indexClass(indexer, JobRequest.class);
+        indexClass(indexer, ConfigurableJob.class);
+        IndexView invalidCharIndex = indexer.complete();
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> JobDefinitionIndexScanner.findJobSpecifications(invalidCharIndex));
+
+        assertTrue(ex.getMessage().contains("[A-Za-z0-9_-]"),
+                "Error message should mention the allowed character set; was: " + ex.getMessage());
+    }
+
+    @Test
+    void testFindJobSpecifications_failsOnDuplicateEffectiveJobType() throws IOException {
+        // Two handlers with distinct simple names but identical jobType overrides must still
+        // be rejected, because the effective jobType is the lookup key.
+        Indexer indexer = new Indexer();
+        indexClass(indexer, FirstHandlerWithSharedOverride.class);
+        indexClass(indexer, FirstSharedRequest.class);
+        indexClass(indexer, SecondHandlerWithSharedOverride.class);
+        indexClass(indexer, SecondSharedRequest.class);
+        indexClass(indexer, JobRequestHandler.class);
+        indexClass(indexer, JobRequest.class);
+        indexClass(indexer, ConfigurableJob.class);
+        IndexView sharedOverrideIndex = indexer.complete();
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> JobDefinitionIndexScanner.findJobSpecifications(sharedOverrideIndex));
+
+        assertTrue(ex.getMessage().contains("Shared"),
+                "Error message should include the conflicting jobType; was: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains(FirstHandlerWithSharedOverride.class.getName()),
+                "Error message should list the first conflicting handler; was: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains(SecondHandlerWithSharedOverride.class.getName()),
+                "Error message should list the second conflicting handler; was: " + ex.getMessage());
+    }
+
+    @Test
     void testFindJobSpecifications_noMatchingJob() throws IOException {
         // Create an index without any @ConfigurableJob annotated classes
         Indexer indexer = new Indexer();
@@ -455,6 +543,117 @@ class JobDefinitionIndexScannerTest {
             public void run(CollidingRequest request) {
                 // Test implementation
             }
+        }
+    }
+
+    /**
+     * Job request for {@link CustomJobTypeHandlerWithLongClassName}.
+     */
+    public record CustomJobTypeRequest() implements JobRequest {
+        @Override
+        public Class<CustomJobTypeHandlerWithLongClassName> getJobRequestHandler() {
+            return CustomJobTypeHandlerWithLongClassName.class;
+        }
+    }
+
+    /**
+     * Handler with a long class name that opts into a short, explicit jobType via the
+     * annotation attribute.
+     */
+    public static class CustomJobTypeHandlerWithLongClassName implements JobRequestHandler<CustomJobTypeRequest> {
+        @ConfigurableJob(name = "My Display Name", jobType = "ShortType")
+        @Override
+        public void run(CustomJobTypeRequest request) {
+            // Test implementation
+        }
+    }
+
+    /**
+     * Job request for the too-long handler simple-name test.
+     */
+    public record TooLongRequest() implements JobRequest {
+        @Override
+        public Class<HandlerWithClassNameExceedingJobTypeBudgetAndThenSome> getJobRequestHandler() {
+            return HandlerWithClassNameExceedingJobTypeBudgetAndThenSome.class;
+        }
+    }
+
+    /**
+     * Handler whose simple class name intentionally exceeds the 37-character jobType budget
+     * without an override — exercises the length validator.
+     */
+    public static class HandlerWithClassNameExceedingJobTypeBudgetAndThenSome
+            implements JobRequestHandler<TooLongRequest> {
+        @ConfigurableJob
+        @Override
+        public void run(TooLongRequest request) {
+            // Test implementation
+        }
+    }
+
+    /**
+     * Job request for {@link InvalidCharJobTypeHandler}.
+     */
+    public record InvalidCharRequest() implements JobRequest {
+        @Override
+        public Class<InvalidCharJobTypeHandler> getJobRequestHandler() {
+            return InvalidCharJobTypeHandler.class;
+        }
+    }
+
+    /**
+     * Handler that attempts to use characters outside [A-Za-z0-9_-] in its jobType override.
+     */
+    public static class InvalidCharJobTypeHandler implements JobRequestHandler<InvalidCharRequest> {
+        @ConfigurableJob(jobType = "bad type!")
+        @Override
+        public void run(InvalidCharRequest request) {
+            // Test implementation
+        }
+    }
+
+    /**
+     * Job request paired with {@link FirstHandlerWithSharedOverride}.
+     */
+    public record FirstSharedRequest() implements JobRequest {
+        @Override
+        public Class<FirstHandlerWithSharedOverride> getJobRequestHandler() {
+            return FirstHandlerWithSharedOverride.class;
+        }
+    }
+
+    /**
+     * First handler declaring the shared jobType override — triggers the uniqueness check
+     * together with {@link SecondHandlerWithSharedOverride}.
+     */
+    public static class FirstHandlerWithSharedOverride implements JobRequestHandler<FirstSharedRequest> {
+        @ConfigurableJob(jobType = "SharedOverride")
+        @Override
+        public void run(FirstSharedRequest request) {
+            // Test implementation
+        }
+    }
+
+    /**
+     * Job request paired with {@link SecondHandlerWithSharedOverride}.
+     */
+    public record SecondSharedRequest() implements JobRequest {
+        @Override
+        public Class<SecondHandlerWithSharedOverride> getJobRequestHandler() {
+            return SecondHandlerWithSharedOverride.class;
+        }
+    }
+
+    /**
+     * Second handler intentionally reusing the same jobType override as
+     * {@link FirstHandlerWithSharedOverride} to prove the collision detector operates on the
+     * effective jobType, not on the handler simple name.
+     */
+    public static class SecondHandlerWithSharedOverride implements JobRequestHandler<SecondSharedRequest> {
+        @ConfigurableJob(jobType = "SharedOverride")
+        @Override
+        public void run(SecondSharedRequest request) {
+            // Test implementation
         }
     }
 }

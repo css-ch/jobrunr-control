@@ -72,7 +72,7 @@ class JobRunrParameterSetLoaderAdapterTest {
         when(job.getJobDetails()).thenReturn(jobDetails);
         when(jobDetails.getClassName()).thenReturn(HANDLER_CLASS);
         when(jobDetails.getJobParameters()).thenReturn(List.of());
-        when(jobDefinitionDiscoveryService.findJobByType(SIMPLE_CLASS)).thenReturn(Optional.of(inlineDef));
+        when(jobDefinitionDiscoveryService.findJobByHandlerClassName(HANDLER_CLASS)).thenReturn(Optional.of(inlineDef));
 
         // Act
         Map<String, Object> result = adapter.loadParameters(jobId);
@@ -99,7 +99,7 @@ class JobRunrParameterSetLoaderAdapterTest {
         when(storageProvider.getJobById(jobId)).thenReturn(job);
         when(job.getJobDetails()).thenReturn(jobDetails);
         when(jobDetails.getClassName()).thenReturn("com.example.ExternalJobHandler");
-        when(jobDefinitionDiscoveryService.findJobByType("ExternalJobHandler"))
+        when(jobDefinitionDiscoveryService.findJobByHandlerClassName("com.example.ExternalJobHandler"))
                 .thenReturn(Optional.of(externalDef));
         when(parameterStoragePort.findById(jobId)).thenReturn(Optional.of(parameterSet));
 

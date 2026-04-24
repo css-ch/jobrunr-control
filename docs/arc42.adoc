@@ -488,6 +488,30 @@ Marks a `JobRequestHandler.run()` method as a configurable job:
 public void run(MyJobRequest request) { ... }
 ----
 
+===== jobType override
+
+The `jobType` attribute is optional. By default the handler's simple class name is used as the `JobDefinition.jobType` — that value is the runtime lookup key and is stamped onto every scheduled job as a `jobtype:<jobType>` label.
+
+JobRunr caps every label at 45 characters, and the `jobtype:` prefix consumes 8, leaving at most **37 characters** for the jobType itself. When a handler's simple class name exceeds that budget, use `jobType` as an escape hatch instead of renaming the class:
+
+[source,java]
+----
+@ConfigurableJob(
+    name    = "Customer Invoice Preparation And Dispatching", // display name, unconstrained
+    jobType = "CustInvoicePrep"                               // short, label-safe identifier
+)
+@Override
+public void run(CustomerInvoicePreparationAndDispatchingJobRequest request) { ... }
+----
+
+The scanner validates at build time that every effective `jobType`:
+
+* is at most 37 characters long,
+* only uses characters from `[A-Za-z0-9_-]`, and
+* is unique across all discovered handlers (whether derived from the simple class name or set explicitly).
+
+A violation fails the build with a message that names the offending handler and points at this escape hatch.
+
 ==== @JobParameterDefinition
 
 Annotates record components to define parameter metadata. The `required` attribute (default `true`) controls whether the user must provide a value. A `defaultValue` does not automatically mark a parameter as optional; set `required = false` explicitly for optional parameters:

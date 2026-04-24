@@ -51,10 +51,9 @@ public class ParameterCleanupJobFilter implements ApplyStateFilter, JobServerFil
     private void cleanupParametersIfExists(Job job) {
         try {
             String handlerClassName = job.getJobDetails().getClassName();
-            String simpleClassName = handlerClassName.substring(handlerClassName.lastIndexOf('.') + 1);
 
             boolean usesExternalParameters = jobDefinitionDiscoveryService
-                    .findJobByType(simpleClassName)
+                    .findJobByHandlerClassName(handlerClassName)
                     .map(JobDefinition::usesExternalParameters)
                     .orElse(false);
 

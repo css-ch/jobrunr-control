@@ -422,7 +422,7 @@ The Scheduled Jobs view displays all jobs that are:
 |User-defined name for the job instance
 
 |Job Type
-|The type of job (derived from the handler class name)
+|The job's type identifier
 
 |Scheduled At
 |When the job will execute (or "External Trigger" for API-triggered jobs)
@@ -690,7 +690,7 @@ The Templates view is available via the **Templates** tab in the main navigation
 |Template name (base name for cloned jobs)
 
 |Job Type
-|The type of job (handler class name)
+|The job's type identifier
 
 |Parameters
 |Number of configured default parameters

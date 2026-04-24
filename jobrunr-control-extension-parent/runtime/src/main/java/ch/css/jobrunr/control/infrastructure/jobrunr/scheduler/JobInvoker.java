@@ -6,6 +6,7 @@ import ch.css.jobrunr.control.annotations.JobRequestOnSuccessFactory;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.domain.exceptions.JobSchedulingException;
+import ch.css.jobrunr.control.infrastructure.jobrunr.JobTypeLabel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -74,7 +75,7 @@ public class JobInvoker {
 
             // Combine default labels with additional labels
             List<String> allLabels = new ArrayList<>();
-            allLabels.add("jobtype:" + jobDefinition.jobType());
+            allLabels.add(JobTypeLabel.stamp(jobDefinition.jobType()));
             if (additionalLabels != null && !additionalLabels.isEmpty()) {
                 allLabels.addAll(additionalLabels);
             }

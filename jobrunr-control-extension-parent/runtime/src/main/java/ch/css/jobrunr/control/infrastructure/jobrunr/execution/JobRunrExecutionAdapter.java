@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.infrastructure.jobrunr.execution;
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.infrastructure.jobrunr.ConfigurableJobSearchAdapter;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobResultAdapter;
+import ch.css.jobrunr.control.infrastructure.jobrunr.JobTypeLabel;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -67,11 +68,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
     public Optional<JobExecutionInfo> getJobExecutionById(UUID jobId) {
         return executeOrDefault(Optional.empty(), "Error retrieving job " + jobId, () -> {
             org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
-            String jobType = job.getLabels().stream()
-                    .filter(label -> label.startsWith("jobtype:"))
-                    .map(label -> label.substring(8))
-                    .findFirst()
-                    .orElse(null);
+            String jobType = extractJobType(job);
             return Optional.of(mapToJobExecutionInfo(jobType, job));
         });
     }
@@ -80,11 +77,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
     public Optional<JobExecutionInfo> getJobChainExecutionById(UUID jobId) {
         return executeOrDefault(Optional.empty(), "Error retrieving job chain " + jobId, () -> {
             org.jobrunr.jobs.Job job = storageProvider.getJobById(jobId);
-            String jobType = job.getLabels().stream()
-                    .filter(label -> label.startsWith("jobtype:"))
-                    .map(label -> label.substring(8))
-                    .findFirst()
-                    .orElse(null);
+            String jobType = extractJobType(job);
 
             JobExecutionInfo jobInfo = mapToJobExecutionInfo(jobType, job);
             JobChainStatusEvaluator.JobChainStatus chainStatus =
@@ -102,6 +95,14 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
 
             return Optional.of(jobInfo.withStatus(chainStatus.overallStatus()).withResult(result, resultCode));
         });
+    }
+
+    private String extractJobType(org.jobrunr.jobs.Job job) {
+        return job.getLabels().stream()
+                .map(JobTypeLabel::extract)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     private JobExecutionInfo mapToJobExecutionInfo(String jobType, org.jobrunr.jobs.Job job) {
