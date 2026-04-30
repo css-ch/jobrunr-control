@@ -247,7 +247,11 @@ public class ParameterExtractor {
 
                 throw new IllegalStateException(
                         "Unsupported parameter type: " + typeString + ". " +
-                                "Supported types: String, MULTILINE, Integer, Long, Double, Float, Boolean, LocalDate, LocalDateTime, Enum, EnumSet<Enum>");
+                            "Supported types: \"MULTILINE\" or fully qualified class names such as " +
+                            "\"java.lang.String\", \"java.lang.Integer\", \"java.lang.Long\", " +
+                            "\"java.lang.Double\", \"java.lang.Boolean\", " +
+                            "\"java.time.LocalDate\", \"java.time.LocalDateTime\", " +
+                            "a fully qualified enum class name, or \"java.util.EnumSet<com.example.MyEnum>\"");
             }
         };
     }

@@ -66,11 +66,22 @@ public @interface JobParameterDefinition {
     String defaultValue() default NO_DEFAULT_VALUE;
 
     /**
-     * Optional type specification for external parameters.
-     * When used within {@literal @}JobParameterSet, this defines the parameter type.
-     * Format: fully qualified class name (e.g., "java.lang.String", "java.time.LocalDate")
-     * For EnumSet: "java.util.EnumSet&lt;com.example.MyEnum&gt;"
-     * If not specified, type is inferred from record component (inline parameters only).
+     * Optional type specification. Accepts either a fully qualified class name or the
+     * special alias {@code "MULTILINE"} to render a String field as a multi-line textarea.
+     * <p>
+     * Supported values:
+     * <ul>
+     *   <li>{@code "MULTILINE"} — renders a {@code String} field as a multi-line textarea in the UI</li>
+     *   <li>{@code "java.lang.String"}</li>
+     *   <li>{@code "java.lang.Integer"} / {@code "int"} / {@code "java.lang.Long"} / {@code "long"}</li>
+     *   <li>{@code "java.lang.Double"} / {@code "double"} / {@code "java.lang.Float"} / {@code "float"}</li>
+     *   <li>{@code "java.lang.Boolean"} / {@code "boolean"}</li>
+     *   <li>{@code "java.time.LocalDate"}</li>
+     *   <li>{@code "java.time.LocalDateTime"}</li>
+     *   <li>Fully qualified enum class name (e.g., {@code "com.example.MyEnum"})</li>
+     *   <li>{@code "java.util.EnumSet<com.example.MyEnum>"} — multi-select</li>
+     * </ul>
+     * If not specified, the type is inferred from the record component (inline parameters only).
      */
     String type() default "";
 }
