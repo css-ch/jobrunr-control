@@ -166,17 +166,17 @@
                                         <option value="">-- Bitte auswählen --</option>
                                     {/if}
                                     {#for enumValue in param.enumValues()}
-                                        <option value="{enumValue}"
+                                        <option value="{enumValue.value()}"
                                         {#if existingValues}
                                             {#if existingValues.get(param.name())}
-                                                    {#if existingValues.get(param.name()).toString() == enumValue}selected{/if}
+                                                    {#if existingValues.get(param.name()).toString() == enumValue.value()}selected{/if}
                                             {#else}
-                                                    {#if param.defaultValue() == enumValue}selected{/if}
+                                                    {#if param.defaultValue() == enumValue.value()}selected{/if}
                                             {/if}
                                         {#else}
-                                                {#if param.defaultValue() == enumValue}selected{/if}
+                                                {#if param.defaultValue() == enumValue.value()}selected{/if}
                                                 {/if}>
-                                            {enumValue}
+                                            {enumValue.label()}
                                         </option>
                                     {/for}
                                 </select>
@@ -190,17 +190,17 @@
                                         {#if param.required()}required{/if}
                                         {#if param.description()}title="{param.description()}" data-bs-toggle="tooltip" data-bs-placement="top"{/if}>
                                     {#for enumValue in param.enumValues()}
-                                        <option value="{enumValue}"
+                                        <option value="{enumValue.value()}"
                                         {#if existingValues}
                                             {#if existingValues.get(param.name())}
-                                                    {#if existingValues.get(param.name()).toString().contains(enumValue)}selected{/if}
+                                                    {#if existingValues.get(param.name()).toString().contains(enumValue.value())}selected{/if}
                                             {#else}
-                                                    {#if param.defaultValue() && param.defaultValue().contains(enumValue)}selected{/if}
+                                                    {#if param.defaultValue() && param.defaultValue().contains(enumValue.value())}selected{/if}
                                             {/if}
                                         {#else}
-                                                {#if param.defaultValue() && param.defaultValue().contains(enumValue)}selected{/if}
+                                                {#if param.defaultValue() && param.defaultValue().contains(enumValue.value())}selected{/if}
                                                 {/if}>
-                                            {enumValue}
+                                            {enumValue.label()}
                                         </option>
                                     {/for}
                                 </select>
