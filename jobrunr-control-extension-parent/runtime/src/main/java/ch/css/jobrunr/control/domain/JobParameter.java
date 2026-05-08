@@ -20,7 +20,7 @@ public record JobParameter(
         JobParameterType type,
         boolean required,
         String defaultValue,
-        List<String> enumValues,
+        List<EnumValue> enumValues,
         int order,
         String sectionId) {
 }

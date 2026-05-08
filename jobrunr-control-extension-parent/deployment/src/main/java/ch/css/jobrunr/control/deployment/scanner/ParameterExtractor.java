@@ -1,8 +1,10 @@
 package ch.css.jobrunr.control.deployment.scanner;
 
+import ch.css.jobrunr.control.annotations.JobEnum;
 import ch.css.jobrunr.control.annotations.JobParameterDefinition;
 import ch.css.jobrunr.control.annotations.JobParameterSectionLayout;
 import ch.css.jobrunr.control.annotations.JobParameterSet;
+import ch.css.jobrunr.control.domain.EnumValue;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterSection;
 import ch.css.jobrunr.control.domain.JobParameterType;
@@ -178,7 +180,7 @@ public class ParameterExtractor {
             parameterType = mapToJobParameterType(componentType);
         }
 
-        List<String> enumValues = getEnumValuesIfApplicable(componentType, parameterType);
+        List<EnumValue> enumValues = getEnumValuesIfApplicable(componentType, parameterType);
         return new JobParameter(name, displayName, description, parameterType, required, defaultValue, enumValues, order, sectionId);
     }
 
@@ -318,7 +320,7 @@ public class ParameterExtractor {
     /**
      * Gets enum values if the type is an enum or EnumSet.
      */
-    private List<String> getEnumValuesIfApplicable(Type type, JobParameterType parameterType) {
+    private List<EnumValue> getEnumValuesIfApplicable(Type type, JobParameterType parameterType) {
         if (parameterType != JobParameterType.ENUM && parameterType != JobParameterType.MULTI_ENUM) {
             return List.of();
         }
@@ -387,16 +389,19 @@ public class ParameterExtractor {
     /**
      * Extracts enum constant names from a ClassInfo.
      */
-    private List<String> extractEnumConstants(ClassInfo enumClassInfo) {
-        List<String> enumValues = new ArrayList<>();
+    private List<EnumValue> extractEnumConstants(ClassInfo enumClassInfo) {
+        List<EnumValue> enumValues = new ArrayList<>();
         for (FieldInfo field : enumClassInfo.fields()) {
             if (field.isEnumConstant()) {
-                enumValues.add(field.name());
+                AnnotationInstance labelAnnotation = field.annotation(DotName.createSimple(JobEnum.class.getName()));
+                String label = (labelAnnotation != null && labelAnnotation.value("label") != null && !labelAnnotation.value("label").asString().trim().isEmpty()) ? labelAnnotation.value("label").asString() : field.name();
+                int order = (labelAnnotation != null && labelAnnotation.value("order") != null) ? labelAnnotation.value("order").asInt() : 9999;
+                enumValues.add(new EnumValue(field.name(), label, order));
             }
         }
 
         LOG.debugf("Extracted %s enum values from %s: %s", enumValues.size(), enumClassInfo.name(), enumValues);
-        return enumValues;
+        return enumValues.stream().sorted().toList();
     }
 
     /**

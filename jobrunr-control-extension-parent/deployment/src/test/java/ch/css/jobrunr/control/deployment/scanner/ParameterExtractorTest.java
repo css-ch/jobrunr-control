@@ -1,7 +1,9 @@
 package ch.css.jobrunr.control.deployment.scanner;
 
+import ch.css.jobrunr.control.annotations.JobEnum;
 import ch.css.jobrunr.control.annotations.JobParameterDefinition;
 import ch.css.jobrunr.control.annotations.JobParameterSet;
+import ch.css.jobrunr.control.domain.EnumValue;
 import ch.css.jobrunr.control.domain.JobParameterType;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.IndexView;
@@ -136,9 +138,12 @@ class ParameterExtractorTest {
         assertEquals("status", param.name());
         assertEquals(JobParameterType.ENUM, param.type());
         assertEquals(3, param.enumValues().size());
-        assertTrue(param.enumValues().contains("PENDING"));
-        assertTrue(param.enumValues().contains("ACTIVE"));
-        assertTrue(param.enumValues().contains("COMPLETED"));
+        assertTrue(param.enumValues().stream().map(EnumValue::value).toList().contains("PENDING"));
+        assertTrue(param.enumValues().stream().map(EnumValue::value).toList().contains("ACTIVE"));
+        assertTrue(param.enumValues().stream().map(EnumValue::value).toList().contains("COMPLETED"));
+        EnumValue enumValue = param.enumValues().stream().filter(ev -> ev.value().equals("COMPLETED")).findFirst().orElseThrow();
+        assertEquals("fertig", enumValue.label());
+        assertEquals(24, enumValue.order());
     }
 
     @Test
@@ -233,7 +238,7 @@ class ParameterExtractorTest {
     }
 
     public enum TestEnum {
-        PENDING, ACTIVE, COMPLETED
+        PENDING, ACTIVE, @JobEnum(label = "fertig", order = 24) COMPLETED
     }
 
     public record InlineParametersRecord(String name, Integer count) {
