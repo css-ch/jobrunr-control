@@ -9,6 +9,7 @@ import ch.css.jobrunr.control.domain.JobParameterType;
 import org.jboss.jandex.*;
 import org.jboss.logging.Logger;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -340,6 +341,16 @@ public class ParameterExtractor {
 
         ClassInfo enumClassInfo = index.getClassByName(enumType.name());
         if (enumClassInfo == null) {
+            // Fallback: Versuche externe Lib zu indexieren
+            try {
+                IndexView externalIndex = buildIndexForExternalClass(enumType.name().toString());
+                enumClassInfo = externalIndex.getClassByName(enumType.name());
+            } catch (Exception e) {
+                LOG.debugf("Could not find class info for type: %s (not in Jandex index)", enumType.name());
+                return List.of();
+            }
+        }
+        if (enumClassInfo == null) {
             LOG.debugf("Could not find class info for type: %s", enumType.name());
             return List.of();
         }
@@ -350,6 +361,27 @@ public class ParameterExtractor {
         }
 
         return extractEnumConstants(enumClassInfo);
+    }
+
+    /**
+     * Build Jandex for a class, that has no Jandex included (e.g. because it's from an external library).
+     * This allows us to extract enum constants from enums that are not part of the application's Jandex index.
+     */
+    private static IndexView buildIndexForExternalClass(String className) {
+        Indexer indexer = new Indexer();
+        try {
+            Class<?> clazz = Class.forName(className);
+            URL classUrl = clazz.getProtectionDomain().getCodeSource().getLocation();
+
+            // Indexiere alle Klassen aus der JAR
+            indexer.indexClass(clazz);
+            LOG.debugf("Built Jandex index for external class: %s from %s", className, classUrl);
+
+            return indexer.complete();
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to build Jandex index for class: %s", className);
+            throw new IllegalStateException("Cannot index external class: " + className, e);
+        }
     }
 
     /**
