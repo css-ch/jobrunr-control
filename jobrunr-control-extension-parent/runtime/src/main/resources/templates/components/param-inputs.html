@@ -24,7 +24,7 @@
                                 {#if param.required()}
                                     <span class="text-danger">*</span>
                                 {/if}
-                                <small class="text-muted">(Typ: {param.type()})</small>
+                                <small class="text-muted">(Typ: {param.type()}{#if !param.required()}, optional{/if})</small>
                             </label>
 
                             {#if param.type().name() == 'STRING'}
