@@ -100,7 +100,7 @@
                 return;
             }
 
-            content.setAttribute('hx-get', '{cp}/templates/modal/new');
+            content.setAttribute('hx-get', '{cp}/scheduled/modal/new');
             htmx.process(content);
 
             if (loadContent) {
@@ -109,7 +109,7 @@
 
             const modalLabel = document.getElementById('jobModalLabel');
             if (modalLabel) {
-                modalLabel.textContent = 'Template planen';
+                modalLabel.textContent = 'Job planen';
             }
         }
 
@@ -141,7 +141,7 @@
 
         // Reset modal content when closed
         document.getElementById('jobModal').addEventListener('hidden.bs.modal', function () {
-            // Always restore new-template endpoint to avoid leaking previous edit state
+            // Always restore new-job endpoint to avoid leaking previous edit state
             resetScheduledModalToNew(true);
         });
 
