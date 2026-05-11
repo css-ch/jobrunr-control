@@ -100,7 +100,8 @@
                 return;
             }
 
-            content.setAttribute('hx-get', '{cp}/scheduled/modal/new');
+            // Append a cache-busting timestamp so HTMX never serves a cached (pre-filled) form
+            content.setAttribute('hx-get', '{cp}/scheduled/modal/new?_=' + Date.now());
             htmx.process(content);
 
             if (loadContent) {
