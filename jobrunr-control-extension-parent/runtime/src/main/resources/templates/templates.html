@@ -37,7 +37,7 @@
                         </div>
                         <div class="col-md-4 text-end">
                             {#if security:hasOneOfRole('configurator', 'admin')}
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#jobModal">
+                            <button class="btn btn-primary" type="button" onclick="openNewTemplateModal()">
                                 <i class="bi bi-plus-circle"></i> Neues Template erstellen
                             </button>
                             {/if}
@@ -81,7 +81,37 @@
     </div>
 
     <script>
-        // Auto-refresh every 10 seconds
+        function resetTemplateModalToNew(loadContent) {
+            const content = document.getElementById('modal-content');
+            if (!content) {
+                return;
+            }
+
+            content.setAttribute('hx-get', '{cp}/templates/modal/new');
+            htmx.process(content);
+
+            if (loadContent) {
+                htmx.trigger(content, 'load');
+            }
+
+            const modalLabel = document.getElementById('jobModalLabel');
+            if (modalLabel) {
+                modalLabel.textContent = 'Template planen';
+            }
+        }
+
+        function openNewTemplateModal() {
+            const modalElement = document.getElementById('jobModal');
+            if (!modalElement) {
+                return;
+            }
+
+            resetTemplateModalToNew(true);
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.show();
+        }
+
+         // Auto-refresh every 10 seconds
         setInterval(() => {
             htmx.trigger('#jobs-table', 'load');
         }, 10000);
@@ -98,9 +128,9 @@
 
         // Reset modal content when closed
         document.getElementById('jobModal').addEventListener('hidden.bs.modal', function () {
-            // Reload modal content for next use
-            htmx.trigger('#modal-content', 'load');
-        });
+            // Always restore new-template endpoint to avoid leaking previous edit state
+            resetTemplateModalToNew(true);
+         });
 
         // Scroll modal to top on error (server sends HX-Trigger: scrollToError)
         document.body.addEventListener('scrollToError', function() {
