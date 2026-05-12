@@ -81,6 +81,26 @@
     </div>
 
     <script>
+        function showFormAlert(form, message) {
+            if (!form) {
+                return;
+            }
+            const alertsContainer = form.querySelector('#form-alerts');
+            if (!alertsContainer) {
+                return;
+            }
+            alertsContainer.innerHTML =
+                '<div class="alert alert-danger alert-dismissible fade show" role="alert">'
+                + '<i class="bi bi-exclamation-triangle-fill"></i> <strong>Fehler:</strong> ' + message
+                + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>'
+                + '</div>';
+            const modalBody = document.querySelector('#jobModal .modal-body');
+            if (modalBody) {
+                modalBody.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Auto-refresh every 10 seconds
         function resetTemplateModalToNew(loadContent) {
             const content = document.getElementById('modal-content');
             if (!content) {
@@ -150,6 +170,44 @@
                     alertsContainer.innerHTML = '';
                 }
             }
+        });
+
+        // Show browser validation message in the modal instead of silent submit-blocking
+        document.body.addEventListener('invalid', function(event) {
+            const field = event.target;
+            if (!field) {
+                return;
+            }
+            const form = field.form;
+            if (!form || (form.id !== 'templateForm' && form.id !== 'jobForm')) {
+                return;
+            }
+            showFormAlert(form, field.validationMessage || 'Bitte Eingaben im Formular pruefen.');
+        }, true);
+
+        // Catch backend rejections (e.g. HTTP 413 when a form attribute exceeds server limits)
+        document.body.addEventListener('htmx:responseError', function(event) {
+            const elt = event.detail && event.detail.elt;
+            const form = elt && elt.closest ? elt.closest('form') : null;
+            if (!form || (form.id !== 'templateForm' && form.id !== 'jobForm')) {
+                return;
+            }
+            const xhr = event.detail && event.detail.xhr;
+            if (xhr && xhr.status === 413) {
+                showFormAlert(form, 'Die Eingabe ist zu gross fuer den Server (HTTP 413). Bitte Text kuerzen oder die Server-Limite erhoehen.');
+                return;
+            }
+            showFormAlert(form, 'Speichern fehlgeschlagen. Bitte Eingaben und Groesse pruefen.');
+        });
+
+        // Catch network-level submit failures where no HTTP response is available
+        document.body.addEventListener('htmx:sendError', function(event) {
+            const elt = event.detail && event.detail.elt;
+            const form = elt && elt.closest ? elt.closest('form') : null;
+            if (!form || (form.id !== 'templateForm' && form.id !== 'jobForm')) {
+                return;
+            }
+            showFormAlert(form, 'Request konnte nicht gesendet werden. Bitte Verbindung und Eingabegroesse pruefen.');
         });
     </script>
 {/content}
