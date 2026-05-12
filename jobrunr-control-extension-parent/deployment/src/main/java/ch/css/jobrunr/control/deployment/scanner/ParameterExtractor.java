@@ -122,6 +122,7 @@ public class ParameterExtractor {
         String defaultValue = null;
         boolean required = true;
         JobParameterType parameterType = null;
+        int maxlength = 2000;
 
         if (jobParamAnnotation != null) {
             // Extract name if specified
@@ -154,6 +155,12 @@ public class ParameterExtractor {
                 order = orderValue.asInt();
             }
 
+            // Extract name if specified
+            AnnotationValue maxlengthValue = jobParamAnnotation.value("maxlength");
+            if (maxlengthValue != null) {
+                maxlength = maxlengthValue.asInt();
+            }
+
             // Extract default value if specified
             AnnotationValue defaultValueAnnotation = jobParamAnnotation.value("defaultValue");
             if (defaultValueAnnotation != null && !defaultValueAnnotation.asString().equals(JobParameterDefinition.NO_DEFAULT_VALUE)) {
@@ -181,7 +188,7 @@ public class ParameterExtractor {
         }
 
         List<EnumValue> enumValues = getEnumValuesIfApplicable(componentType, parameterType);
-        return new JobParameter(name, displayName, description, parameterType, required, defaultValue, enumValues, order, sectionId);
+        return new JobParameter(name, displayName, description, parameterType, required, defaultValue, enumValues, order, maxlength, sectionId);
     }
 
     /**

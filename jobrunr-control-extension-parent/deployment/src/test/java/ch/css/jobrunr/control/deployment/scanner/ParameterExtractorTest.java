@@ -171,6 +171,7 @@ class ParameterExtractorTest {
         var param1 = result.parameters().getFirst();
         assertEquals("Custom Name", param1.name());
         assertEquals("default value", param1.defaultValue());
+        assertEquals(113, param1.maxlength());
         assertTrue(param1.required());
 
         var param2 = result.parameters().get(1);
@@ -265,7 +266,7 @@ class ParameterExtractorTest {
     }
 
     public record CustomNameParametersRecord(
-            @JobParameterDefinition(name = "Custom Name", defaultValue = "default value")
+            @JobParameterDefinition(name = "Custom Name", defaultValue = "default value", maxlength = 113)
             String field1,
             @JobParameterDefinition(name = "Another Custom Name")
             Integer field2

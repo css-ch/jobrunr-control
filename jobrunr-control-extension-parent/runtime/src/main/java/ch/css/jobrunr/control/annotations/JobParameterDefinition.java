@@ -43,6 +43,12 @@ public @interface JobParameterDefinition {
     int order() default 9999;
 
     /**
+     * Defines the maximum length for String and multiline parameters.
+     * For larger values, adjust `quarkus.http.limits.max-form-attribute-size` and 'quarkus.http.limits.max-body-size' accordingly.
+     */
+    int maxlength() default 2000;
+
+    /**
      * Whether the parameter must be provided by the user.
      * Defaults to {@code true}. Set to {@code false} to declare an optional parameter.
      * A {@link #defaultValue()} does not influence this flag; the two properties are independent.

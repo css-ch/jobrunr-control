@@ -100,6 +100,36 @@
             }
         }
 
+        function updateFieldCounter(field) {
+            const max = Number.parseInt(field.getAttribute('maxlength'), 10);
+            if (!Number.isFinite(max) || !field.id) {
+                return;
+            }
+            const counter = document.querySelector('[data-counter-for="' + field.id + '"]');
+            if (!counter) {
+                return;
+            }
+            const remaining = max - field.value.length;
+            counter.textContent = 'Verbleibend: ' + remaining + ' von ' + max;
+            counter.classList.toggle('text-danger', remaining < 0);
+        }
+
+        function initFieldCounters(root) {
+            const scope = root || document;
+            scope.querySelectorAll('textarea[maxlength], input[maxlength]').forEach(function(field) {
+                updateFieldCounter(field);
+                if (field.dataset.counterBound === 'true') {
+                    return;
+                }
+                field.addEventListener('input', function() {
+                    updateFieldCounter(field);
+                });
+                field.dataset.counterBound = 'true';
+            });
+        }
+
+        initFieldCounters(document);
+
         // Auto-refresh every 10 seconds
         function resetTemplateModalToNew(loadContent) {
             const content = document.getElementById('modal-content');
@@ -208,6 +238,14 @@
                 return;
             }
             showFormAlert(form, 'Request konnte nicht gesendet werden. Bitte Verbindung und Eingabegroesse pruefen.');
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            if (!event || !event.detail || !event.detail.target) {
+                initFieldCounters(document);
+                return;
+            }
+            initFieldCounters(event.detail.target);
         });
     </script>
 {/content}

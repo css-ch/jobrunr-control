@@ -32,6 +32,7 @@
                                        name="parameters.{param.name()}"
                                        id="param-{param.name()}"
                                        class="form-control"
+                                       maxlength="{param.maxlength()}"
                                        {#if param.required()}required{/if}
                                         {#if existingValues}
                                             {#if existingValues.get(param.name())}
@@ -47,18 +48,19 @@
                                             {/if}
                                         {/if}
                                        {#if param.description()}title="{param.description()}" data-bs-toggle="tooltip" data-bs-placement="top"{/if}
-                                       placeholder="Text eingeben">
+                                       placeholder="Text eingeben (max. {param.maxlength()} Zeichen)">
+                                <small class="form-text text-muted" data-counter-for="param-{param.name()}">Verbleibend: - von {param.maxlength()}</small>
 
                             {#else if param.type().name() == 'MULTILINE'}
                                 <textarea name="parameters.{param.name()}"
                                           id="param-{param.name()}"
                                           class="form-control"
                                           rows="5"
-                                          maxlength="2000"
+                                          maxlength="{param.maxlength()}"
                                           {#if param.required()}required{/if}
                                           {#if param.description()}title="{param.description()}" data-bs-toggle="tooltip" data-bs-placement="top"{/if}
-                                          placeholder="Mehrzeiliger Text eingeben (max. 2000 Zeichen)">{#if existingValues}{#if existingValues.get(param.name())}{existingValues.get(param.name())}{#else}{#if param.defaultValue()}{param.defaultValue()}{/if}{/if}{#else}{#if param.defaultValue()}{param.defaultValue()}{/if}{/if}</textarea>
-                                <small class="form-text text-muted">Maximal 2000 Zeichen</small>
+                                          placeholder="Mehrzeiliger Text eingeben (max. {param.maxlength()} Zeichen)">{#if existingValues}{#if existingValues.get(param.name())}{existingValues.get(param.name())}{#else}{#if param.defaultValue()}{param.defaultValue()}{/if}{/if}{#else}{#if param.defaultValue()}{param.defaultValue()}{/if}{/if}</textarea>
+                                <small class="form-text text-muted" data-counter-for="param-{param.name()}">Verbleibend: - von {param.maxlength()}</small>
 
                             {#else if param.type().name() == 'INTEGER'}
                                 <input type="number"

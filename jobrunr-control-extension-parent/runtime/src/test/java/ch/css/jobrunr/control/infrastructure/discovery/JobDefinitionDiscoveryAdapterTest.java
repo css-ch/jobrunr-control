@@ -156,8 +156,8 @@ class JobDefinitionDiscoveryAdapterTest {
                 "com.example." + jobType + "Request",       // jobRequestTypeName
                 "com.example." + jobType + "Handler",       // handlerClassName
                 List.of(                                    // parameters
-                        new JobParameter("param1", "param1", null, JobParameterType.STRING, false, null, List.of(), 0, "default"),
-                        new JobParameter("param2", "param2", null, JobParameterType.INTEGER, true, "42", List.of(), 1, "default")
+                        new JobParameter("param1", "param1", null, JobParameterType.STRING, false, null, List.of(), 0, 2000, "default"),
+                        new JobParameter("param2", "param2", null, JobParameterType.INTEGER, true, "42", List.of(), 1, 2000, "default")
                 ),
                 List.of(),
                 new JobSettings(                            // jobSettings
