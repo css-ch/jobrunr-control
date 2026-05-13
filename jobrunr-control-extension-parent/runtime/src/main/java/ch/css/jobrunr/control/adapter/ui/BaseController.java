@@ -21,6 +21,17 @@ public abstract class BaseController {
 
     private static final Logger LOG = Logger.getLogger(BaseController.class);
 
+    private final JobSearchUtils searchUtils;
+
+    // Only for the Proxy
+    protected BaseController() {
+        this.searchUtils = null;
+    }
+
+    protected BaseController(JobSearchUtils searchUtils) {
+        this.searchUtils = searchUtils;
+    }
+
     /**
      * Parses a scheduled time string into an Instant.
      * Converts LocalDateTime from form input to Instant using system default timezone.
@@ -168,7 +179,7 @@ public abstract class BaseController {
         }
 
         // Apply search
-        List<ScheduledJobInfo> searchedJobs = JobSearchUtils.applySearchToScheduledJobs(search, filteredJobs);
+        List<ScheduledJobInfo> searchedJobs = searchUtils.applySearchToScheduledJobs(search, filteredJobs);
 
         // Apply sorting
         Comparator<ScheduledJobInfo> comparator = comparatorSupplier.apply(sortBy);

@@ -59,17 +59,19 @@ public class JobExecutionsController {
     private final ResolveParametersUseCase resolveParametersUseCase;
     private final GetBatchProgressUseCase getBatchProgressUseCase;
     private final JobRunrControlUiConfig uiConfig;
+    private final JobSearchUtils searchUtils;
 
     @Inject
     public JobExecutionsController(
             GetJobExecutionHistoryUseCase getHistoryUseCase,
             ResolveParametersUseCase resolveParametersUseCase,
             GetBatchProgressUseCase getBatchProgressUseCase,
-            JobRunrControlUiConfig uiConfig) {
+            JobRunrControlUiConfig uiConfig, JobSearchUtils searchUtils) {
         this.getHistoryUseCase = getHistoryUseCase;
         this.resolveParametersUseCase = resolveParametersUseCase;
         this.getBatchProgressUseCase = getBatchProgressUseCase;
         this.uiConfig = uiConfig;
+        this.searchUtils = searchUtils;
     }
 
     public void handleIndex(RoutingContext ctx) {
@@ -106,7 +108,7 @@ public class JobExecutionsController {
                     .toList();
         }
 
-        executions = JobSearchUtils.applySearchToExecutions(search, executions);
+        executions = searchUtils.applySearchToExecutions(search, executions);
 
         Comparator<JobExecutionInfo> comparator = getExecutionComparator(sortBy);
         if ("desc".equalsIgnoreCase(sortOrder)) {

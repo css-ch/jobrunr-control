@@ -91,7 +91,9 @@ public class TemplatesController extends BaseController {
             DeleteTemplateUseCase deleteTemplateUseCase,
             CloneTemplateUseCase cloneTemplateUseCase,
             StartJobUseCase startJobUseCase,
-            JobRunrControlUiConfig uiConfig) {
+            JobRunrControlUiConfig uiConfig,
+            JobSearchUtils searchUtils) {
+        super(searchUtils);
         this.discoverJobsUseCase = discoverJobsUseCase;
         this.getJobParametersUseCase = getJobParametersUseCase;
         this.resolveParametersUseCase = resolveParametersUseCase;

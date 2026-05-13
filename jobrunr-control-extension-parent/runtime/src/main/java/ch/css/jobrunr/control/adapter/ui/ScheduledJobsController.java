@@ -98,7 +98,9 @@ public class ScheduledJobsController extends BaseController {
             UpdateScheduledJobUseCase updateJobUseCase,
             DeleteScheduledJobUseCase deleteJobUseCase,
             ExecuteScheduledJobUseCase executeScheduledJobUseCase,
-            JobRunrControlUiConfig uiConfig) {
+            JobRunrControlUiConfig uiConfig,
+            JobSearchUtils searchUtils) {
+        super(searchUtils);
         this.discoverJobsUseCase = discoverJobsUseCase;
         this.getJobParametersUseCase = getJobParametersUseCase;
         this.resolveParametersUseCase = resolveParametersUseCase;

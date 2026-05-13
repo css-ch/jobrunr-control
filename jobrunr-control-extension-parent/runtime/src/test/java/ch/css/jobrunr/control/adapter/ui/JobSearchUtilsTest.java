@@ -1,7 +1,9 @@
 package ch.css.jobrunr.control.adapter.ui;
 
+import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.domain.*;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.time.Instant;
 import java.util.List;
@@ -24,11 +26,13 @@ class JobSearchUtilsTest {
             null
     );
 
+    private JobSearchUtils testee = new JobSearchUtils(new ResolveParametersUseCase(Mockito.mock(ParameterStorageService.class)));
+
     @Test
     void shouldReturnAllExecutionsWhenSearchIsBlank() {
         List<JobExecutionInfo> executions = createTestExecutions();
 
-        List<JobExecutionInfo> result = JobSearchUtils.applySearchToExecutions("", executions);
+        List<JobExecutionInfo> result = testee.applySearchToExecutions("", executions);
 
         assertEquals(executions.size(), result.size());
     }
@@ -37,7 +41,7 @@ class JobSearchUtilsTest {
     void shouldReturnAllExecutionsWhenSearchIsNull() {
         List<JobExecutionInfo> executions = createTestExecutions();
 
-        List<JobExecutionInfo> result = JobSearchUtils.applySearchToExecutions(null, executions);
+        List<JobExecutionInfo> result = testee.applySearchToExecutions(null, executions);
 
         assertEquals(executions.size(), result.size());
     }
@@ -46,7 +50,7 @@ class JobSearchUtilsTest {
     void shouldFilterExecutionsByJobName() {
         List<JobExecutionInfo> executions = createTestExecutions();
 
-        List<JobExecutionInfo> result = JobSearchUtils.applySearchToExecutions("monthly", executions);
+        List<JobExecutionInfo> result = testee.applySearchToExecutions("monthly", executions);
 
         assertEquals(1, result.size());
         assertTrue(result.getFirst().getJobName().toLowerCase().contains("monthly"));
@@ -56,7 +60,7 @@ class JobSearchUtilsTest {
     void shouldFilterExecutionsByJobType() {
         List<JobExecutionInfo> executions = createTestExecutions();
 
-        List<JobExecutionInfo> result = JobSearchUtils.applySearchToExecutions("BatchJob", executions);
+        List<JobExecutionInfo> result = testee.applySearchToExecutions("BatchJob", executions);
 
         assertEquals(1, result.size());
         assertTrue(result.getFirst().getJobType().contains("BatchJob"));
@@ -66,7 +70,7 @@ class JobSearchUtilsTest {
     void shouldFilterExecutionsByParameterKeyValue() {
         List<JobExecutionInfo> executions = createTestExecutions();
 
-        List<JobExecutionInfo> result = JobSearchUtils.applySearchToExecutions("region=EU", executions);
+        List<JobExecutionInfo> result = testee.applySearchToExecutions("region=EU", executions);
 
         assertEquals(1, result.size());
         assertEquals("EU", result.getFirst().getParameters().get("region"));
@@ -76,7 +80,7 @@ class JobSearchUtilsTest {
     void shouldFilterExecutionsByMetadataKeyValue() {
         List<JobExecutionInfo> executions = createTestExecutions();
 
-        List<JobExecutionInfo> result = JobSearchUtils.applySearchToExecutions("priority=high", executions);
+        List<JobExecutionInfo> result = testee.applySearchToExecutions("priority=high", executions);
 
         assertEquals(1, result.size());
         assertEquals("high", result.getFirst().getMetadata().get("priority"));
@@ -86,7 +90,7 @@ class JobSearchUtilsTest {
     void shouldReturnAllScheduledJobsWhenSearchIsBlank() {
         List<ScheduledJobInfo> jobs = createTestScheduledJobs();
 
-        List<ScheduledJobInfo> result = JobSearchUtils.applySearchToScheduledJobs("", jobs);
+        List<ScheduledJobInfo> result = testee.applySearchToScheduledJobs("", jobs);
 
         assertEquals(jobs.size(), result.size());
     }
@@ -95,7 +99,7 @@ class JobSearchUtilsTest {
     void shouldFilterScheduledJobsByJobName() {
         List<ScheduledJobInfo> jobs = createTestScheduledJobs();
 
-        List<ScheduledJobInfo> result = JobSearchUtils.applySearchToScheduledJobs("daily", jobs);
+        List<ScheduledJobInfo> result = testee.applySearchToScheduledJobs("daily", jobs);
 
         assertEquals(1, result.size());
         assertTrue(result.getFirst().jobName().toLowerCase().contains("daily"));
@@ -105,7 +109,7 @@ class JobSearchUtilsTest {
     void shouldFilterScheduledJobsByParameterKeyValue() {
         List<ScheduledJobInfo> jobs = createTestScheduledJobs();
 
-        List<ScheduledJobInfo> result = JobSearchUtils.applySearchToScheduledJobs("env=prod", jobs);
+        List<ScheduledJobInfo> result = testee.applySearchToScheduledJobs("env=prod", jobs);
 
         assertEquals(1, result.size());
         assertEquals("prod", result.getFirst().parameters().get("env"));
