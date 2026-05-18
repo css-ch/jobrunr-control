@@ -199,6 +199,7 @@
             <div>
                 <select class="form-select form-select-sm"
                         style="width: auto;"
+                        onchange="jrcSetPageSize('scheduled', this.value)"
                         hx-get="{cp}/scheduled/table"
                         hx-trigger="change"
                         hx-vals='js:{"page": 0, "sortBy": "{sortBy}", "sortOrder": "{sortOrder}", "search": "{search}", "filter": "{filter}", "jobType": "{jobType}", "size": event.target.value}'

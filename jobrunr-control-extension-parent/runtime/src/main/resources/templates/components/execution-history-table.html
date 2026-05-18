@@ -255,6 +255,7 @@
             <div>
                 <select class="form-select form-select-sm"
                         style="width: auto;"
+                        onchange="jrcSetPageSize('history', this.value)"
                         hx-get="{cp}/history/table"
                         hx-trigger="change"
                         hx-vals='js:&#123;"page": 0, "sortBy": "{sortBy}", "sortOrder": "{sortOrder}", "search": "{search}", "status-filter": "{statusFilter}", "size": event.target.value&#125;'

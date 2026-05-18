@@ -17,7 +17,7 @@
                                    hx-get="{cp}/templates/table"
                                    hx-trigger="keyup changed delay:300ms"
                                    hx-target="#jobs-table"
-                                   hx-vals='js:&#123;"page": "0", "size": "10", "sortBy": "jobName", "sortOrder": "asc"&#125;'
+                                   hx-vals='js:&#123;"page": "0", "size": jrcPageSize("templates"), "sortBy": "jobName", "sortOrder": "asc"&#125;'
                                    hx-include="[name='jobType']">
                         </div>
                         <div class="col-md-3">
@@ -27,7 +27,7 @@
                                     class="form-select"
                                     hx-get="{cp}/templates/table"
                                     hx-target="#jobs-table"
-                                    hx-vals='{"page": "0", "size": "10", "sortBy": "jobName", "sortOrder": "asc"}'
+                                    hx-vals='js:&#123;"page": "0", "size": jrcPageSize("templates"), "sortBy": "jobName", "sortOrder": "asc"&#125;'
                                     hx-include="[name='search']">
                                 <option value="all">Alle Job-Typen</option>
                                 {#for jobDef in availableJobTypes}
@@ -51,6 +51,7 @@
     <div id="jobs-table"
          hx-get="{cp}/templates/table"
          hx-trigger="load"
+         hx-vals='js:&#123;"size": jrcPageSize("templates")&#125;'
          hx-swap="outerHTML">
         <div class="text-center py-5">
             <div class="spinner-border text-primary" aria-hidden="true"></div>

@@ -188,6 +188,7 @@
             <div>
                 <select class="form-select form-select-sm"
                         style="width: auto;"
+                        onchange="jrcSetPageSize('templates', this.value)"
                         hx-get="{cp}/templates/table"
                         hx-trigger="change"
                         hx-vals='js:{"page": 0, "sortBy": "{sortBy}", "sortOrder": "{sortOrder}", "search": "{search}", "jobType": "{jobType}", "size": event.target.value}'

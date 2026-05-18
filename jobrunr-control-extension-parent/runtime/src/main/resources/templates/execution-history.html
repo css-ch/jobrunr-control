@@ -17,6 +17,7 @@
                                    hx-get="{cp}/history/table"
                                    hx-trigger="keyup changed delay:300ms"
                                    hx-target="#history-table"
+                                   hx-vals='js:&#123;"size": jrcPageSize("history")&#125;'
                                    hx-include="[name='status-filter']">
                         </div>
                         <div class="col-md-4">
@@ -24,6 +25,7 @@
                                     class="form-select"
                                     hx-get="{cp}/history/table"
                                     hx-target="#history-table"
+                                    hx-vals='js:&#123;"size": jrcPageSize("history")&#125;'
                                     hx-include="[name='search']">
                                 <option value="all">Alle Status</option>
                                 <option value="SUCCEEDED">Erfolgreich</option>
@@ -37,6 +39,7 @@
                                     id="refresh-btn"
                                     hx-get="{cp}/history/table"
                                     hx-target="#history-table"
+                                    hx-vals='js:&#123;"size": jrcPageSize("history")&#125;'
                                     hx-include="[name='search'],[name='status-filter']"
                                     hx-disabled-elt="this">
                                 <span class="htmx-indicator spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
@@ -52,6 +55,7 @@
     <div id="history-table"
          hx-get="{cp}/history/table"
          hx-trigger="load"
+         hx-vals='js:&#123;"size": jrcPageSize("history")&#125;'
          hx-swap="innerHTML">
         <div class="text-center py-5">
             <div class="spinner-border text-primary" role="status">
