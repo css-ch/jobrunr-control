@@ -47,7 +47,7 @@
                         </div>
                         <div class="col-md-4 text-end">
                             {#if security:hasOneOfRole('configurator', 'admin')}
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#jobModal">
+                            <button class="btn btn-primary" type="button" onclick="openNewScheduledModal()">
                                 <i class="bi bi-plus-circle"></i> Neuen Job erstellen
                             </button>
                             {/if}
@@ -94,6 +94,37 @@
     </div>
 
     <script>
+        function resetScheduledModalToNew(loadContent) {
+            const content = document.getElementById('modal-content');
+            if (!content) {
+                return;
+            }
+
+            // Append a cache-busting timestamp so HTMX never serves a cached (pre-filled) form
+            content.setAttribute('hx-get', '{cp}/scheduled/modal/new?_=' + Date.now());
+            htmx.process(content);
+
+            if (loadContent) {
+                htmx.trigger(content, 'load');
+            }
+
+            const modalLabel = document.getElementById('jobModalLabel');
+            if (modalLabel) {
+                modalLabel.textContent = 'Job planen';
+            }
+        }
+
+        function openNewScheduledModal() {
+            const modalElement = document.getElementById('jobModal');
+            if (!modalElement) {
+                return;
+            }
+
+            resetScheduledModalToNew(true);
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.show();
+        }
+
         // Auto-refresh every 10 seconds
         setInterval(() => {
             htmx.trigger('#jobs-table', 'load');
@@ -111,8 +142,8 @@
 
         // Reset modal content when closed
         document.getElementById('jobModal').addEventListener('hidden.bs.modal', function () {
-            // Reload modal content for next use
-            htmx.trigger('#modal-content', 'load');
+            // Always restore new-job endpoint to avoid leaking previous edit state
+            resetScheduledModalToNew(true);
         });
 
         // Scroll modal to top on error (server sends HX-Trigger: scrollToError)
