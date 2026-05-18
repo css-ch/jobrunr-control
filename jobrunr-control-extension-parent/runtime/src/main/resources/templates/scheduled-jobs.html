@@ -17,7 +17,7 @@
                                    hx-get="{cp}/scheduled/table"
                                    hx-trigger="keyup changed delay:300ms"
                                    hx-target="#jobs-table"
-                                   hx-vals='{"page": "0", "size": "10", "sortBy": "scheduledAt", "sortOrder": "asc"}'
+                                   hx-vals='js:&#123;"page": "0", "size": jrcPageSize("scheduled"), "sortBy": "scheduledAt", "sortOrder": "asc"&#125;'
                                    hx-include="[name='filter'], [name='jobType']">
                         </div>
                         <div class="col-md-2">
@@ -25,7 +25,7 @@
                                     class="form-select"
                                     hx-get="{cp}/scheduled/table"
                                     hx-target="#jobs-table"
-                                    hx-vals='{"page": "0", "size": "10", "sortBy": "scheduledAt", "sortOrder": "asc"}'
+                                    hx-vals='js:&#123;"page": "0", "size": jrcPageSize("scheduled"), "sortBy": "scheduledAt", "sortOrder": "asc"&#125;'
                                     hx-include="[name='search'], [name='jobType']">
                                 <option value="all">Alle Jobs</option>
                                 <option value="external">Nur externe</option>
@@ -37,7 +37,7 @@
                                     class="form-select"
                                     hx-get="{cp}/scheduled/table"
                                     hx-target="#jobs-table"
-                                    hx-vals='{"page": "0", "size": "10", "sortBy": "scheduledAt", "sortOrder": "asc"}'
+                                    hx-vals='js:&#123;"page": "0", "size": jrcPageSize("scheduled"), "sortBy": "scheduledAt", "sortOrder": "asc"&#125;'
                                     hx-include="[name='search'], [name='filter']">
                                 <option value="all">Alle Typen</option>
                                 {#for jobDef in availableJobTypes}
@@ -61,6 +61,7 @@
     <div id="jobs-table"
          hx-get="{cp}/scheduled/table"
          hx-trigger="load"
+         hx-vals='js:&#123;"size": jrcPageSize("scheduled")&#125;'
          hx-swap="outerHTML">
         <div class="text-center py-5">
             <output class="spinner-border text-primary">

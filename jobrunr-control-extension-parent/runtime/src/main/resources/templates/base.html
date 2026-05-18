@@ -114,6 +114,24 @@
     </footer>
 
     <script>
+        // Persist page-size preference per list in localStorage so it survives
+        // reloads and navigation. Allowed values mirror the <select> options.
+        (function() {
+            const allowed = [5, 10, 25, 50];
+            const defaultSize = 10;
+            window.jrcPageSize = function(key) {
+                const raw = localStorage.getItem('jrc.pageSize.' + key);
+                const value = parseInt(raw, 10);
+                return allowed.includes(value) ? value : defaultSize;
+            };
+            window.jrcSetPageSize = function(key, value) {
+                const parsed = parseInt(value, 10);
+                if (allowed.includes(parsed)) {
+                    localStorage.setItem('jrc.pageSize.' + key, String(parsed));
+                }
+            };
+        })();
+
         // Initialize Bootstrap tooltips
         document.addEventListener('DOMContentLoaded', function() {
             const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
