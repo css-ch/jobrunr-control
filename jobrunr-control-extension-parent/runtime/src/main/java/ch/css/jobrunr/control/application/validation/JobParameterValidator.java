@@ -58,7 +58,7 @@ public class JobParameterValidator {
 
             // Validate and convert type
             try {
-                convertedParams.put(param.name(), convertAndValidate(param.name(), param.type(), value));
+                convertedParams.put(param.name(), convertAndValidate(param.displayName(), param.type(), value));
             } catch (ValidationException e) {
                 errors.addAll(e.getErrors());
             }
@@ -91,13 +91,13 @@ public class JobParameterValidator {
     /**
      * Validates and converts a single parameter value.
      *
-     * @param name  Parameter name
+     * @param displayName  Parameter displayName
      * @param type  Expected type
      * @param value Value to validate
      * @return Converted value
      * @throws ValidationException when the value does not match the type
      */
-    private Object convertAndValidate(String name, JobParameterType type, String value) {
+    private Object convertAndValidate(String displayName, JobParameterType type, String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
@@ -105,17 +105,17 @@ public class JobParameterValidator {
         try {
             return switch (type) {
                 case STRING, ENUM, MULTILINE -> convertToString(value);
-                case INTEGER -> convertToInteger(name, value);
-                case DOUBLE -> convertToDouble(name, value);
-                case BOOLEAN -> convertToBoolean(name, value);
-                case DATE -> convertToDate(name, value);
-                case DATETIME -> convertToDateTime(name, value);
+                case INTEGER -> convertToInteger(displayName, value);
+                case DOUBLE -> convertToDouble(displayName, value);
+                case BOOLEAN -> convertToBoolean(displayName, value);
+                case DATE -> convertToDate(displayName, value);
+                case DATETIME -> convertToDateTime(displayName, value);
                 case MULTI_ENUM -> convertToStringList(value);
             };
         } catch (ValidationException e) {
             throw e;
         } catch (Exception e) {
-            throw new ValidationException("Parameter '" + name + "': " + e.getMessage());
+            throw new ValidationException("Parameter '" + displayName + "': " + e.getMessage());
         }
     }
 
@@ -141,29 +141,29 @@ public class JobParameterValidator {
                 .toList();
     }
 
-    private Integer convertToInteger(String name, Object value) {
+    private Integer convertToInteger(String displayName, Object value) {
         try {
             if (value instanceof Number) {
                 return ((Number) value).intValue();
             }
             return Integer.parseInt(value.toString());
         } catch (NumberFormatException e) {
-            throw new ValidationException("Parameter '" + name + "' muss eine ganze Zahl sein");
+            throw new ValidationException("Parameter '" + displayName + "' muss eine ganze Zahl sein");
         }
     }
 
-    private Double convertToDouble(String name, Object value) {
+    private Double convertToDouble(String displayName, Object value) {
         try {
             if (value instanceof Number) {
                 return ((Number) value).doubleValue();
             }
             return Double.parseDouble(value.toString());
         } catch (NumberFormatException e) {
-            throw new ValidationException("Parameter '" + name + "' muss eine Zahl sein");
+            throw new ValidationException("Parameter '" + displayName + "' muss eine Zahl sein");
         }
     }
 
-    private Boolean convertToBoolean(String name, Object value) {
+    private Boolean convertToBoolean(String displayName, Object value) {
         if (value instanceof Boolean) {
             return (Boolean) value;
         }
@@ -171,10 +171,10 @@ public class JobParameterValidator {
         if ("true".equals(strValue) || "false".equals(strValue)) {
             return Boolean.parseBoolean(strValue);
         }
-        throw new ValidationException("Parameter '" + name + "' muss 'true' oder 'false' sein");
+        throw new ValidationException("Parameter '" + displayName + "' muss 'true' oder 'false' sein");
     }
 
-    private LocalDate convertToDate(String name, Object value) {
+    private LocalDate convertToDate(String displayName, Object value) {
         if (value instanceof LocalDate) {
             return (LocalDate) value;
         }
@@ -182,12 +182,12 @@ public class JobParameterValidator {
             return LocalDate.parse(value.toString());
         } catch (DateTimeParseException e) {
             throw new ValidationException(
-                    "Parameter '" + name + "' muss ein gültiges Datum im Format YYYY-MM-DD sein"
+                    "Parameter '" + displayName + "' muss ein gültiges Datum sein"
             );
         }
     }
 
-    private LocalDateTime convertToDateTime(String name, Object value) {
+    private LocalDateTime convertToDateTime(String displayName, Object value) {
         if (value instanceof LocalDateTime) {
             return (LocalDateTime) value;
         }
@@ -195,7 +195,7 @@ public class JobParameterValidator {
             return LocalDateTime.parse(value.toString());
         } catch (DateTimeParseException e) {
             throw new ValidationException(
-                    "Parameter '" + name + "' muss ein gültiges Datum-Zeit im Format YYYY-MM-DDTHH:mm:ss sein"
+                    "Parameter '" + displayName + "' muss ein gültiges Datum-Zeit sein"
             );
         }
     }
