@@ -3,7 +3,7 @@ package ch.css.jobrunr.control.adapter.ui;
 import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
-import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.util.List;
@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * Utility class for searching jobs by name, type, parameters, and metadata.
  */
-@Dependent
+@ApplicationScoped
 public class JobSearchUtils {
 
     private final ResolveParametersUseCase resolveParametersUseCase;
