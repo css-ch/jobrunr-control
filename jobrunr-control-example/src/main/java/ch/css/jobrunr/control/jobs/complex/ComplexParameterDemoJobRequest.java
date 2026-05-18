@@ -37,6 +37,7 @@ public record ComplexParameterDemoJobRequest(
                 defaultValue = "",
                 sectionId = "filter",
                 order = 4,
+                maxlength = 200,
                 description = "Filtert die Druckaufträge nach den angegebenen Policen-Nr(s). Es können mehrere Policen-Nr(s) als Zeilenumbruch- oder kommaseparierte Liste eingegeben werden. Es werden nur Druckaufträge berücksichtigt, die eine der angegebenen Policen-Nr(s) enthalten.")
         @Pattern(regexp = "[0-9]*",
                 message = "Ungültiges Format für PoliceNrs-Einschluss")
@@ -96,6 +97,7 @@ public record ComplexParameterDemoJobRequest(
                 defaultValue = "",
                 sectionId = "steuerung",
                 order = 4,
+                maxlength = 10,
                 description = "Geben Sie hier die Beilagen-Nr(s) an, die zusätzlich im Brief mitgesendet werden. Es können mehrere Beilagen-Nr(s) als Kommaseparierte Liste eingegeben werden.")
         String steuerungBeilageNrs
 ) implements JobRequest {
