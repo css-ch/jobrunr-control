@@ -1,7 +1,10 @@
 package ch.css.jobrunr.control.adapter.ui;
 
+import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import ch.css.jobrunr.control.domain.ScheduledJobInfo;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Map;
@@ -9,16 +12,21 @@ import java.util.Map;
 /**
  * Utility class for searching jobs by name, type, parameters, and metadata.
  */
-public final class JobSearchUtils {
+@ApplicationScoped
+public class JobSearchUtils {
 
-    private JobSearchUtils() {
+    private final ResolveParametersUseCase resolveParametersUseCase;
+
+    @Inject
+    public JobSearchUtils(ResolveParametersUseCase resolveParametersUseCase) {
+        this.resolveParametersUseCase = resolveParametersUseCase;
     }
 
     /**
      * Applies search filter to a list of job executions.
      * Searches in job name, job type, parameters (if search contains "="), and metadata (if search contains "=").
      */
-    public static List<JobExecutionInfo> applySearchToExecutions(String search, List<JobExecutionInfo> executions) {
+    public List<JobExecutionInfo> applySearchToExecutions(String search, List<JobExecutionInfo> executions) {
         if (search == null || search.isBlank()) {
             return executions;
         }
@@ -36,7 +44,7 @@ public final class JobSearchUtils {
      * Applies search filter to a list of scheduled jobs.
      * Searches in job name, job type, and parameters (if search contains "=").
      */
-    public static List<ScheduledJobInfo> applySearchToScheduledJobs(String search, List<ScheduledJobInfo> jobs) {
+    public List<ScheduledJobInfo> applySearchToScheduledJobs(String search, List<ScheduledJobInfo> jobs) {
         if (search == null || search.isBlank()) {
             return jobs;
         }
@@ -45,7 +53,7 @@ public final class JobSearchUtils {
         return jobs.stream()
                 .filter(j -> j.jobName().toLowerCase().contains(searchLower) ||
                         j.jobDefinition().jobType().toLowerCase().contains(searchLower) ||
-                        matchesParameters(search, j.parameters()))
+                        matchesParameters(search, resolveParametersUseCase.execute(j)))
                 .toList();
     }
 
@@ -53,14 +61,14 @@ public final class JobSearchUtils {
      * Checks if the search string matches any key-value pair in the map.
      * If search contains "=", treats it as key=value and checks for exact match.
      */
-    private static boolean matchesKeyValue(String search, Map<String, Object> map) {
+    private boolean matchesKeyValue(String search, Map<String, Object> map) {
         if (search.contains("=")) {
             String[] parts = search.split("=", 2);
             if (parts.length == 2) {
                 String key = parts[0].trim();
-                String value = parts[1].trim();
+                String value = parts[1].trim().toLowerCase();
                 Object mapValue = map.get(key);
-                return mapValue != null && mapValue.toString().equalsIgnoreCase(value);
+                return mapValue != null && mapValue.toString().toLowerCase().contains(value);
             }
         }
         return false;
@@ -70,7 +78,7 @@ public final class JobSearchUtils {
      * Checks if the search string matches any parameter in the map.
      * If search contains "=", treats it as key=value and checks for exact match.
      */
-    private static boolean matchesParameters(String search, Map<String, Object> parameters) {
+    private boolean matchesParameters(String search, Map<String, Object> parameters) {
         return matchesKeyValue(search, parameters);
     }
 
@@ -78,7 +86,7 @@ public final class JobSearchUtils {
      * Checks if the search string matches any metadata in the map.
      * If search contains "=", treats it as key=value and checks for exact match.
      */
-    private static boolean matchesMetadata(String search, Map<String, Object> metadata) {
+    private boolean matchesMetadata(String search, Map<String, Object> metadata) {
         return matchesKeyValue(search, metadata);
     }
 }
