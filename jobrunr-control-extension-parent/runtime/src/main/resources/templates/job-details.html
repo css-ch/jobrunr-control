@@ -17,7 +17,7 @@
                 </div>
                 <div class="card-body"
                      id="batch-recap"
-                     hx-get="{cp}/dashboard/recap"
+                     hx-get="{cp}/history/details/recap"
                      hx-trigger="load"
                      hx-swap="innerHTML"
                      hx-include="[name='jobId'],[name='jobType']">
@@ -39,7 +39,7 @@
                 </div>
                 <div class="card-body"
                      id="batch-parameters"
-                     hx-get="{cp}/dashboard/parameter"
+                     hx-get="{cp}/history/details/parameter"
                      hx-trigger="load"
                      hx-swap="innerHTML"
                      hx-include="[name='jobId'],[name='jobType']">
@@ -69,7 +69,7 @@
                                     name="search"
                                     class="form-select form-select-sm"
                                     style="width: 180px;"
-                                    hx-get="{cp}/dashboard/messages"
+                                    hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
                                     hx-include="[name='jobId'],[name='jobType'],[name='search']"
                                     hx-trigger="change">
@@ -80,7 +80,7 @@
 
                             <button class="btn btn-secondary btn-sm"
                                     id="refresh-messages-btn"
-                                    hx-get="{cp}/dashboard/messages"
+                                    hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
                                     hx-include="[name='jobId'],[name='jobType'],[name='search']"
                                     hx-disabled-elt="this">
@@ -92,7 +92,7 @@
                 </div>
                 <div class="card-body"
                      id="batch-messages"
-                     hx-get="{cp}/dashboard/messages"
+                     hx-get="{cp}/history/details/messages"
                      hx-trigger="load"
                      hx-swap="innerHTML"
                      hx-include="[name='jobId'],[name='jobType'],[name='search']">

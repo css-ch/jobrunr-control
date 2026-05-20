@@ -145,24 +145,24 @@ public class JobRunrControlRouteRecorder {
 
     // ---------------- Dashboard ----------------
 
-    public Handler<RoutingContext> dashboardBatchIndex() {
+    public Handler<RoutingContext> jobDetailsIndex() {
         return ctx -> UiRoutingSupport.withRequestContext(ctx,
-                () -> controller(DashboardController.class).handleBatchIndex(ctx));
+                () -> controller(JobDetailsController.class).handleIndex(ctx));
     }
 
-    public Handler<RoutingContext> dashboardRecap() {
+    public Handler<RoutingContext> jobDetailsRecap() {
         return ctx -> UiRoutingSupport.withRequestContext(ctx,
-                () -> controller(DashboardController.class).handleDashboardRecap(ctx));
+                () -> controller(JobDetailsController.class).handleDetailsRecap(ctx));
     }
 
-    public Handler<RoutingContext> dashboardParameter() {
+    public Handler<RoutingContext> jobDetailsParameter() {
         return ctx -> UiRoutingSupport.withRequestContext(ctx,
-                () -> controller(DashboardController.class).handleDashboardParameter(ctx));
+                () -> controller(JobDetailsController.class).handleDetailsParameter(ctx));
     }
 
-    public Handler<RoutingContext> dashboardMessages() {
+    public Handler<RoutingContext> jobDetailsMessages() {
         return ctx -> UiRoutingSupport.withRequestContext(ctx,
-                () -> controller(DashboardController.class).handleDashboardMessages(ctx));
+                () -> controller(JobDetailsController.class).handleDetailsMessages(ctx));
     }
 
     private static <T> T controller(Class<T> type) {

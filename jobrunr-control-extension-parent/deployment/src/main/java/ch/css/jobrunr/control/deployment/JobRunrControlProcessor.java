@@ -40,7 +40,7 @@ public class JobRunrControlProcessor {
     AdditionalBeanBuildItem registerControllers() {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClasses(
-                        DashboardController.class,
+                        JobDetailsController.class,
                         ScheduledJobsController.class,
                         TemplatesController.class,
                         JobExecutionsController.class,
@@ -188,23 +188,23 @@ public class JobRunrControlProcessor {
 
         // ---- Dashboard ----
         routes.produce(nonApp.routeBuilder()
-                .route(UI_BASE + "/dashboard")
-                .handler(recorder.dashboardBatchIndex())
+                .route(UI_BASE + "/history/details")
+                .handler(recorder.jobDetailsIndex())
                 .handlerType(HandlerType.BLOCKING)
                 .build());
         routes.produce(nonApp.routeBuilder()
-                .route(UI_BASE + "/dashboard/recap")
-                .handler(recorder.dashboardRecap())
+                .route(UI_BASE + "/history/details/recap")
+                .handler(recorder.jobDetailsRecap())
                 .handlerType(HandlerType.BLOCKING)
                 .build());
         routes.produce(nonApp.routeBuilder()
-                .route(UI_BASE + "/dashboard/parameter")
-                .handler(recorder.dashboardParameter())
+                .route(UI_BASE + "/history/details/parameter")
+                .handler(recorder.jobDetailsParameter())
                 .handlerType(HandlerType.BLOCKING)
                 .build());
         routes.produce(nonApp.routeBuilder()
-                .route(UI_BASE + "/dashboard/messages")
-                .handler(recorder.dashboardMessages())
+                .route(UI_BASE + "/history/details/messages")
+                .handler(recorder.jobDetailsMessages())
                 .handlerType(HandlerType.BLOCKING)
                 .build());
     }
