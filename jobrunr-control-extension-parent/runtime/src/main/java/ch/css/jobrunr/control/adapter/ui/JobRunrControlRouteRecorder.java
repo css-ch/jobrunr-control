@@ -143,6 +143,28 @@ public class JobRunrControlRouteRecorder {
                 () -> controller(JobExecutionsController.class).handleBatchProgress(ctx));
     }
 
+    // ---------------- Dashboard ----------------
+
+    public Handler<RoutingContext> dashboardBatchIndex() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(DashboardController.class).handleBatchIndex(ctx));
+    }
+
+    public Handler<RoutingContext> dashboardRecap() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(DashboardController.class).handleDashboardRecap(ctx));
+    }
+
+    public Handler<RoutingContext> dashboardParameter() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(DashboardController.class).handleDashboardParameter(ctx));
+    }
+
+    public Handler<RoutingContext> dashboardMessages() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(DashboardController.class).handleDashboardMessages(ctx));
+    }
+
     private static <T> T controller(Class<T> type) {
         return Arc.container().instance(type).get();
     }

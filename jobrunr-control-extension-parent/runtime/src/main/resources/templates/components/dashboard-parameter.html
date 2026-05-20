@@ -1,0 +1,44 @@
+{!
+    Dashboard Parameters Component
+    Displays job execution parameters as key-value pairs
+
+    Parameters:
+    - jobId: String - Unique job ID
+    - jobType: String - Job type name
+    - parameters: Map<String, Object> - Job execution parameters
+!}
+
+{#if parameters.empty}
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle"></i> Keine Parameter für diesen Job vorhanden
+    </div>
+{#else}
+    <div class="table-responsive">
+        <table class="table table-sm table-striped">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 30%;">Parameter</th>
+                    <th>Wert</th>
+                </tr>
+            </thead>
+            <tbody>
+                {#for param in parameters.entrySet()}
+                    <tr>
+                        <td><code>{param.key}</code></td>
+                        <td>
+                            {#if param.value == null}
+                                <span class="text-muted">-</span>
+                            {#else if param.value.toString().length() > 100}
+                                <small class="text-monospace">{param.value.toString().substring(0, 97)}...</small>
+                            {#else}
+                                <strong>{param.value}</strong>
+                            {/if}
+                        </td>
+                    </tr>
+                {/for}
+            </tbody>
+        </table>
+    </div>
+{/if}
+
+

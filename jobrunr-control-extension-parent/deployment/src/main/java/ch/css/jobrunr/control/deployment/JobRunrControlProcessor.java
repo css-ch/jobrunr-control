@@ -185,6 +185,28 @@ public class JobRunrControlProcessor {
                 .handler(recorder.historyBatchProgress())
                 .handlerType(HandlerType.BLOCKING)
                 .build());
+
+        // ---- Dashboard ----
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/dashboard")
+                .handler(recorder.dashboardBatchIndex())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/dashboard/recap")
+                .handler(recorder.dashboardRecap())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/dashboard/parameter")
+                .handler(recorder.dashboardParameter())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/dashboard/messages")
+                .handler(recorder.dashboardMessages())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
     }
 
     /**

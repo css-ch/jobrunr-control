@@ -1,0 +1,135 @@
+{!
+    Mock Dashboard Recap Component
+    Displays batch key metrics and statistics
+
+    Parameters:
+    - jobId: String - Unique job ID
+    - jobType: String - Job type name
+!}
+
+<div class="row g-2">
+    <div class="col-md-6">
+        <div class="card border-left-primary">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="display-6 text-primary">
+                            <i class="bi bi-play-circle"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small font-weight-bold">Gesamt Jobs</div>
+                        <div class="display-6"><strong>1.250</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-left-success">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="display-6 text-success">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small font-weight-bold">Erfolgreich</div>
+                        <div class="display-6"><strong>1.200</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-left-danger">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="display-6 text-danger">
+                            <i class="bi bi-exclamation-circle"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small font-weight-bold">Fehlgeschlagen</div>
+                        <div class="display-6"><strong>50</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-left-warning">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="display-6 text-warning">
+                            <i class="bi bi-clock"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small font-weight-bold">Durchschn. Laufzeit</div>
+                        <div class="display-6"><strong>2.5s</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="display-6 text-info">
+                            <i class="bi bi-calendar"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small font-weight-bold">Batch Start</div>
+                        <div class="display-6"><strong>2026-05-19</strong></div>
+                        <small class="text-muted">14:32:15</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="display-6 text-secondary">
+                            <i class="bi bi-percent"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small font-weight-bold">Erfolgsquote</div>
+                        <div class="display-6"><strong>96%</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-primary {
+        border-left: 4px solid #0d6efd !important;
+    }
+    .border-left-success {
+        border-left: 4px solid #198754 !important;
+    }
+    .border-left-danger {
+        border-left: 4px solid #dc3545 !important;
+    }
+    .border-left-warning {
+        border-left: 4px solid #ffc107 !important;
+    }
+</style>
+

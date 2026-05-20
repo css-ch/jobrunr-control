@@ -1,0 +1,223 @@
+{!
+    Mock Dashboard Messages Component
+    Displays batch messages/logs with filtering support
+
+    Parameters:
+    - jobId: String - Unique job ID
+    - jobType: String - Job type name
+    - search: String - Filter value (e.g., "level:ERROR", "level:INFO", or empty for all)
+!}
+
+<div>
+    {#if search.isEmpty || search.equals('')}
+        <!-- All Messages -->
+        <div class="message-item message-info">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>INFO</strong> - 2026-05-19 14:32:15
+                    </div>
+                    <p class="mb-0 mt-1">Batch-Ausführung gestartet. Lese Eingabedaten aus SAP_ERP...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-item message-info">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>INFO</strong> - 2026-05-19 14:33:42
+                    </div>
+                    <p class="mb-0 mt-1">1.250 Datensätze geladen. Verarbeitung startet...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-item message-error">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>ERROR</strong> - 2026-05-19 14:45:20
+                    </div>
+                    <p class="mb-0 mt-1">Validierungsfehler bei Datensatz USER-5342: Ungültige E-Mail-Adresse</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-item message-info">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>INFO</strong> - 2026-05-19 14:56:05
+                    </div>
+                    <p class="mb-0 mt-1">1.200 Datensätze erfolgreich verarbeitet</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-item message-error">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>ERROR</strong> - 2026-05-19 14:58:32
+                    </div>
+                    <p class="mb-0 mt-1">Fehler beim Speichern in der Zieldatenbank: Connection Timeout</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-item message-info">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>INFO</strong> - 2026-05-19 15:00:00
+                    </div>
+                    <p class="mb-0 mt-1">Batch-Ausführung abgeschlossen. Erfolgsquote: 96%</p>
+                </div>
+            </div>
+        </div>
+
+    {#else if search.contains('level:ERROR')}
+        <!-- Filter: Only Errors -->
+        <div class="message-item message-error">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>ERROR</strong> - 2026-05-19 14:45:20
+                    </div>
+                    <p class="mb-0 mt-1">Validierungsfehler bei Datensatz USER-5342: Ungültige E-Mail-Adresse</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-item message-error">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>ERROR</strong> - 2026-05-19 14:58:32
+                    </div>
+                    <p class="mb-0 mt-1">Fehler beim Speichern in der Zieldatenbank: Connection Timeout</p>
+                </div>
+            </div>
+        </div>
+
+    {#else if search.contains('level:INFO')}
+        <!-- Filter: Only Info -->
+        <div class="message-item message-info">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>INFO</strong> - 2026-05-19 14:32:15
+                    </div>
+                    <p class="mb-0 mt-1">Batch-Ausführung gestartet. Lese Eingabedaten aus SAP_ERP...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-item message-info">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>INFO</strong> - 2026-05-19 14:33:42
+                    </div>
+                    <p class="mb-0 mt-1">1.250 Datensätze geladen. Verarbeitung startet...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-item message-info">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>INFO</strong> - 2026-05-19 14:56:05
+                    </div>
+                    <p class="mb-0 mt-1">1.200 Datensätze erfolgreich verarbeitet</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-item message-info">
+            <div class="row align-items-start g-2">
+                <div class="col-auto">
+                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
+                </div>
+                <div class="col">
+                    <div class="small">
+                        <strong>INFO</strong> - 2026-05-19 15:00:00
+                    </div>
+                    <p class="mb-0 mt-1">Batch-Ausführung abgeschlossen. Erfolgsquote: 96%</p>
+                </div>
+            </div>
+        </div>
+
+    {#else}
+        <!-- No matching messages -->
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i> Keine Meldungen gefunden
+        </div>
+    {/if}
+</div>
+
+<style>
+    .message-item {
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0.25rem;
+        border-left: 4px solid;
+    }
+
+    .message-info {
+        background-color: #e7f3ff;
+        border-left-color: #0d6efd;
+    }
+
+    .message-error {
+        background-color: #ffe7e7;
+        border-left-color: #dc3545;
+    }
+
+    .message-item p {
+        color: #333;
+        margin: 0;
+    }
+
+    .message-item small {
+        display: block;
+        color: #666;
+        margin-bottom: 0.25rem;
+    }
+</style>
+

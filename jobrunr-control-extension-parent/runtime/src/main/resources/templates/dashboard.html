@@ -1,0 +1,125 @@
+{#include base title=title subtitle=subtitle postTitle=postTitle}
+
+{#content}
+    <!-- Hidden inputs to carry jobId and jobType through HTMX requests -->
+    <input type="hidden" name="jobId" value="{jobId}">
+    <input type="hidden" name="jobType" value="{jobType}">
+
+    <!-- Top Row: Batch Recap and Batch Parameter -->
+    <div class="row mb-3">
+        <!-- Batch Recap Section (Left) -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-graph-up"></i> Batch Recap
+                    </h5>
+                </div>
+                <div class="card-body"
+                     id="batch-recap"
+                     hx-get="{cp}/dashboard/recap"
+                     hx-trigger="load"
+                     hx-swap="innerHTML"
+                     hx-include="[name='jobId'],[name='jobType']">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                        <p class="mt-2">Lade Batch Recap...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Parameter Section (Right) -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-sliders"></i> Batch Parameter
+                    </h5>
+                </div>
+                <div class="card-body"
+                     id="batch-parameters"
+                     hx-get="{cp}/dashboard/parameter"
+                     hx-trigger="load"
+                     hx-swap="innerHTML"
+                     hx-include="[name='jobId'],[name='jobType']">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                        <p class="mt-2">Lade Batch Parameter...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Row: Batch Messages -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-chat-left-text"></i> Batch Meldungen
+                            </h5>
+                        </div>
+                        <div class="col-md-6 text-end d-flex justify-content-end gap-2 align-items-center">
+                            <label for="message-filter" class="visually-hidden">Filter</label>
+                            <select id="message-filter"
+                                    name="search"
+                                    class="form-select form-select-sm"
+                                    style="width: 180px;"
+                                    hx-get="{cp}/dashboard/messages"
+                                    hx-target="#batch-messages"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search']"
+                                    hx-trigger="change">
+                                <option value="">Alle</option>
+                                <option value="level:ERROR">Nur Fehler</option>
+                                <option value="level:INFO">Nur Info</option>
+                            </select>
+
+                            <button class="btn btn-secondary btn-sm"
+                                    id="refresh-messages-btn"
+                                    hx-get="{cp}/dashboard/messages"
+                                    hx-target="#batch-messages"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search']"
+                                    hx-disabled-elt="this">
+                                <span class="htmx-indicator spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                                <i class="bi bi-arrow-clockwise"></i> Aktualisieren
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body"
+                     id="batch-messages"
+                     hx-get="{cp}/dashboard/messages"
+                     hx-trigger="load"
+                     hx-swap="innerHTML"
+                     hx-include="[name='jobId'],[name='jobType'],[name='search']">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                        <p class="mt-2">Lade Batch Meldungen...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh Batch Recap every 10 seconds
+        setInterval(() => {
+            htmx.trigger('#batch-recap', 'load');
+        }, 10000);
+
+        // Auto-refresh Batch Parameter every 30 seconds
+        setInterval(() => {
+            htmx.trigger('#batch-parameters', 'load');
+        }, 30000);
+
+        // Auto-refresh Batch Messages every 5 seconds
+        setInterval(() => {
+            htmx.trigger('#batch-messages', 'load');
+        }, 5000);
+    </script>
+{/content}
+
