@@ -1,6 +1,7 @@
 package ch.css.jobrunr.control.adapter.ui;
 
-import ch.css.jobrunr.control.application.dashboard.GetDashboardParametersUseCase;
+import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
+import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.vertx.ext.web.RoutingContext;
@@ -8,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Main Dashboard Controller.
@@ -16,11 +18,13 @@ import java.util.Map;
 @ApplicationScoped
 public class JobDetailsController {
 
-    private final GetDashboardParametersUseCase getDashboardParametersUseCase;
+    private final GetJobDetailsParametersUseCase getJobDetailsParametersUseCase;
+    private final GetJobDetailsRecapUseCase getJobDetailsRecapUseCase;
 
     @Inject
-    public JobDetailsController(GetDashboardParametersUseCase getDashboardParametersUseCase) {
-        this.getDashboardParametersUseCase = getDashboardParametersUseCase;
+    public JobDetailsController(GetJobDetailsParametersUseCase getJobDetailsParametersUseCase, GetJobDetailsRecapUseCase getJobDetailsRecapUseCase) {
+        this.getJobDetailsParametersUseCase = getJobDetailsParametersUseCase;
+        this.getJobDetailsRecapUseCase = getJobDetailsRecapUseCase;
     }
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -38,7 +42,7 @@ public class JobDetailsController {
             // Utility class
         }
 
-        public static native TemplateInstance jobDetailsRecap(String jobId, String jobType);
+        public static native TemplateInstance jobDetailsRecap(GetJobDetailsRecapUseCase.Result recap);
         public static native TemplateInstance jobDetailsParameter(String jobId, String jobType, Map<String, Object> parameters);
         public static native TemplateInstance jobDetailsMessages(String jobId, String jobType, String search);
     }
@@ -84,12 +88,13 @@ public class JobDetailsController {
     }
 
     private TemplateInstance buildRecapTable(String jobId) {
-        return JobDetailsController.Components.jobDetailsRecap(jobId, "");
+        GetJobDetailsRecapUseCase.Result recapData = getJobDetailsRecapUseCase.execute(jobIdAsUUID(jobId));
+        return JobDetailsController.Components.jobDetailsRecap(recapData);
     }
 
     private TemplateInstance buildParameterTable(String jobId, String jobType) {
         try {
-            GetDashboardParametersUseCase.Result result = getDashboardParametersUseCase.execute(jobId);
+            GetJobDetailsParametersUseCase.Result result = getJobDetailsParametersUseCase.execute(jobId);
             return JobDetailsController.Components.jobDetailsParameter(jobId, jobType, result.parameters());
         } catch (Exception e) {
             // Return with empty parameters if loading fails
@@ -99,6 +104,18 @@ public class JobDetailsController {
 
     private TemplateInstance buildMessagesTable(String jobId, String jobType, String search) {
         return JobDetailsController.Components.jobDetailsMessages(jobId, jobType, search);
+    }
+
+    private UUID jobIdAsUUID(String jobId) {
+        if (jobId == null || jobId.isBlank()) {
+            throw new IllegalArgumentException("Job ID must not be null or empty");
+        }
+        try {
+            return UUID.fromString(jobId);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid job ID format: " + jobId, e);
+        }
+
     }
 }
 

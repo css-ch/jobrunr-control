@@ -1,4 +1,4 @@
-package ch.css.jobrunr.control.application.dashboard;
+package ch.css.jobrunr.control.application.details;
 
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import ch.css.jobrunr.control.domain.JobExecutionPort;
@@ -15,14 +15,14 @@ import java.util.UUID;
  * Use Case: Retrieves job execution parameters for the dashboard.
  */
 @ApplicationScoped
-public class GetDashboardParametersUseCase {
+public class GetJobDetailsParametersUseCase {
 
-    private static final Logger LOG = Logger.getLogger(GetDashboardParametersUseCase.class);
+    private static final Logger LOG = Logger.getLogger(GetJobDetailsParametersUseCase.class);
 
     private final JobExecutionPort jobExecutionPort;
 
     @Inject
-    public GetDashboardParametersUseCase(JobExecutionPort jobExecutionPort) {
+    public GetJobDetailsParametersUseCase(JobExecutionPort jobExecutionPort) {
         this.jobExecutionPort = jobExecutionPort;
     }
 
