@@ -67,12 +67,16 @@
                         <div class="display-6"><strong>{recap.totalChildJobs}</strong></div>
                     </div>
                     <div class="col">
+                        {#if recap.succeededChildJobCount > 0}
                         <div class="h5 text-success">
                             <i class="bi bi-check-circle"></i> {recap.succeededChildJobCount}
                         </div>
+                        {/if}
+                        {#if recap.failedChildJobCount > 0}
                         <div class="h5 text-danger">
                             <i class="bi bi-exclamation-circle"></i> {recap.failedChildJobCount}
                         </div>
+                        {/if}
                         {#if recap.inProgressChildJobCount > 0}
                         <div class="h5 text-secondary">
                             <i class="bi bi-hourglass-split"></i> {recap.inProgressChildJobCount}
@@ -95,15 +99,25 @@
                         </div>
                     </div>
                     <div class="col">
+                        <div class="text-muted small font-weight-bold">Meldungen</div>
+                        <div class="display-6"><strong>{recap.totalMessages}</strong></div>
+                    </div>
+                    <div class="col">
+                        {#if recap.infoMessagesCount > 0}
                         <div class="h5 text-info">
                             <i class="bi bi-info-circle"></i> {recap.infoMessagesCount}
                         </div>
+                        {/if}
+                        {#if recap.warningMessagesCount > 0}
                         <div class="h5 text-warning">
                             <i class="bi bi-exclamation-circle"></i> {recap.warningMessagesCount}
                         </div>
+                        {/if}
+                        {#if recap.errorMessagesCount > 0}
                         <div class="h5 text-danger">
                             <i class="bi bi-x-circle"></i> {recap.errorMessagesCount}
                         </div>
+                        {/if}
                     </div>
                 </div>
             </div>
@@ -124,25 +138,6 @@
                         <div class="text-muted small font-weight-bold">Durchschn. Laufzeit pro Job</div>
                         <div class="display-6"><strong>{#if recap.averageTimePerChildJob > 0}{recap.averageTimePerChildJob}{#else}--{/if}</strong></div>
                         <small class="text-muted">Millisekunden</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Success Rate -->
-    <div class="col-md-6">
-        <div class="card border-left-info">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-auto">
-                        <div class="display-6 text-info">
-                            <i class="bi bi-percent"></i>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small font-weight-bold">Erfolgsquote</div>
-                        <div class="display-6"><strong>{#if recap.totalChildJobs > 0}{recap.succeededChildJobCount}/{recap.totalChildJobs}{#else}0{/if}</strong></div>
                     </div>
                 </div>
             </div>
