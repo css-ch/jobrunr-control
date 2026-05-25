@@ -1,6 +1,7 @@
 package ch.css.jobrunr.control.jobs.complex;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
+import ch.css.jobrunr.control.annotations.JobDetailPage;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.context.JobContext;
@@ -23,6 +24,7 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
 
     @Override
     @ConfigurableJob(name="Complex Demo Job", isBatch = true, resultPageUrl = "http://{host}:{port}/mybatch/result/{jobId}?stage={stage}&startDate={startDate}&endDate={endDate}")
+    @JobDetailPage(recapParameterClass = ComplexParameterDemoJobRecap.class, showEmptyParameters = false, showRecapParameterWithZeroValue = false)
     public void run(ComplexParameterDemoJobRequest complexParameterDemoJobRequest) throws Exception {
         final UUID jobId = ThreadLocalJobContext.getJobContext().getJobId();
 

@@ -22,19 +22,42 @@
                 </tr>
             </thead>
             <tbody>
-                {#for param in parameters.entrySet()}
-                    <tr>
-                        <td><code>{param.key}</code></td>
-                        <td>
-                            {#if param.value == null}
-                                <span class="text-muted">-</span>
-                            {#else if param.value.toString().length() > 100}
-                                <small class="text-monospace">{param.value.toString().substring(0, 97)}...</small>
+                {#for section in parameterSections}
+                    {#for paramDef in parameterDefinitions}
+                        {#if paramDef.sectionId == section.id}
+                            {#if parameters.containsKey(paramDef.name)}
+                                <tr>
+                                    <td><code>{paramDef.displayName}</code></td>
+                                    <td>
+                                        {#if parameters.get(paramDef.name) == null}
+                                            <span class="text-muted">-</span>
+                                        {#else if parameters.get(paramDef.name).toString().length() > 100}
+                                            <small class="text-monospace">{parameters.get(paramDef.name).toString().substring(0, 97)}...</small>
+                                        {#else}
+                                            {#if paramDef.type.name() == 'ENUM'}
+                                                {#for enum in paramDef.enumValues}
+                                                    {#if enum.value == parameters.get(paramDef.name)}
+                                                        <strong>{enum.label}</strong>
+                                                    {/if}
+                                                {/for}
+                                            {#else}
+                                                <strong>{parameters.get(paramDef.name)}</strong>
+                                            {/if}
+                                        {/if}
+                                    </td>
+                                </tr>
                             {#else}
-                                <strong>{param.value}</strong>
+                                {#if showEmptyParameters}
+                                    <tr>
+                                        <td><code>{paramDef.displayName}</code></td>
+                                        <td>
+                                             <span class="text-muted">-</span>
+                                        </td>
+                                    </tr>
+                                {/if}
                             {/if}
-                        </td>
-                    </tr>
+                        {/if}
+                    {/for}
                 {/for}
             </tbody>
         </table>

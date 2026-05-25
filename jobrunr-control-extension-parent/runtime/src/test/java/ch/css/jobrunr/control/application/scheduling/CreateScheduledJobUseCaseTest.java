@@ -139,7 +139,9 @@ class CreateScheduledJobUseCaseTest {
                 List.of(),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
                 usesExternalParams,
-                usesExternalParams ? "parameterSetId" : null
+                usesExternalParams ? "parameterSetId" : null,
+                List.of(),
+                null
         );
     }
 }

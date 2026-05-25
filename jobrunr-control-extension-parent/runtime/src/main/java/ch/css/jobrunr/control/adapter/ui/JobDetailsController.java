@@ -2,12 +2,15 @@ package ch.css.jobrunr.control.adapter.ui;
 
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
+import ch.css.jobrunr.control.domain.JobParameter;
+import ch.css.jobrunr.control.domain.JobParameterSection;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -43,7 +46,7 @@ public class JobDetailsController {
         }
 
         public static native TemplateInstance jobDetailsRecap(GetJobDetailsRecapUseCase.Result recap);
-        public static native TemplateInstance jobDetailsParameter(String jobId, String jobType, Map<String, Object> parameters);
+        public static native TemplateInstance jobDetailsParameter(Map<String, Object> parameters, List<JobParameterSection> parameterSections, List<JobParameter> parameterDefinitions, boolean showEmptyParameters);
         public static native TemplateInstance jobDetailsMessages(String jobId, String jobType, String search);
     }
 
@@ -73,8 +76,8 @@ public class JobDetailsController {
             return;
         }
         UiRoutingSupport.renderHtml(ctx, buildParameterTable(
-                UiRoutingSupport.queryParam(ctx, "jobId"),
-                UiRoutingSupport.queryParam(ctx, "jobType")));
+                UiRoutingSupport.queryParam(ctx, "jobId")
+        ));
     }
 
     public void handleDetailsMessages(RoutingContext ctx) {
@@ -92,13 +95,13 @@ public class JobDetailsController {
         return JobDetailsController.Components.jobDetailsRecap(recapData);
     }
 
-    private TemplateInstance buildParameterTable(String jobId, String jobType) {
+    private TemplateInstance buildParameterTable(String jobId) {
         try {
             GetJobDetailsParametersUseCase.Result result = getJobDetailsParametersUseCase.execute(jobId);
-            return JobDetailsController.Components.jobDetailsParameter(jobId, jobType, result.parameters());
+            return JobDetailsController.Components.jobDetailsParameter(result.parameters(), result.parameterSections(), result.parameterDefinitions(), result.showEmptyParameters());
         } catch (Exception e) {
             // Return with empty parameters if loading fails
-            return JobDetailsController.Components.jobDetailsParameter(jobId, jobType, Map.of());
+            return JobDetailsController.Components.jobDetailsParameter(Map.of(), List.of(), List.of(), false);
         }
     }
 

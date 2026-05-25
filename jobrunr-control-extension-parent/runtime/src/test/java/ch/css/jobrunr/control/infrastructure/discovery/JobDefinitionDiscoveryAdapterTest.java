@@ -176,7 +176,9 @@ class JobDefinitionDiscoveryAdapterTest {
                         null
                 ),
                 externalParams,                             // usesExternalParameters
-                externalParams ? "parameterSet" : null      // parameterSetFieldName
+                externalParams ? "parameterSet" : null,     // parameterSetFieldName
+                List.of(),                                  // recapParameters
+                null                                        // JobDetailPage
         );
     }
 }

@@ -1,8 +1,6 @@
 package ch.css.jobrunr.control.application.details;
 
-import ch.css.jobrunr.control.domain.JobExecutionInfo;
-import ch.css.jobrunr.control.domain.JobExecutionPort;
-import ch.css.jobrunr.control.domain.JobStatus;
+import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -14,9 +12,11 @@ import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.navigation.AmountRequest;
 
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,11 +29,13 @@ public class GetJobDetailsRecapUseCase {
 
     private final JobExecutionPort jobExecutionPort;
     private final StorageProvider storageProvider;
+    private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
 
     @Inject
-    public GetJobDetailsRecapUseCase(JobExecutionPort jobExecutionPort, StorageProvider storageProvider) {
+    public GetJobDetailsRecapUseCase(JobExecutionPort jobExecutionPort, StorageProvider storageProvider, JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
         this.jobExecutionPort = jobExecutionPort;
         this.storageProvider = storageProvider;
+        this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
     }
 
     public Result execute(UUID jobId) {
@@ -49,6 +51,8 @@ public class GetJobDetailsRecapUseCase {
             batchJob = (BatchJob) jobById;
             BatchJob.BatchJobStats batchJobStats = batchJob.getBatchJobStats();
             MessageCount counts = getMessagesCount(batchJob);
+            JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobExecutionInfo.jobType());
+            Map<String, Object> recapCounters = calculateRecapCounters(batchJob, jobDefinition.recapParameters());
             return new Result(
                     jobExecutionInfo.getStatus(),
                     jobExecutionInfo.startedAt(),
@@ -62,7 +66,9 @@ public class GetJobDetailsRecapUseCase {
                     counts.warningMessages(),
                     counts.errorMessages(),
                     getAverageTimePerChildMillis(jobExecutionInfo.startedAt(), jobExecutionInfo.getFinishedAt().orElse(null), batchJobStats.getSucceededChildJobCount()),
-                    Map.of("Counter 1", 13, "Counter 2", 25, "Counter 3", 37) // TODO: recapCounters
+                    recapCounters,
+                    jobDefinition.recapParameters(),
+                    jobDefinition.jobDetailPage() != null && jobDefinition.jobDetailPage().showRecapParameterWithZeroValue()
             );
         } else {
             throw new IllegalStateException("Job with ID " + jobId + " is not a batch job");
@@ -113,6 +119,35 @@ public class GetJobDetailsRecapUseCase {
         return totalDurationMillis / succeededChildJobCount;
     }
 
+    private Map<String,Object> calculateRecapCounters(BatchJob batchJob, List<JobRecapParameter> recapParameters) {
+        Map<String,AtomicLong> counters = new HashMap<String,AtomicLong>();
+        for(JobRecapParameter recapParameter : recapParameters) {
+            counters.put(recapParameter.name(), new AtomicLong(0));
+        }
+        final List<Job> childJobs = storageProvider.getJobList(JobSearchRequestBuilder.aJobSearchRequest()
+                .withParentId(batchJob.getId())
+                .build(), AmountRequest.fromString("limit=1000000"));
+        childJobs.forEach(job -> updateCounters(counters, job.getResult()));
+
+        return counters.entrySet().stream()
+                .collect(HashMap::new, (map, entry) -> map.put(entry.getKey(), entry.getValue().get()), HashMap::putAll);
+    }
+
+    private void updateCounters(Map<String,AtomicLong> counters, Object recap) {
+        if(recap == null) return;
+        for(Map.Entry<String,AtomicLong> entry : counters.entrySet()) {
+            try {
+                Method method = recap.getClass().getMethod(entry.getKey());
+                Object result = method.invoke(recap);
+                if (result instanceof Number) {
+                    entry.getValue().addAndGet(((Number) result).longValue());
+                }
+            } catch (Exception e) {
+                // Handle exception
+            }
+        }
+    }
+
     public record Result(
             JobStatus jobStatus,
             Instant startedAt,
@@ -126,7 +161,9 @@ public class GetJobDetailsRecapUseCase {
             long warningMessagesCount,
             long errorMessagesCount,
             long averageTimePerChildJob,
-            Map<String, Object> recapCounters) {
+            Map<String, Object> recapCounters,
+            List<JobRecapParameter> recapParameters,
+            boolean showRecapParameterWithZeroValue) {
 
         private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 

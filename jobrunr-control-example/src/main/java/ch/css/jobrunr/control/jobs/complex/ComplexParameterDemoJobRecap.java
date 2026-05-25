@@ -1,13 +1,40 @@
 package ch.css.jobrunr.control.jobs.complex;
 
+import ch.css.jobrunr.control.annotations.JobRecapParameter;
+
 public record ComplexParameterDemoJobRecap(
+        @JobRecapParameter(
+                displayName = "Policen selektiert",
+                description = "Anzahl von allen selektieren Policen",
+                icon = "bi-check-circle",
+                css = "color: red;",
+                order = 1)
         long policenSelektiert,             // Policen selektiert
+        @JobRecapParameter(
+                displayName = "Policen für die alle relevanten Policenschnitte gedruckt wurden",
+                description = "Anzahl der Policen, für welche die relevanten Policenschnitte ein Druckstück erzeugt worden ist.",
+                order = 2)
         long policenRelevant,               // Policen für die alle relevanten Policenschnitte gedruckt wurden
+        @JobRecapParameter(
+                displayName = "Policen mit fachlichem Fehler",
+                description = "Policen, welche mit fachlichem Fehler verarbeitet wurden.",
+                order = 3)
         long policenFailed,                 // Policen mit fachlichem Fehler
+        @JobRecapParameter(
+                displayName = "Policen mit Policensperre",
+                description = "Policen, welche eine Policen-Sperre gesetzt haben und deshalb nicht verarbeitet wurden.",
+                order = 4)
         long policenSperre,                 // Policen mit Policensperre
+        @JobRecapParameter(
+                displayName = "Policen annuliert",
+                description = "Policen, welche seit dem Druckauftrag annulliert worden sind und deshalb der Druckauftrag nicht mehr verarbeitet wird",
+                order = 5)
         long policenAnnulliert,              // Policen annuliert
+        @JobRecapParameter(displayName = "Policen herausgefiltert via Template", order = 6)
         long policenHerausgefilter,         // Police herausgefiltert via Template
+        @JobRecapParameter(displayName = "Druckaufträge: verarbeitete Policen-Schnitte für die selektierten Policen", order = 7)
         long druckauftraegeVerarbeitet,     // Druckaufträge: verarbeitete Policen-Schnitte für die selektierten Policen
+        @JobRecapParameter(displayName = "Druckaufträge: gedruckte Policen-Schnitte für die selektierten Policen", order = 8)
         long druckauftraegeGedruckt         // Druckaufträge: gedruckte Policen-Schnitte für die selektierten Policen
 ) {
 

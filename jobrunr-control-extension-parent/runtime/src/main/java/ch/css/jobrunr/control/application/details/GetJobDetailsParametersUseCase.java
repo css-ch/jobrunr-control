@@ -1,13 +1,13 @@
 package ch.css.jobrunr.control.application.details;
 
-import ch.css.jobrunr.control.domain.JobExecutionInfo;
-import ch.css.jobrunr.control.domain.JobExecutionPort;
+import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -20,10 +20,12 @@ public class GetJobDetailsParametersUseCase {
     private static final Logger LOG = Logger.getLogger(GetJobDetailsParametersUseCase.class);
 
     private final JobExecutionPort jobExecutionPort;
+    private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
 
     @Inject
-    public GetJobDetailsParametersUseCase(JobExecutionPort jobExecutionPort) {
+    public GetJobDetailsParametersUseCase(JobExecutionPort jobExecutionPort, JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
         this.jobExecutionPort = jobExecutionPort;
+        this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
     }
 
     /**
@@ -57,12 +59,19 @@ public class GetJobDetailsParametersUseCase {
         // Convert parameters map to maintain order and consistent display
         Map<String, Object> parameters = new LinkedHashMap<>(execution.getParameters());
 
+        JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(execution.jobType());
+        boolean showEmptyParameters = jobDefinition.jobDetailPage() != null && jobDefinition.jobDetailPage().showEmptyParameters();
+
         LOG.infof("Retrieved %d parameters for job %s", parameters.size(), jobId);
 
-        return new Result(parameters);
+        return new Result(parameters, jobDefinition.parameterSections(), jobDefinition.parameters(), showEmptyParameters);
     }
 
-    public record Result(Map<String, Object> parameters) {
+    public record Result(
+            Map<String, Object> parameters,
+            List<JobParameterSection> parameterSections,
+            List<JobParameter> parameterDefinitions,
+            boolean showEmptyParameters) {
     }
 }
 

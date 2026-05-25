@@ -149,7 +149,9 @@ class StartJobUseCaseTest {
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
                 List.of(), List.of(),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", ""),
-                false, null
+                false, null,
+                List.of(),
+                null
         );
         return new ScheduledJobInfo(
                 jobId,

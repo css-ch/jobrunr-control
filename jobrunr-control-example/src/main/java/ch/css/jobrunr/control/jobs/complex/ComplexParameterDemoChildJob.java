@@ -15,6 +15,7 @@ import static java.lang.String.format;
 public class ComplexParameterDemoChildJob implements JobResultRequestHandler<ComplexParameterDemoChildJobRequest> {
 
     private static final Logger LOG = Logger.getLogger(ComplexParameterDemoChildJob.class);
+    private static final Random RANDOM = new Random();
 
     @Override
     public ComplexParameterDemoJobRecap runAndReturn(ComplexParameterDemoChildJobRequest jobRequest) {
@@ -76,7 +77,7 @@ public class ComplexParameterDemoChildJob implements JobResultRequestHandler<Com
     }
 
     private static <T> T randomValue(List<T> values) {
-        return values.get(new Random().nextInt(values.size()));
+        return values.get(RANDOM.nextInt(values.size()));
     }
 
     public enum PolicenResult {

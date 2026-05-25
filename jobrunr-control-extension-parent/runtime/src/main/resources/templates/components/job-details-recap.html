@@ -145,7 +145,7 @@
     </div>
 </div>
 
-{#if recap.recapCounters != null && recap.recapCounters.size() > 0}
+{#if recap.recapCounters != null && recap.recapCounters.size() > 0 && recap.recapParameters != null && recap.recapParameters.size() > 0}
 <div class="mt-4">
     <h6 class="text-muted">
         <i class="bi bi-table"></i> Programmspezifische Kennzahlen
@@ -158,11 +158,19 @@
             </tr>
         </thead>
         <tbody>
-            {#for entry in recap.recapCounters.entrySet()}
-            <tr>
-                <td>{entry.key}</td>
-                <td class="text-end"><strong>{entry.value}</strong></td>
-            </tr>
+            {#for recapDef in recap.recapParameters}
+                {#let counter=recap.recapCounters.get(recapDef.name)}
+                    {#if recap.showRecapParameterWithZeroValue || (counter != null && counter > 0)}
+                        <tr title="{recapDef.description}">
+                            <td {#if recapDef.css != null && !recapDef.css.isBlank()}style="{recapDef.css}"{/if}>{#if recapDef.icon != null && !recapDef.icon.isBlank()}<i class="bi {recapDef.icon}"></i> {/if}{recapDef.displayName}</td>
+                            {#if counter != null || counter > 0}
+                                 <td class="text-end" {#if recapDef.css != null && !recapDef.css.isBlank()}style="{recapDef.css}"{/if}><strong>{counter}</strong></td>
+                            {#else}
+                                <td class="text-end" {#if recapDef.css != null && !recapDef.css.isBlank()}style="{recapDef.css}"{/if}><strong>--</strong></td>
+                            {/if}
+                        </tr>
+                    {/if}
+                {/let}
             {/for}
         </tbody>
     </table>
