@@ -1,192 +1,138 @@
 {!
-    Mock Dashboard Messages Component
-    Displays batch messages/logs with filtering support
-
+    Job Details Messages Component
+    Renders paginated list of JobMessage objects
     Parameters:
-    - jobId: String - Unique job ID
-    - jobType: String - Job type name
-    - search: String - Filter value (e.g., "level:ERROR", "level:INFO", or empty for all)
+    - messages: GetJobDetailsMessageUseCase.MessagesPaginationResult
 !}
 
-<div>
-    {#if search.isEmpty || search.equals('')}
-        <!-- All Messages -->
-        <div class="message-item message-info">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>INFO</strong> - 2026-05-19 14:32:15
-                    </div>
-                    <p class="mb-0 mt-1">Batch-Ausführung gestartet. Lese Eingabedaten aus SAP_ERP...</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="message-item message-info">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>INFO</strong> - 2026-05-19 14:33:42
-                    </div>
-                    <p class="mb-0 mt-1">1.250 Datensätze geladen. Verarbeitung startet...</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="message-item message-error">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>ERROR</strong> - 2026-05-19 14:45:20
-                    </div>
-                    <p class="mb-0 mt-1">Validierungsfehler bei Datensatz USER-5342: Ungültige E-Mail-Adresse</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="message-item message-info">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>INFO</strong> - 2026-05-19 14:56:05
-                    </div>
-                    <p class="mb-0 mt-1">1.200 Datensätze erfolgreich verarbeitet</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="message-item message-error">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>ERROR</strong> - 2026-05-19 14:58:32
-                    </div>
-                    <p class="mb-0 mt-1">Fehler beim Speichern in der Zieldatenbank: Connection Timeout</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="message-item message-info">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>INFO</strong> - 2026-05-19 15:00:00
-                    </div>
-                    <p class="mb-0 mt-1">Batch-Ausführung abgeschlossen. Erfolgsquote: 96%</p>
-                </div>
-            </div>
-        </div>
-
-    {#else if search.contains('level:ERROR')}
-        <!-- Filter: Only Errors -->
-        <div class="message-item message-error">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>ERROR</strong> - 2026-05-19 14:45:20
-                    </div>
-                    <p class="mb-0 mt-1">Validierungsfehler bei Datensatz USER-5342: Ungültige E-Mail-Adresse</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="message-item message-error">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>ERROR</strong> - 2026-05-19 14:58:32
-                    </div>
-                    <p class="mb-0 mt-1">Fehler beim Speichern in der Zieldatenbank: Connection Timeout</p>
-                </div>
-            </div>
-        </div>
-
-    {#else if search.contains('level:INFO')}
-        <!-- Filter: Only Info -->
-        <div class="message-item message-info">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>INFO</strong> - 2026-05-19 14:32:15
-                    </div>
-                    <p class="mb-0 mt-1">Batch-Ausführung gestartet. Lese Eingabedaten aus SAP_ERP...</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="message-item message-info">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>INFO</strong> - 2026-05-19 14:33:42
-                    </div>
-                    <p class="mb-0 mt-1">1.250 Datensätze geladen. Verarbeitung startet...</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="message-item message-info">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>INFO</strong> - 2026-05-19 14:56:05
-                    </div>
-                    <p class="mb-0 mt-1">1.200 Datensätze erfolgreich verarbeitet</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="message-item message-info">
-            <div class="row align-items-start g-2">
-                <div class="col-auto">
-                    <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
-                </div>
-                <div class="col">
-                    <div class="small">
-                        <strong>INFO</strong> - 2026-05-19 15:00:00
-                    </div>
-                    <p class="mb-0 mt-1">Batch-Ausführung abgeschlossen. Erfolgsquote: 96%</p>
-                </div>
-            </div>
-        </div>
-
-    {#else}
-        <!-- No matching messages -->
+<div id="batch-messages">
+    {#if messages.pagination().isEmpty()}
         <div class="alert alert-info" role="alert">
             <i class="bi bi-info-circle"></i> Keine Meldungen gefunden
+        </div>
+    {#else}
+        <div>
+            {#for m in messages.pageItems()}
+            {#let level = m.messageLevel().name()}
+            <div class="message-item {#if level == 'INFO'}message-info{#else if level == 'WARNING'}message-warning{#else}message-error{/if}">
+                <div class="row align-items-start g-2">
+                    <div class="col-auto">
+                        {#if level == 'INFO'}
+                            <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
+                        {#else if level == 'WARNING'}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i></span>
+                        {#else}
+                            <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
+                        {/if}
+                    </div>
+                    <div class="col">
+                        <div class="small">
+                            <strong>{level}</strong> - {m.formattedCreatedAt()}
+                        </div>
+                        <p class="mb-0 mt-1">{m.message()}</p>
+                    </div>
+                </div>
+            </div>
+            {/let}
+            {/for}
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted small">
+                Zeige {messages.pagination().startItem()} - {messages.pagination().endItem()} von {messages.pagination().totalElements()} Meldungen
+            </div>
+
+            <nav aria-label="Messages Pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {#if ! messages.pagination().hasPrevious()}disabled{/if}">
+                        <button class="page-link"
+                                {#if messages.pagination().hasPrevious()}
+                                    hx-get="{cp}/history/details/messages?page=0&size={messages.pagination().size()}"
+                                    hx-target="#batch-messages"
+                                    hx-swap="outerHTML"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search']"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Erste Seite">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </button>
+                    </li>
+                    <li class="page-item {#if ! messages.pagination().hasPrevious()}disabled{/if}">
+                        <button class="page-link"
+                                {#if messages.pagination().hasPrevious()}
+                                    hx-get="{cp}/history/details/messages?page={messages.pagination().previousPage()}&size={messages.pagination().size()}"
+                                    hx-target="#batch-messages"
+                                    hx-swap="outerHTML"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search']"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Vorherige Seite">
+                            <span aria-hidden="true">&laquo;</span>
+                        </button>
+                    </li>
+
+                    {#for pageItem in messages.pageRange()}
+                        <li class="page-item {#if pageItem.index() == messages.pagination().page()}active{/if}">
+                            <button class="page-link"
+                                    hx-get="{cp}/history/details/messages?page={pageItem.index()}&size={messages.pagination().size()}"
+                                    hx-target="#batch-messages"
+                                    hx-swap="outerHTML"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search']">
+                                {pageItem.label()}
+                            </button>
+                        </li>
+                    {/for}
+
+                    <li class="page-item {#if ! messages.pagination().hasNext()}disabled{/if}">
+                        <button class="page-link"
+                                {#if messages.pagination().hasNext()}
+                                    hx-get="{cp}/history/details/messages?page={messages.pagination().nextPage()}&size={messages.pagination().size()}"
+                                    hx-target="#batch-messages"
+                                    hx-swap="outerHTML"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search']"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Nächste Seite">
+                            <span aria-hidden="true">&raquo;</span>
+                        </button>
+                    </li>
+                    <li class="page-item {#if ! messages.pagination().hasNext()}disabled{/if}">
+                        <button class="page-link"
+                                {#if messages.pagination().hasNext()}
+                                    hx-get="{cp}/history/details/messages?page={messages.pagination().lastPage()}&size={messages.pagination().size()}"
+                                    hx-target="#batch-messages"
+                                    hx-swap="outerHTML"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search']"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Letzte Seite">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+            <div>
+                <select class="form-select form-select-sm"
+                        style="width: auto;"
+                        onchange="jrcSetPageSize('messages', this.value)"
+                        hx-get="{cp}/history/details/messages"
+                        hx-trigger="change"
+                        hx-vals='js:&#123;"page": 0, "size": event.target.value&#125;'
+                        hx-target="#batch-messages"
+                        hx-swap="outerHTML"
+                        hx-include="[name='jobId'],[name='jobType'],[name='search']"
+                        name="pageSize">
+                    <option value="5" {#if messages.pagination().size() eq 5}selected{/if}>5 pro Seite</option>
+                    <option value="10" {#if messages.pagination().size() eq 10}selected{/if}>10 pro Seite</option>
+                    <option value="25" {#if messages.pagination().size() eq 25}selected{/if}>25 pro Seite</option>
+                    <option value="50" {#if messages.pagination().size() eq 50}selected{/if}>50 pro Seite</option>
+                </select>
+            </div>
         </div>
     {/if}
 </div>
@@ -207,6 +153,10 @@
     .message-error {
         background-color: #ffe7e7;
         border-left-color: #dc3545;
+    }
+    .message-warning {
+        background-color: #fff7e6;
+        border-left-color: #ffc107;
     }
 
     .message-item p {

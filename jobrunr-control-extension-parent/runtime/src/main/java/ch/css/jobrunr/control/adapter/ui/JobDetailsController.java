@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.adapter.ui;
 
+import ch.css.jobrunr.control.application.details.GetJobDetailsMessageUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
 import ch.css.jobrunr.control.domain.JobParameter;
@@ -23,11 +24,13 @@ public class JobDetailsController {
 
     private final GetJobDetailsParametersUseCase getJobDetailsParametersUseCase;
     private final GetJobDetailsRecapUseCase getJobDetailsRecapUseCase;
+    private final GetJobDetailsMessageUseCase getJobDetailsMessageUseCase;
 
     @Inject
-    public JobDetailsController(GetJobDetailsParametersUseCase getJobDetailsParametersUseCase, GetJobDetailsRecapUseCase getJobDetailsRecapUseCase) {
+    public JobDetailsController(GetJobDetailsParametersUseCase getJobDetailsParametersUseCase, GetJobDetailsRecapUseCase getJobDetailsRecapUseCase, GetJobDetailsMessageUseCase getJobDetailsMessageUseCase) {
         this.getJobDetailsParametersUseCase = getJobDetailsParametersUseCase;
         this.getJobDetailsRecapUseCase = getJobDetailsRecapUseCase;
+        this.getJobDetailsMessageUseCase = getJobDetailsMessageUseCase;
     }
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -47,7 +50,7 @@ public class JobDetailsController {
 
         public static native TemplateInstance jobDetailsRecap(GetJobDetailsRecapUseCase.Result recap);
         public static native TemplateInstance jobDetailsParameter(Map<String, Object> parameters, List<JobParameterSection> parameterSections, List<JobParameter> parameterDefinitions, boolean showEmptyParameters);
-        public static native TemplateInstance jobDetailsMessages(String jobId, String jobType, String search);
+        public static native TemplateInstance jobDetailsMessages(GetJobDetailsMessageUseCase.MessagesPaginationResult messages);
     }
 
     public void handleIndex(RoutingContext ctx) {
@@ -84,10 +87,13 @@ public class JobDetailsController {
         if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
             return;
         }
+        int page = UiRoutingSupport.intQueryParam(ctx, "page", 0);
+        int size = UiRoutingSupport.intQueryParam(ctx, "size", 10);
         UiRoutingSupport.renderHtml(ctx, buildMessagesTable(
                 UiRoutingSupport.queryParam(ctx, "jobId"),
-                UiRoutingSupport.queryParam(ctx, "jobType"),
-                UiRoutingSupport.queryParam(ctx, "search")));
+                UiRoutingSupport.queryParam(ctx, "search"),
+                page,
+                size));
     }
 
     private TemplateInstance buildRecapTable(String jobId) {
@@ -105,8 +111,9 @@ public class JobDetailsController {
         }
     }
 
-    private TemplateInstance buildMessagesTable(String jobId, String jobType, String search) {
-        return JobDetailsController.Components.jobDetailsMessages(jobId, jobType, search);
+    private TemplateInstance buildMessagesTable(String jobId, String search, int page, int size) {
+        GetJobDetailsMessageUseCase.MessagesPaginationResult result = getJobDetailsMessageUseCase.execute(jobIdAsUUID(jobId), searchMessageLevel(search), page, size);
+        return JobDetailsController.Components.jobDetailsMessages(result);
     }
 
     private UUID jobIdAsUUID(String jobId) {
@@ -118,7 +125,17 @@ public class JobDetailsController {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid job ID format: " + jobId, e);
         }
+    }
 
+    private GetJobDetailsMessageUseCase.SearchMessageLevel searchMessageLevel(String search) {
+        if (search == null || search.isBlank()) {
+            return GetJobDetailsMessageUseCase.SearchMessageLevel.ALL;
+        }
+        try {
+            return GetJobDetailsMessageUseCase.SearchMessageLevel.valueOf(search);
+        } catch (IllegalArgumentException e) {
+            return GetJobDetailsMessageUseCase.SearchMessageLevel.ALL;
+        }
     }
 }
 

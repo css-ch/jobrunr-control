@@ -1,6 +1,6 @@
 {!
     Job Details Recap Component
-    Displays batch key metrics and statistics using real data from GetJobDetailsRecapUseCase.Result
+    Displays batch key metrics and statistics using grouped area records from GetJobDetailsRecapUseCase.Result
 
     Parameters:
     - recap: GetJobDetailsRecapUseCase.Result - The recap data object
@@ -14,13 +14,13 @@
                 <div class="row">
                     <div class="col-auto">
                         <div class="display-6">
-                            {#if recap.jobStatus.name() == 'SUCCEEDED'}
+                            {#if recap.jobStatusAndTimestamp.jobStatus.name() == 'SUCCEEDED'}
                                 <i class="bi bi-check-circle text-success"></i>
-                            {#else if recap.jobStatus.name() == 'FAILED'}
+                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'FAILED'}
                                 <i class="bi bi-x-circle text-danger"></i>
-                            {#else if recap.jobStatus.name() == 'PROCESSING'}
+                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'PROCESSING'}
                                 <i class="bi bi-play-circle text-primary"></i>
-                            {#else if recap.jobStatus.name() == 'ENQUEUED'}
+                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'ENQUEUED'}
                                 <i class="bi bi-hourglass text-secondary"></i>
                             {#else}
                                 <i class="bi bi-question-circle text-muted"></i>
@@ -30,93 +30,21 @@
                     <div class="col">
                         <div class="text-muted small font-weight-bold">Batch Status & Zeitraum</div>
                         <div class="mb-2">
-                            <span class="badge {#if recap.jobStatus.name() == 'SUCCEEDED'}bg-success{#else if recap.jobStatus.name() == 'FAILED'}bg-danger{#else if recap.jobStatus.name() == 'PROCESSING'}bg-primary{#else}bg-secondary{/if}">
-                                {recap.jobStatus}
+                            <span class="badge {#if recap.jobStatusAndTimestamp.jobStatus.name() == 'SUCCEEDED'}bg-success{#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'FAILED'}bg-danger{#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'PROCESSING'}bg-primary{#else}bg-secondary{/if}">
+                                {recap.jobStatusAndTimestamp.jobStatus}
                             </span>
                         </div>
                         <small class="text-muted d-block">
-                            Start: <strong>{recap.getStartedAtFormatted()}</strong>
+                            Start: <strong>{recap.jobStatusAndTimestamp.getStartedAtFormatted()}</strong>
                         </small>
-                        {#if recap.finishedAt}
+                        {#if recap.jobStatusAndTimestamp.finishedAt}
                             <small class="text-muted d-block">
-                                Ende: <strong>{recap.getFinishedAtFormatted()}</strong>
+                                Ende: <strong>{recap.jobStatusAndTimestamp.getFinishedAtFormatted()}</strong>
                             </small>
                         {#else}
                             <small class="text-warning d-block">
                                 <i class="bi bi-clock"></i> Läuft noch...
                             </small>
-                        {/if}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Total Jobs -->
-    <div class="col-md-6">
-        <div class="card border-left-primary">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-auto">
-                        <div class="display-6 text-primary">
-                            <i class="bi bi-play-circle"></i>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small font-weight-bold">Gesamt Child-Jobs</div>
-                        <div class="display-6"><strong>{recap.totalChildJobs}</strong></div>
-                    </div>
-                    <div class="col">
-                        {#if recap.succeededChildJobCount > 0}
-                        <div class="h5 text-success">
-                            <i class="bi bi-check-circle"></i> {recap.succeededChildJobCount}
-                        </div>
-                        {/if}
-                        {#if recap.failedChildJobCount > 0}
-                        <div class="h5 text-danger">
-                            <i class="bi bi-exclamation-circle"></i> {recap.failedChildJobCount}
-                        </div>
-                        {/if}
-                        {#if recap.inProgressChildJobCount > 0}
-                        <div class="h5 text-secondary">
-                            <i class="bi bi-hourglass-split"></i> {recap.inProgressChildJobCount}
-                        </div>
-                        {/if}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Warnings -->
-    <div class="col-md-6">
-        <div class="card border-left-orange">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-auto">
-                        <div class="display-6 text-orange">
-                            <i class="bi bi-envelope"></i>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small font-weight-bold">Meldungen</div>
-                        <div class="display-6"><strong>{recap.totalMessages}</strong></div>
-                    </div>
-                    <div class="col">
-                        {#if recap.infoMessagesCount > 0}
-                        <div class="h5 text-info">
-                            <i class="bi bi-info-circle"></i> {recap.infoMessagesCount}
-                        </div>
-                        {/if}
-                        {#if recap.warningMessagesCount > 0}
-                        <div class="h5 text-warning">
-                            <i class="bi bi-exclamation-circle"></i> {recap.warningMessagesCount}
-                        </div>
-                        {/if}
-                        {#if recap.errorMessagesCount > 0}
-                        <div class="h5 text-danger">
-                            <i class="bi bi-x-circle"></i> {recap.errorMessagesCount}
-                        </div>
                         {/if}
                     </div>
                 </div>
@@ -135,9 +63,82 @@
                         </div>
                     </div>
                     <div class="col">
-                        <div class="text-muted small font-weight-bold">Durchschn. Laufzeit pro Job</div>
-                        <div class="display-6"><strong>{#if recap.averageTimePerChildJob > 0}{recap.averageTimePerChildJob}{#else}--{/if}</strong></div>
-                        <small class="text-muted">Millisekunden</small>
+                        <div class="text-muted small font-weight-bold">Durchschn. Laufzeit / totale Laufzeit</div>
+                        <div class="display-6"><strong>{recap.jobDurations.averageChildDuration} / {recap.jobDurations.totalJobDuration}</strong></div>
+                        <small class="text-muted">{recap.jobDurations.averageChildDurationUnit} / {recap.jobDurations.totalJobDurationUnit}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Warnings -->
+    <div class="col-md-6">
+        <div class="card border-left-orange">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="display-6 text-orange">
+                            <i class="bi bi-envelope"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small font-weight-bold">Meldungen</div>
+                        <div class="display-6"><strong>{recap.messageCount.totalMessages}</strong></div>
+                    </div>
+                    <div class="col">
+                        {#if recap.messageCount.infoMessages > 0}
+                        <div class="h5 text-info">
+                            <i class="bi bi-info-circle"></i> {recap.messageCount.infoMessages}
+                        </div>
+                        {/if}
+                        {#if recap.messageCount.warningMessages > 0}
+                        <div class="h5 text-warning">
+                            <i class="bi bi-exclamation-circle"></i> {recap.messageCount.warningMessages}
+                        </div>
+                        {/if}
+                        {#if recap.messageCount.errorMessages > 0}
+                        <div class="h5 text-danger">
+                            <i class="bi bi-x-circle"></i> {recap.messageCount.errorMessages}
+                        </div>
+                        {/if}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Jobs -->
+    <div class="col-md-6">
+        <div class="card border-left-primary">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="display-6 text-primary">
+                            <i class="bi bi-play-circle"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small font-weight-bold">Erfolgsquote</div>
+                        <div class="display-6"><strong>{recap.childJobCounters.succeededChildJobCount} / {recap.childJobCounters.totalChildJobs}</strong></div>
+                        <small class="text-muted">{recap.childJobCounters.completedPercentage}% Abgeschlossen</small>
+                    </div>
+                    <div class="col">
+                        {#if recap.childJobCounters.succeededChildJobCount > 0}
+                            <div class="h5 text-success">
+                                <i class="bi bi-check-circle"></i> {recap.childJobCounters.succeededChildJobCount}
+                            </div>
+                        {/if}
+                        {#if recap.childJobCounters.failedChildJobCount > 0}
+                            <div class="h5 text-danger">
+                                <i class="bi bi-exclamation-circle"></i> {recap.childJobCounters.failedChildJobCount}
+                            </div>
+                        {/if}
+                        {#if recap.childJobCounters.inProgressChildJobCount > 0}
+                            <div class="h5 text-secondary">
+                                <i class="bi bi-hourglass-split"></i> {recap.childJobCounters.inProgressChildJobCount}
+                            </div>
+                        {/if}
                     </div>
                 </div>
             </div>
@@ -145,7 +146,7 @@
     </div>
 </div>
 
-{#if recap.recapCounters != null && recap.recapCounters.size() > 0 && recap.recapParameters != null && recap.recapParameters.size() > 0}
+{#if recap.recapCounters != null && recap.recapCounters.recapCounters != null && recap.recapCounters.recapCounters.size() > 0 && recap.recapCounters.recapSettings != null && recap.recapCounters.recapSettings.recapParameters != null && recap.recapCounters.recapSettings.recapParameters.size() > 0}
 <div class="mt-4">
     <h6 class="text-muted">
         <i class="bi bi-table"></i> Programmspezifische Kennzahlen
@@ -158,9 +159,9 @@
             </tr>
         </thead>
         <tbody>
-            {#for recapDef in recap.recapParameters}
-                {#let counter=recap.recapCounters.get(recapDef.name)}
-                    {#if recap.showRecapParameterWithZeroValue || (counter != null && counter > 0)}
+            {#for recapDef in recap.recapCounters.recapSettings.recapParameters}
+                {#let counter=recap.recapCounters.recapCounters.get(recapDef.name)}
+                    {#if recap.recapCounters.recapSettings.showRecapParameterWithZeroValue || (counter != null && counter > 0)}
                         <tr title="{recapDef.description}">
                             <td {#if recapDef.css != null && !recapDef.css.isBlank()}style="{recapDef.css}"{/if}>{#if recapDef.icon != null && !recapDef.icon.isBlank()}<i class="bi {recapDef.icon}"></i> {/if}{recapDef.displayName}</td>
                             {#if counter != null || counter > 0}

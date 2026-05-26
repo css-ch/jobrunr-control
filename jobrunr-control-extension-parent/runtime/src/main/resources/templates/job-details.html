@@ -73,9 +73,11 @@
                                     hx-target="#batch-messages"
                                     hx-include="[name='jobId'],[name='jobType'],[name='search']"
                                     hx-trigger="change">
-                                <option value="">Alle</option>
-                                <option value="level:ERROR">Nur Fehler</option>
-                                <option value="level:INFO">Nur Info</option>
+                                <option value="ALL">Alle</option>
+                                <option value="WARNINGS_AND_ERRORS">Warning und Error</option>
+                                <option value="INFO_ONLY">Nur Info</option>
+                                <option value="WARNING_ONLY">Nur Warning</option>
+                                <option value="ERROR_ONLY">Nur Error</option>
                             </select>
 
                             <button class="btn btn-secondary btn-sm"
