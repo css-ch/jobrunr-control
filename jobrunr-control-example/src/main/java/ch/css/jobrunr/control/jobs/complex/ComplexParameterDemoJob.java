@@ -24,7 +24,12 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
 
     @Override
     @ConfigurableJob(name="Complex Demo Job", isBatch = true, resultPageUrl = "http://{host}:{port}/mybatch/result/{jobId}?stage={stage}&startDate={startDate}&endDate={endDate}")
-    @JobDetailPage(recapParameterClass = ComplexParameterDemoJobRecap.class, showEmptyParameters = false, showRecapParameterWithZeroValue = false)
+    @JobDetailPage(
+            recapParameterClass = ComplexParameterDemoJobRecap.class,
+            messageProviderKey = "complex-demo-message-provider",
+            recapProviderKey = "complex-demo-recap-provider",
+            showEmptyParameters = false,
+            showRecapParameterWithZeroValue = false)
     public void run(ComplexParameterDemoJobRequest complexParameterDemoJobRequest) throws Exception {
         final UUID jobId = ThreadLocalJobContext.getJobContext().getJobId();
 

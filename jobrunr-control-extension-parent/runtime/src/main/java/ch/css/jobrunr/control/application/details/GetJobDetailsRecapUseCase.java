@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -34,15 +35,24 @@ public class GetJobDetailsRecapUseCase {
     private final JobExecutionPort jobExecutionPort;
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
+    private final JobDetailsProviderRegistry jobDetailsProviderRegistry;
 
     @Inject
-    public GetJobDetailsRecapUseCase(JobExecutionPort jobExecutionPort, StorageProvider storageProvider, JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
+    public GetJobDetailsRecapUseCase(JobExecutionPort jobExecutionPort,
+                                     StorageProvider storageProvider,
+                                     JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
+                                     JobDetailsProviderRegistry jobDetailsProviderRegistry) {
         this.jobExecutionPort = jobExecutionPort;
         this.storageProvider = storageProvider;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
+        this.jobDetailsProviderRegistry = jobDetailsProviderRegistry;
     }
 
     public Result execute(UUID jobId) {
+        return execute(jobId, null);
+    }
+
+    public Result execute(UUID jobId, String jobType) {
         JobExecutionInfo jobExecutionInfo = jobExecutionPort.getJobExecutionById(jobId)
                 .orElseThrow(() -> {
                     LOG.errorf("Job execution not found: %s", jobId);
@@ -52,13 +62,14 @@ public class GetJobDetailsRecapUseCase {
         Job jobById = storageProvider.getJobById(jobId);
         if (jobById.isBatchJob()) {
             BatchJob batchJob = (BatchJob) jobById;
-            List<Job> childJobs = getChildJobs(batchJob);
+            String effectiveJobType = resolveJobType(jobExecutionInfo, jobType);
+            JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(effectiveJobType);
 
             JobStatusAndTimestamp jobStatusAndTimestamp = evaluateJobStatusAndTimestamp(jobExecutionInfo);
-            MessageCount messageCount = evaluateMessageCount(childJobs);
+            MessageCount messageCount = evaluateMessageCount(batchJob, jobId, effectiveJobType, jobDefinition);
             ChildJobCounters childJobCounters = evaluateChildJobCounters(batchJob);
             JobDurations jobDurations = evaluateJobDurations(jobExecutionInfo, childJobCounters.succeededChildJobCount);
-            RecapCounters recapCounters = evaluateRecapCounters(childJobs, jobExecutionInfo.getJobType());
+            RecapCounters recapCounters = evaluateRecapCounters(batchJob, jobId, effectiveJobType, jobDefinition);
 
             return new Result(
                     jobStatusAndTimestamp,
@@ -70,6 +81,13 @@ public class GetJobDetailsRecapUseCase {
         } else {
             throw new IllegalStateException("Job with ID " + jobId + " is not a batch job");
         }
+    }
+
+    private String resolveJobType(JobExecutionInfo jobExecutionInfo, String jobType) {
+        if (jobType != null && !jobType.isBlank()) {
+            return jobType;
+        }
+        return jobExecutionInfo.jobType();
     }
 
     private List<Job> getChildJobs(BatchJob batchJob) {
@@ -84,6 +102,16 @@ public class GetJobDetailsRecapUseCase {
                 jobExecutionInfo.startedAt(),
                 jobExecutionInfo.getFinishedAt().orElse(null)
         );
+    }
+
+    private MessageCount evaluateMessageCount(BatchJob batchJob, UUID jobId, String jobType, JobDefinition jobDefinition) {
+        Optional<JobMessageProvider> jobMessageProvider = resolveMessageProvider(jobDefinition);
+        if (jobMessageProvider.isPresent()) {
+            JobMessageCounter counter = jobMessageProvider.get().determineJobMessageCounter(jobId, jobType);
+            return new MessageCount(counter.totalMessages(), counter.infoMessages(), counter.warningMessages(), counter.errorMessages());
+        }
+
+        return evaluateMessageCount(getChildJobs(batchJob));
     }
 
     private MessageCount evaluateMessageCount(List<Job> childJobs) {
@@ -176,10 +204,38 @@ public class GetJobDetailsRecapUseCase {
         return decimalFormat.format(value);
     }
 
-    private RecapCounters evaluateRecapCounters(List<Job> childJobs, String jobType) {
-        JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobType);
-        Map<String, Object> counters = calculateRecapCounters(childJobs, jobDefinition.recapParameters());
+    private RecapCounters evaluateRecapCounters(BatchJob batchJob, UUID jobId, String jobType, JobDefinition jobDefinition) {
+        Optional<JobRecapProvider> jobRecapProvider = resolveRecapProvider(jobDefinition);
+        Map<String, Object> counters = jobRecapProvider
+                .map(provider -> provider.determineRecap(jobId, jobType))
+                .orElseGet(() -> calculateRecapCounters(getChildJobs(batchJob), jobDefinition.recapParameters()));
         return new RecapCounters(counters, evaluateRecapSettings(jobDefinition));
+    }
+
+    private Optional<JobMessageProvider> resolveMessageProvider(JobDefinition jobDefinition) {
+        if (jobDefinition.jobDetailPage() == null || jobDefinition.jobDetailPage().messageProviderKey() == null || jobDefinition.jobDetailPage().messageProviderKey().isBlank()) {
+            return Optional.empty();
+        }
+
+        Optional<JobMessageProvider> provider = jobDetailsProviderRegistry.findMessageProvider(jobDefinition.jobDetailPage().messageProviderKey());
+        if (provider.isEmpty()) {
+            LOG.warnf("Configured JobMessageProvider with key '%s' for jobType %s was not found. Falling back to default message counter lookup.",
+                    jobDefinition.jobDetailPage().messageProviderKey(), jobDefinition.jobType());
+        }
+        return provider;
+    }
+
+    private Optional<JobRecapProvider> resolveRecapProvider(JobDefinition jobDefinition) {
+        if (jobDefinition.jobDetailPage() == null || jobDefinition.jobDetailPage().recapProviderKey() == null || jobDefinition.jobDetailPage().recapProviderKey().isBlank()) {
+            return Optional.empty();
+        }
+
+        Optional<JobRecapProvider> provider = jobDetailsProviderRegistry.findRecapProvider(jobDefinition.jobDetailPage().recapProviderKey());
+        if (provider.isEmpty()) {
+            LOG.warnf("Configured JobRecapProvider with key '%s' for jobType %s was not found. Falling back to default recap lookup.",
+                    jobDefinition.jobDetailPage().recapProviderKey(), jobDefinition.jobType());
+        }
+        return provider;
     }
 
     private RecapSettings evaluateRecapSettings(JobDefinition jobDefinition) {
@@ -190,7 +246,7 @@ public class GetJobDetailsRecapUseCase {
     }
 
     private Map<String, Object> calculateRecapCounters(List<Job> childJobs, List<JobRecapParameter> recapParameters) {
-        Map<String, AtomicLong> counters = new HashMap<String, AtomicLong>();
+        Map<String, AtomicLong> counters = new HashMap<>();
         for (JobRecapParameter recapParameter : recapParameters) {
             counters.put(recapParameter.name(), new AtomicLong(0));
         }

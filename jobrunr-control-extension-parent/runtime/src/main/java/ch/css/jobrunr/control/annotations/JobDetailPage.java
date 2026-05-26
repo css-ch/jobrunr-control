@@ -24,6 +24,18 @@ public @interface JobDetailPage {
      */
     Class<?> recapParameterClass() default Void.class;
 
+    /**
+     * Optional registry key for a custom message provider implementation.
+     * When empty, the framework falls back to the default JobRunr-based message lookup.
+     */
+    String messageProviderKey() default "";
+
+    /**
+     * Optional registry key for a custom recap provider implementation.
+     * When empty, the framework falls back to the default JobRunr-based recap lookup.
+     */
+    String recapProviderKey() default "";
+
     boolean showRecapParameterWithZeroValue() default true;
 
     boolean showEmptyParameters() default true;

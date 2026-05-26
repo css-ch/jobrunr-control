@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.adapter.ui;
 import ch.css.jobrunr.control.application.details.GetJobDetailsMessageUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
+import ch.css.jobrunr.control.application.details.JobMessageSearch;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterSection;
 import io.quarkus.qute.CheckedTemplate;
@@ -71,7 +72,8 @@ public class JobDetailsController {
             return;
         }
         UiRoutingSupport.renderHtml(ctx, buildRecapTable(
-                UiRoutingSupport.queryParam(ctx, "jobId")));
+                UiRoutingSupport.queryParam(ctx, "jobId"),
+                UiRoutingSupport.queryParam(ctx, "jobType")));
     }
 
     public void handleDetailsParameter(RoutingContext ctx) {
@@ -91,13 +93,14 @@ public class JobDetailsController {
         int size = UiRoutingSupport.intQueryParam(ctx, "size", 10);
         UiRoutingSupport.renderHtml(ctx, buildMessagesTable(
                 UiRoutingSupport.queryParam(ctx, "jobId"),
+                UiRoutingSupport.queryParam(ctx, "jobType"),
                 UiRoutingSupport.queryParam(ctx, "search"),
                 page,
                 size));
     }
 
-    private TemplateInstance buildRecapTable(String jobId) {
-        GetJobDetailsRecapUseCase.Result recapData = getJobDetailsRecapUseCase.execute(jobIdAsUUID(jobId));
+    private TemplateInstance buildRecapTable(String jobId, String jobType) {
+        GetJobDetailsRecapUseCase.Result recapData = getJobDetailsRecapUseCase.execute(jobIdAsUUID(jobId), jobType);
         return JobDetailsController.Components.jobDetailsRecap(recapData);
     }
 
@@ -111,8 +114,8 @@ public class JobDetailsController {
         }
     }
 
-    private TemplateInstance buildMessagesTable(String jobId, String search, int page, int size) {
-        GetJobDetailsMessageUseCase.MessagesPaginationResult result = getJobDetailsMessageUseCase.execute(jobIdAsUUID(jobId), searchMessageLevel(search), page, size);
+    private TemplateInstance buildMessagesTable(String jobId, String jobType, String search, int page, int size) {
+        GetJobDetailsMessageUseCase.MessagesPaginationResult result = getJobDetailsMessageUseCase.execute(jobIdAsUUID(jobId), jobType, searchMessageLevel(search), page, size);
         return JobDetailsController.Components.jobDetailsMessages(result);
     }
 
@@ -127,14 +130,14 @@ public class JobDetailsController {
         }
     }
 
-    private GetJobDetailsMessageUseCase.SearchMessageLevel searchMessageLevel(String search) {
+    private JobMessageSearch searchMessageLevel(String search) {
         if (search == null || search.isBlank()) {
-            return GetJobDetailsMessageUseCase.SearchMessageLevel.ALL;
+            return JobMessageSearch.ALL;
         }
         try {
-            return GetJobDetailsMessageUseCase.SearchMessageLevel.valueOf(search);
+            return JobMessageSearch.valueOf(search);
         } catch (IllegalArgumentException e) {
-            return GetJobDetailsMessageUseCase.SearchMessageLevel.ALL;
+            return JobMessageSearch.ALL;
         }
     }
 }

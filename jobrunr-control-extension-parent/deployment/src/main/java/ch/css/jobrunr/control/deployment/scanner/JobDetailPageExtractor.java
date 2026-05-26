@@ -14,15 +14,22 @@ public class JobDetailPageExtractor {
             return null;
         }
         String recapParameterClass = getAnnotationValueAsString(annotation, "recapParameterClass");
+        String messageProviderKey = getAnnotationValueAsString(annotation, "messageProviderKey", "");
+        String recapProviderKey = getAnnotationValueAsString(annotation, "recapProviderKey", "");
         boolean showRecapParameterWithZeroValue = getAnnotationValue(annotation, "showRecapParameterWithZeroValue", true);
         boolean showEmptyParameters = getAnnotationValue(annotation, "showEmptyParameters", true);
 
-        return new JobDetailPage(recapParameterClass, showRecapParameterWithZeroValue, showEmptyParameters);
+        return new JobDetailPage(recapParameterClass, messageProviderKey, recapProviderKey, showRecapParameterWithZeroValue, showEmptyParameters);
     }
 
     private String getAnnotationValueAsString(AnnotationInstance annotation, String name) {
         AnnotationValue value = annotation.value(name);
         return value != null ? value.asClass().name().toString() : null;
+    }
+
+    private String getAnnotationValueAsString(AnnotationInstance annotation, String name, String defaultValue) {
+        AnnotationValue value = annotation.value(name);
+        return value != null ? value.asString() : defaultValue;
     }
 
     private boolean getAnnotationValue(AnnotationInstance annotation, String name, boolean defaultValue) {
