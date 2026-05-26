@@ -160,6 +160,11 @@ public class JobRunrControlRouteRecorder {
                 () -> controller(JobDetailsController.class).handleDetailsParameter(ctx));
     }
 
+    public Handler<RoutingContext> jobDetailsParameterDownload() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(JobDetailsController.class).handleDetailsParameterDownload(ctx));
+    }
+
     public Handler<RoutingContext> jobDetailsMessages() {
         return ctx -> UiRoutingSupport.withRequestContext(ctx,
                 () -> controller(JobDetailsController.class).handleDetailsMessages(ctx));

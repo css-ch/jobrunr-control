@@ -8,6 +8,7 @@ import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterSection;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
+import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -83,6 +84,20 @@ public class JobDetailsController {
         UiRoutingSupport.renderHtml(ctx, buildParameterTable(
                 UiRoutingSupport.queryParam(ctx, "jobId")
         ));
+    }
+
+    public void handleDetailsParameterDownload(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
+            return;
+        }
+        String jobId = UiRoutingSupport.queryParam(ctx, "jobId");
+        GetJobDetailsParametersUseCase.Result result = getJobDetailsParametersUseCase.execute(jobId);
+
+        String fileName = "batch-parameters-" + jobId + ".json";
+        ctx.response()
+                .putHeader("Content-Type", "application/json; charset=utf-8")
+                .putHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"")
+                .end(Json.encodePrettily(result.parameters()));
     }
 
     public void handleDetailsMessages(RoutingContext ctx) {
