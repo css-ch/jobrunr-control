@@ -32,7 +32,7 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
     }
 
     @Override
-    @ConfigurableJob(name="Complex Demo Job", isBatch = true, resultPageUrl = "http://{host}:{port}/mybatch/result/{jobId}?stage={stage}&startDate={startDate}&endDate={endDate}")
+    @ConfigurableJob(name="Complex Demo Job", isBatch = true, retries = 0)
     @JobDetailPage(
             recapParameterClass = ComplexParameterDemoJobRecap.class,
             messageProviderKey = "complex-demo-message-provider",
@@ -79,7 +79,8 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
         // Enqueue all items in a stream (JobRunr handles the scheduling)
         items.forEach(item -> BackgroundJobRequest.create(aJob()
                 .withJobRequest(item)
-                .withName("Child-Worker Nr: " + item.number())));
+                .withAmountOfRetries(0)
+                .withName("Complex Parameter Child-Worker Nr: " + item.number())));
         ThreadLocalJobContext.getJobContext().logger().info(String.format("Enqueued %d child jobs (retry-safe via metadata check)", items.size()));
     }
 }

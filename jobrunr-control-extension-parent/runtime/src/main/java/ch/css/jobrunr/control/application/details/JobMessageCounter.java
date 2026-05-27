@@ -1,8 +1,12 @@
 package ch.css.jobrunr.control.application.details;
 
 public record JobMessageCounter(
-        long totalMessages,
         long infoMessages,
         long warningMessages,
-        long errorMessages) {
+        long errorMessages,
+        long exceptionMessages) {
+
+    public long totalMessages() {
+        return infoMessages + warningMessages + errorMessages + exceptionMessages;
+    }
 }

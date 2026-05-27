@@ -64,44 +64,7 @@
                     </div>
                     <div class="col">
                         <div class="text-muted small font-weight-bold">Durchschn. Laufzeit / totale Laufzeit</div>
-                        <div class="display-6"><strong>{recap.jobDurations.averageChildDuration} / {recap.jobDurations.totalJobDuration}</strong></div>
-                        <small class="text-muted">{recap.jobDurations.averageChildDurationUnit} / {recap.jobDurations.totalJobDurationUnit}</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Warnings -->
-    <div class="col-md-6">
-        <div class="card border-left-orange">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-auto">
-                        <div class="display-6 text-orange">
-                            <i class="bi bi-envelope"></i>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small font-weight-bold">Meldungen</div>
-                        <div class="display-6"><strong>{recap.messageCount.totalMessages}</strong></div>
-                    </div>
-                    <div class="col">
-                        {#if recap.messageCount.infoMessages > 0}
-                        <div class="h5 text-info">
-                            <i class="bi bi-info-circle"></i> {recap.messageCount.infoMessages}
-                        </div>
-                        {/if}
-                        {#if recap.messageCount.warningMessages > 0}
-                        <div class="h5 text-warning">
-                            <i class="bi bi-exclamation-circle"></i> {recap.messageCount.warningMessages}
-                        </div>
-                        {/if}
-                        {#if recap.messageCount.errorMessages > 0}
-                        <div class="h5 text-danger">
-                            <i class="bi bi-x-circle"></i> {recap.messageCount.errorMessages}
-                        </div>
-                        {/if}
+                        <div class="h3 mb-0"><strong>{recap.jobDurations.averageChildDuration}</strong> <small class="text-muted" style="font-size: 0.7em;">{recap.jobDurations.averageChildDurationUnit}</small> / <strong>{recap.jobDurations.totalJobDuration}</strong> <small class="text-muted" style="font-size: 0.7em;">{recap.jobDurations.totalJobDurationUnit}</small></div>
                     </div>
                 </div>
             </div>
@@ -120,7 +83,7 @@
                     </div>
                     <div class="col">
                         <div class="text-muted small font-weight-bold">Erfolgsquote</div>
-                        <div class="display-6"><strong>{recap.childJobCounters.succeededChildJobCount} / {recap.childJobCounters.totalChildJobs}</strong></div>
+                        <div class="h3 mb-0"><strong>{recap.childJobCounters.succeededChildJobCount} / {recap.childJobCounters.totalChildJobs}</strong></div>
                         <small class="text-muted">{recap.childJobCounters.completedPercentage}% Abgeschlossen</small>
                     </div>
                     <div class="col">
@@ -138,6 +101,47 @@
                             <div class="h5 text-secondary">
                                 <i class="bi bi-hourglass-split"></i> {recap.childJobCounters.inProgressChildJobCount}
                             </div>
+                        {/if}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Warnings -->
+    <div class="col-md-6">
+        <div class="card border-left-orange">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="display-6 text-orange">
+                            <i class="bi bi-envelope"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small font-weight-bold">Total Meldungen</div>
+                        <div class="h3 mb-0"><strong>{recap.messageCount.totalMessages}</strong></div>
+                    </div>
+                    <div class="col">
+                        {#if recap.messageCount.infoMessages > 0}
+                        <div class="h5 text-info">
+                            <i class="bi bi-info-circle"></i> {recap.messageCount.infoMessages}
+                        </div>
+                        {/if}
+                        {#if recap.messageCount.warningMessages > 0}
+                        <div class="h5 text-warning">
+                            <i class="bi bi-exclamation-circle"></i> {recap.messageCount.warningMessages}
+                        </div>
+                        {/if}
+                        {#if recap.messageCount.errorMessages > 0}
+                        <div class="h5 text-danger">
+                            <i class="bi bi-x-circle"></i> {recap.messageCount.errorMessages}
+                        </div>
+                        {/if}
+                        {#if recap.messageCount.exceptionMessages > 0}
+                        <div class="h5 text-danger">
+                            <i class="bi bi-bug"></i> {recap.messageCount.exceptionMessages}
+                        </div>
                         {/if}
                     </div>
                 </div>

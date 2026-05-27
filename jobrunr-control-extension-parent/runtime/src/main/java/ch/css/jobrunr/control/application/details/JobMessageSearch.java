@@ -2,8 +2,10 @@ package ch.css.jobrunr.control.application.details;
 
 public enum JobMessageSearch {
     ALL,
-    WARNINGS_AND_ERRORS,
+    WARNINGS_AND_ERRORS_AND_EXCEPTIONS,
+    ERRORS_AND_EXCEPTIONS,
     INFO_ONLY,
     WARNING_ONLY,
-    ERROR_ONLY
+    ERROR_ONLY,
+    EXCEPTION_ONLY,
 }

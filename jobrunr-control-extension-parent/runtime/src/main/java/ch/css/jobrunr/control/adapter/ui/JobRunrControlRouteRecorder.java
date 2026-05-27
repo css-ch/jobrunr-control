@@ -170,6 +170,7 @@ public class JobRunrControlRouteRecorder {
                 () -> controller(JobDetailsController.class).handleDetailsMessages(ctx));
     }
 
+
     private static <T> T controller(Class<T> type) {
         return Arc.container().instance(type).get();
     }

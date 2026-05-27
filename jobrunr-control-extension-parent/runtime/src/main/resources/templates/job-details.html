@@ -20,7 +20,7 @@
                      hx-get="{cp}/history/details/recap"
                      hx-trigger="load"
                      hx-swap="innerHTML"
-                     hx-include="[name='jobId'],[name='jobType']">
+                     hx-include="[name='jobId']">
                     <div class="text-center py-4">
                         <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
                         <p class="mt-2">Lade Batch Recap...</p>
@@ -38,7 +38,7 @@
                             <i class="bi bi-sliders"></i> Batch Parameter
                         </h5>
                         <a class="btn btn-outline-secondary btn-sm"
-                           href="{cp}/history/details/parameter/download?jobId={jobId}&jobType={jobType}">
+                           href="{cp}/history/details/parameter/download?jobId={jobId}">
                             <i class="bi bi-download"></i> JSON
                         </a>
                     </div>
@@ -48,7 +48,7 @@
                      hx-get="{cp}/history/details/parameter"
                      hx-trigger="load"
                      hx-swap="innerHTML"
-                     hx-include="[name='jobId'],[name='jobType']">
+                     hx-include="[name='jobId']">
                     <div class="text-center py-4">
                         <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
                         <p class="mt-2">Lade Batch Parameter...</p>
@@ -80,10 +80,12 @@
                                     hx-include="[name='jobId'],[name='jobType'],[name='search']"
                                     hx-trigger="change">
                                 <option value="ALL">Alle</option>
-                                <option value="WARNINGS_AND_ERRORS">Warning und Error</option>
+                                <option value="WARNINGS_AND_ERRORS_AND_EXCEPTIONS">Warning, Error und Exception</option>
+                                <option value="ERRORS_AND_EXCEPTIONS">Error und Exception</option>ion>
                                 <option value="INFO_ONLY">Nur Info</option>
                                 <option value="WARNING_ONLY">Nur Warning</option>
                                 <option value="ERROR_ONLY">Nur Error</option>
+                                <option value="EXCEPTION_ONLY">Nur Exception</option>
                             </select>
 
                             <button class="btn btn-secondary btn-sm"

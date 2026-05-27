@@ -64,20 +64,20 @@ class GetJobDetailsMessageUseCaseTest {
                 List.of(),
                 new JobDetailPage(null, "complex-demo-message-provider", "", true, true)
         );
-        JobMessage message = new JobMessage(Instant.parse("2026-05-26T10:15:30Z"), JobMessageLevel.INFO, "hello", "26.05.2026 12:15:30", null);
+        JobMessage message = new JobMessage(Instant.parse("2026-05-26T10:15:30Z"), JobMessageLevel.INFO, "hello", null);
 
         when(storageProvider.getJobById(jobId)).thenReturn(batchJob);
         when(batchJob.isBatchJob()).thenReturn(true);
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
         when(jobDetailsProviderRegistry.findMessageProvider("complex-demo-message-provider")).thenReturn(Optional.of(jobMessageProvider));
-        when(jobMessageProvider.searchJobMessages(jobId, jobType, JobMessageSearch.ALL, 0, 10))
+        when(jobMessageProvider.searchJobMessages(jobId, JobMessageSearch.ALL, 0, 10))
                 .thenReturn(new JobMessageProvider.PagedJobMessages(List.of(message), 1, 0, 10));
 
         GetJobDetailsMessageUseCase.MessagesPaginationResult result = useCase.execute(jobId, jobType, JobMessageSearch.ALL, 0, 10);
 
         assertThat(result.pageItems()).containsExactly(message);
         assertThat(result.pagination().totalElements()).isEqualTo(1);
-        verify(jobMessageProvider).searchJobMessages(jobId, jobType, JobMessageSearch.ALL, 0, 10);
+        verify(jobMessageProvider).searchJobMessages(jobId, JobMessageSearch.ALL, 0, 10);
         verify(storageProvider, never()).getJobList(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 }

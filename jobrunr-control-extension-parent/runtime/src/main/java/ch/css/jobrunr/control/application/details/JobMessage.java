@@ -1,14 +1,21 @@
 package ch.css.jobrunr.control.application.details;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
 public record JobMessage(
         Instant createdAt,
         JobMessageLevel messageLevel,
         String message,
-        String formattedCreatedAt,
         String stackTrace) {
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+
+    public String createdAtFormatted() {
+        return createdAt.atZone(ZoneId.systemDefault()).format(DATE_TIME_FORMATTER);
+    }
 
     public boolean hasStackTrace() {
         return stackTrace != null && !stackTrace.isBlank();

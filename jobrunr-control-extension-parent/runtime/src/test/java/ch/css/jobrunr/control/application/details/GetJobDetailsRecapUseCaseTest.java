@@ -95,17 +95,20 @@ class GetJobDetailsRecapUseCaseTest {
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
         when(jobDetailsProviderRegistry.findMessageProvider("complex-demo-message-provider")).thenReturn(Optional.of(jobMessageProvider));
         when(jobDetailsProviderRegistry.findRecapProvider("complex-demo-recap-provider")).thenReturn(Optional.of(jobRecapProvider));
-        when(jobMessageProvider.determineJobMessageCounter(jobId, jobType)).thenReturn(new JobMessageCounter(12, 5, 4, 3));
+        when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageCounter(12, 5, 4, 3));
         when(jobRecapProvider.determineRecap(jobId, jobType)).thenReturn(Map.of("processed", 42L));
 
-        GetJobDetailsRecapUseCase.Result result = useCase.execute(jobId, jobType);
+        GetJobDetailsRecapUseCase.Result result = useCase.execute(jobId);
 
-        assertThat(result.messageCount().totalMessages()).isEqualTo(12);
-        assertThat(result.messageCount().warningMessages()).isEqualTo(4);
+        assertThat(result.messageCount().totalMessages()).isEqualTo(24);
+        assertThat(result.messageCount().infoMessages()).isEqualTo(12);
+        assertThat(result.messageCount().warningMessages()).isEqualTo(5);
+        assertThat(result.messageCount().errorMessages()).isEqualTo(4);
+        assertThat(result.messageCount().exceptionMessages()).isEqualTo(3);
         assertThat(result.childJobCounters().totalChildJobs()).isEqualTo(10);
         assertThat(result.childJobCounters().succeededChildJobCount()).isEqualTo(7);
         assertThat(result.recapCounters().recapCounters()).containsEntry("processed", 42L);
-        verify(jobMessageProvider).determineJobMessageCounter(jobId, jobType);
+        verify(jobMessageProvider).determineJobMessageCounter(jobId);
         verify(jobRecapProvider).determineRecap(jobId, jobType);
         verify(storageProvider, never()).getJobList(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }

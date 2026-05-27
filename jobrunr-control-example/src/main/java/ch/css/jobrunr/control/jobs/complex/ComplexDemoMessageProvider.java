@@ -1,10 +1,6 @@
 package ch.css.jobrunr.control.jobs.complex;
 
-import ch.css.jobrunr.control.application.details.JobMessage;
-import ch.css.jobrunr.control.application.details.JobMessageCounter;
-import ch.css.jobrunr.control.application.details.JobMessageLevel;
-import ch.css.jobrunr.control.application.details.JobMessageProvider;
-import ch.css.jobrunr.control.application.details.JobMessageSearch;
+import ch.css.jobrunr.control.application.details.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jobrunr.jobs.Job;
@@ -14,9 +10,6 @@ import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.navigation.AmountRequest;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +18,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @ApplicationScoped
 public class ComplexDemoMessageProvider implements JobMessageProvider {
-
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
     private final StorageProvider storageProvider;
 
@@ -41,7 +32,7 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
     }
 
     @Override
-    public PagedJobMessages searchJobMessages(UUID jobId, String jobType, JobMessageSearch searchFilter, int pageNumber, int pageSize) {
+    public PagedJobMessages searchJobMessages(UUID jobId, JobMessageSearch searchFilter, int pageNumber, int pageSize) {
         List<JobMessage> allMessages = getMessages(jobId, searchFilter);
         int fromIndex = Math.min(pageNumber * pageSize, allMessages.size());
         int toIndex = Math.min(fromIndex + pageSize, allMessages.size());
@@ -49,13 +40,13 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
     }
 
     @Override
-    public JobMessageCounter determineJobMessageCounter(UUID jobId, String jobType) {
+    public JobMessageCounter determineJobMessageCounter(UUID jobId) {
         AtomicLong infoMessages = new AtomicLong(0);
         AtomicLong warningMessages = new AtomicLong(0);
         AtomicLong errorMessages = new AtomicLong(0);
+        AtomicLong exceptionMessages = new AtomicLong(0);
 
-        getChildJobs(jobId).stream()
-                .flatMap(job -> job.getMetadata().entrySet().stream())
+        getChildJobs(jobId).forEach(job -> job.getMetadata().entrySet().stream()
                 .filter(entry -> entry.getKey().startsWith("jobRunrDashboardLog-"))
                 .map(Map.Entry::getValue)
                 .filter(value -> value instanceof JobDashboardLogger.JobDashboardLogLines)
@@ -65,12 +56,27 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
                     switch (message.getLevel()) {
                         case INFO -> infoMessages.incrementAndGet();
                         case WARN -> warningMessages.incrementAndGet();
-                        case ERROR -> errorMessages.incrementAndGet();
+                        case ERROR -> {
+                            if (hasStackTrace(job, message)) {
+                                exceptionMessages.incrementAndGet();
+                            } else {
+                                errorMessages.incrementAndGet();
+                            }
+                        }
                     }
-                });
+                }));
 
-        long totalMessages = infoMessages.get() + warningMessages.get() + errorMessages.get();
-        return new JobMessageCounter(totalMessages, infoMessages.get(), warningMessages.get(), errorMessages.get());
+        return new JobMessageCounter(infoMessages.get(), warningMessages.get(), errorMessages.get(), exceptionMessages.get());
+    }
+
+    private boolean hasStackTrace(Job childJob, JobDashboardLogger.JobDashboardLogLine logLine) {
+        if (logLine.getLevel() != JobDashboardLogger.Level.ERROR) {
+            return false;
+        }
+        return childJob.getLastJobStateOfType(FailedState.class)
+                .map(FailedState::getStackTrace)
+                .filter(stackTrace -> stackTrace != null && !stackTrace.isBlank())
+                .isPresent();
     }
 
     private List<JobMessage> getMessages(UUID jobId, JobMessageSearch searchFilter) {
@@ -81,14 +87,17 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
                 .filter(value -> value instanceof JobDashboardLogger.JobDashboardLogLines)
                 .map(JobDashboardLogger.JobDashboardLogLines.class::cast)
                 .flatMap(lines -> lines.getLogLines().stream())
-                .filter(logLine -> matchesSearch(logLine.getLevel(), searchFilter))
-                .forEach(logLine -> messages.add(new JobMessage(
-                        logLine.getLogInstant(),
-                        toLevel(logLine.getLevel()),
-                        logLine.getLogMessage(),
-                        formatInstant(logLine.getLogInstant()),
-                        resolveStackTrace(job, logLine)
-                ))));
+                .forEach(message -> {
+                    String stackTrace = resolveStackTrace(job, message);
+                    if (matchesSearch(message.getLevel(), stackTrace != null && !stackTrace.isBlank(), searchFilter)) {
+                        messages.add(new JobMessage(
+                                message.getLogInstant(),
+                                toLevel(message.getLevel(), stackTrace != null && !stackTrace.isBlank()),
+                                message.getLogMessage(),
+                                stackTrace
+                        ));
+                    }
+                }));
         return messages;
     }
 
@@ -108,24 +117,24 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
                 .build(), AmountRequest.fromString("limit=1000000"));
     }
 
-    private boolean matchesSearch(JobDashboardLogger.Level level, JobMessageSearch searchFilter) {
+    private boolean matchesSearch(JobDashboardLogger.Level level, boolean hasStackTrace, JobMessageSearch search) {
         return switch (level) {
-            case INFO -> searchFilter == JobMessageSearch.ALL || searchFilter == JobMessageSearch.INFO_ONLY;
-            case WARN -> searchFilter == JobMessageSearch.ALL || searchFilter == JobMessageSearch.WARNING_ONLY || searchFilter == JobMessageSearch.WARNINGS_AND_ERRORS;
-            case ERROR -> searchFilter == JobMessageSearch.ALL || searchFilter == JobMessageSearch.ERROR_ONLY || searchFilter == JobMessageSearch.WARNINGS_AND_ERRORS;
+            case INFO -> search == JobMessageSearch.ALL || search == JobMessageSearch.INFO_ONLY;
+            case WARN -> search == JobMessageSearch.ALL || search == JobMessageSearch.WARNING_ONLY || search == JobMessageSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
+            case ERROR -> search == JobMessageSearch.ALL
+                    || search == JobMessageSearch.ERROR_ONLY && !hasStackTrace
+                    || search == JobMessageSearch.EXCEPTION_ONLY && hasStackTrace
+                    || search == JobMessageSearch.ERRORS_AND_EXCEPTIONS
+                    || search == JobMessageSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
         };
     }
 
-    private JobMessageLevel toLevel(JobDashboardLogger.Level level) {
+    private JobMessageLevel toLevel(JobDashboardLogger.Level level, boolean hasStackTrace) {
         return switch (level) {
             case INFO -> JobMessageLevel.INFO;
             case WARN -> JobMessageLevel.WARNING;
-            case ERROR -> JobMessageLevel.ERROR;
+            case ERROR -> hasStackTrace ? JobMessageLevel.EXCEPTION : JobMessageLevel.ERROR;
         };
-    }
-
-    private String formatInstant(Instant instant) {
-        return instant.atZone(ZoneId.systemDefault()).format(DATE_TIME_FORMATTER);
     }
 }
 

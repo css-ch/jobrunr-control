@@ -62,7 +62,7 @@ public class JobDetailsController {
         String jobId = UiRoutingSupport.queryParam(ctx, "jobId");
         String jobType = UiRoutingSupport.queryParam(ctx, "jobType");
         String jobName = UiRoutingSupport.queryParam(ctx, "jobName");
-        
+
         // Construct title and subtitle on Java side (no template interpolation needed)
         String title = "Batch Detail " + jobName;
         UiRoutingSupport.renderHtml(ctx, JobDetailsController.Templates.jobDetails(jobId, jobType, title, jobId, jobType));
@@ -73,8 +73,8 @@ public class JobDetailsController {
             return;
         }
         UiRoutingSupport.renderHtml(ctx, buildRecapTable(
-                UiRoutingSupport.queryParam(ctx, "jobId"),
-                UiRoutingSupport.queryParam(ctx, "jobType")));
+                UiRoutingSupport.queryParam(ctx, "jobId")
+        ));
     }
 
     public void handleDetailsParameter(RoutingContext ctx) {
@@ -114,8 +114,8 @@ public class JobDetailsController {
                 size));
     }
 
-    private TemplateInstance buildRecapTable(String jobId, String jobType) {
-        GetJobDetailsRecapUseCase.Result recapData = getJobDetailsRecapUseCase.execute(jobIdAsUUID(jobId), jobType);
+    private TemplateInstance buildRecapTable(String jobId) {
+        GetJobDetailsRecapUseCase.Result recapData = getJobDetailsRecapUseCase.execute(jobIdAsUUID(jobId));
         return JobDetailsController.Components.jobDetailsRecap(recapData);
     }
 
@@ -156,5 +156,4 @@ public class JobDetailsController {
         }
     }
 }
-
 

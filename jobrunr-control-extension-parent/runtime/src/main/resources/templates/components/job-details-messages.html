@@ -14,20 +14,24 @@
         <div>
             {#for m in messages.pageItems()}
             {#let level = m.messageLevel().name()}
-            <div class="message-item {#if level == 'INFO'}message-info{#else if level == 'WARNING'}message-warning{#else}message-error{/if}">
+            <div class="message-item {#if level == 'INFO'}message-info{#else if level == 'WARNING'}message-warning{#else if level == 'ERROR'}message-error{#else}message-exception{/if}">
                 <div class="row align-items-start g-2">
                     <div class="col-auto">
                         {#if level == 'INFO'}
                             <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
                         {#else if level == 'WARNING'}
                             <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i></span>
-                        {#else}
+                        {#else if level == 'ERROR'}
                             <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
+                        {#else if level == 'EXCEPTION'}
+                            <span class="badge bg-danger"><i class="bi bi-bug-fill"></i></span>
+                        {#else}
+                            <span class="badge bg-secondary"><i class="bi bi-question-circle"></i></span>
                         {/if}
                     </div>
                     <div class="col">
                         <div class="small">
-                            <strong>{level}</strong> - {m.formattedCreatedAt()}
+                            <strong>{level}</strong> - {m.createdAtFormatted()}
                         </div>
                         <p class="mb-0 mt-1">{m.message()}</p>
                         {#if m.hasStackTrace()}
@@ -160,10 +164,13 @@
         background-color: #e7f3ff;
         border-left-color: #0d6efd;
     }
-
     .message-error {
         background-color: #ffe7e7;
         border-left-color: #dc3545;
+    }
+    .message-exception {
+        background-color: #dfc7c7;
+        border-left-color: #bc1525;
     }
     .message-warning {
         background-color: #fff7e6;

@@ -106,27 +106,31 @@
                                    class="text-decoration-none">
                                     <strong>{execution.jobName}</strong>
                                 </a>
-                                <a href="{cp}/history/details?jobId={execution.jobId}&jobType={execution.jobType}&jobName={execution.jobName}"
-                                   title="Zum Batch-Dashboard"
-                                   class="text-decoration-none ms-2">
-                                    <i class="bi bi-speedometer2 text-primary"></i>
-                                </a>
+                                {#if hasDetailPage.hasDetailPage(execution.jobType)}
+                                    <a href="{cp}/history/details?jobId={execution.jobId}&jobType={execution.jobType}&jobName={execution.jobName}"
+                                       title="Zur Batch-Detail-Page"
+                                       class="text-decoration-none ms-2">
+                                        <i class="bi bi-speedometer2 text-primary"></i>
+                                    </a>
+                                {/if}
                                 <a href="{dashboard.jobUrl(execution.jobId)}"
                                    target="_blank"
                                    class="text-decoration-none">
                                     (<i>JobRunr-Dashboard</i>)
                                 </a>
                             {#else}
-                            <a href="{dashboard.jobUrl(execution.jobId)}"
-                               target="_blank"
-                               class="text-decoration-none">
-                                <strong>{execution.jobName}</strong>
-                            </a>
-                            <a href="{cp}/history/details?jobId={execution.jobId}&jobType={execution.jobType}&jobName={execution.jobName}"
-                               title="Zum Batch-Dashboard"
-                               class="text-decoration-none ms-2">
-                                <i class="bi bi-speedometer2 text-primary"></i>
-                            </a>
+                                <a href="{dashboard.jobUrl(execution.jobId)}"
+                                   target="_blank"
+                                   class="text-decoration-none">
+                                    <strong>{execution.jobName}</strong>
+                                </a>
+                                {#if hasDetailPage.hasDetailPage(execution.jobType)}
+                                    <a href="{cp}/history/details?jobId={execution.jobId}&jobType={execution.jobType}&jobName={execution.jobName}"
+                                       title="Zur Batch-Detail-Page"
+                                       class="text-decoration-none ms-2">
+                                        <i class="bi bi-speedometer2 text-primary"></i>
+                                    </a>
+                                {/if}
                             {/if}
                         </td>
                         {#if showUuid}

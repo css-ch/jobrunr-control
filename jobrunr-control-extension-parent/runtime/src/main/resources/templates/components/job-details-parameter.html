@@ -32,7 +32,18 @@
                                         {#if parameters.get(paramDef.name) == null}
                                             <span class="text-muted">-</span>
                                         {#else if parameters.get(paramDef.name).toString().length() > 100}
-                                            <small class="text-monospace">{parameters.get(paramDef.name).toString().substring(0, 97)}...</small>
+                                            <div class="param-expandable">
+                                                <div class="d-flex align-items-start gap-2">
+                                                    <small class="text-monospace param-preview">{parameters.get(paramDef.name).toString().substring(0, 97)}...</small>
+                                                    <button class="btn btn-sm btn-link p-0 param-toggle-btn"
+                                                            type="button"
+                                                            onclick="toggleParam(this)"
+                                                            title="Aufklappen">
+                                                        <i class="bi bi-chevron-down"></i>
+                                                    </button>
+                                                </div>
+                                                <pre class="param-full-value d-none">{parameters.get(paramDef.name)}</pre>
+                                            </div>
                                         {#else}
                                             {#if paramDef.type.name() == 'ENUM'}
                                                 {#for enum in paramDef.enumValues}
@@ -64,4 +75,24 @@
     </div>
 {/if}
 
+<script>
+    function toggleParam(btn) {
+        const wrapper  = btn.closest('.param-expandable');
+        const preview  = wrapper.querySelector('.param-preview');
+        const fullVal  = wrapper.querySelector('.param-full-value');
+        const icon     = btn.querySelector('i');
+        const expanded = !fullVal.classList.contains('d-none');
 
+        if (expanded) {
+            fullVal.classList.add('d-none');
+            preview.classList.remove('d-none');
+            icon.classList.replace('bi-chevron-up', 'bi-chevron-down');
+            btn.title = 'Aufklappen';
+        } else {
+            fullVal.classList.remove('d-none');
+            preview.classList.add('d-none');
+            icon.classList.replace('bi-chevron-down', 'bi-chevron-up');
+            btn.title = 'Zuklappen';
+        }
+    }
+</script>
