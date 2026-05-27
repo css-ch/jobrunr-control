@@ -12,6 +12,7 @@ import org.jboss.logging.Logger;
 import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.context.JobDashboardLogger;
+import org.jobrunr.jobs.states.FailedState;
 import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.navigation.AmountRequest;
@@ -132,24 +133,35 @@ public class GetJobDetailsMessageUseCase {
 
     private List<JobMessage> getMessages(BatchJob batchJob, JobMessageSearch search) {
         final List<JobMessage> messages = new ArrayList<>();
-        getChildJobs(batchJob).stream()
-                .flatMap(job -> job.getMetadata().entrySet().stream())
-                .filter(entry -> entry.getKey().startsWith("jobRunrDashboardLog-"))
-                .map(Map.Entry::getValue)
-                .filter(value -> value instanceof JobDashboardLogger.JobDashboardLogLines)
-                .map(o -> (JobDashboardLogger.JobDashboardLogLines) o)
-                .flatMap(ll -> ll.getLogLines().stream())
-                .forEach(message -> {
+        getChildJobs(batchJob)
+                .forEach(job -> job.getMetadata().entrySet().stream()
+                        .filter(entry -> entry.getKey().startsWith("jobRunrDashboardLog-"))
+                        .map(Map.Entry::getValue)
+                        .filter(value -> value instanceof JobDashboardLogger.JobDashboardLogLines)
+                        .map(o -> (JobDashboardLogger.JobDashboardLogLines) o)
+                        .flatMap(ll -> ll.getLogLines().stream())
+                        .forEach(message -> {
                     if (matchesSearch(message.getLevel(), search)) {
                         messages.add(new JobMessage(
                                 message.getLogInstant(),
                                 toJobMessageLevel(message.getLevel()),
                                 message.getLogMessage(),
-                                formatInstant(message.getLogInstant())
+                                formatInstant(message.getLogInstant()),
+                                resolveStackTrace(job, message)
                         ));
                     }
-                });
+                }));
         return messages;
+    }
+
+    private String resolveStackTrace(Job childJob, JobDashboardLogger.JobDashboardLogLine message) {
+        if (message.getLevel() != JobDashboardLogger.Level.ERROR) {
+            return null;
+        }
+        return childJob.getLastJobStateOfType(FailedState.class)
+                .map(FailedState::getStackTrace)
+                .filter(stackTrace -> stackTrace != null && !stackTrace.isBlank())
+                .orElse(null);
     }
 
     private List<Job> getChildJobs(BatchJob batchJob) {

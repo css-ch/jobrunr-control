@@ -30,6 +30,17 @@
                             <strong>{level}</strong> - {m.formattedCreatedAt()}
                         </div>
                         <p class="mb-0 mt-1">{m.message()}</p>
+                        {#if m.hasStackTrace()}
+                            <div class="mt-2">
+                                <pre class="stacktrace-preview small mb-1">{m.stackTracePreview()}</pre>
+                                {#if m.isStackTraceTruncated()}
+                                    <details class="stacktrace-details">
+                                        <summary class="btn btn-link btn-sm p-0">StackTrace anzeigen</summary>
+                                        <pre class="stacktrace-full small mt-1 mb-0">{m.stackTrace()}</pre>
+                                    </details>
+                                {/if}
+                            </div>
+                        {/if}
                     </div>
                 </div>
             </div>
@@ -162,6 +173,24 @@
     .message-item p {
         color: #333;
         margin: 0;
+    }
+
+    .stacktrace-preview,
+    .stacktrace-full {
+        font-family: var(--bs-font-monospace);
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: rgba(0, 0, 0, 0.03);
+        border-radius: 0.25rem;
+        padding: 0.5rem;
+    }
+
+    .stacktrace-details summary {
+        list-style: none;
+    }
+
+    .stacktrace-details summary::-webkit-details-marker {
+        display: none;
     }
 
     .message-item small {

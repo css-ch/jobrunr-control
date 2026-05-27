@@ -20,6 +20,12 @@ public class ComplexParameterDemoChildJob implements JobResultRequestHandler<Com
     @Override
     public ComplexParameterDemoJobRecap runAndReturn(ComplexParameterDemoChildJobRequest jobRequest) {
         int policeNr = jobRequest.number();
+        if(jobRequest.exception()) {
+            String message = format("[Police %s] Druck mit technischem Fehler abgebrochen: %s", policeNr, "Druckerfehler: Papierstau im Drucker.");
+            ThreadLocalJobContext.getJobContext().logger().error(message);
+            LOG.error(message);
+            throw new RuntimeException("Druckerfehler: Papierstau im Drucker.");
+        }
         ComplexParameterDemoChildJob.PolicenResult policenResult = randomValue(Arrays.asList(ComplexParameterDemoChildJob.PolicenResult.values()));
         ComplexParameterDemoJobRecap recap;
         String message;

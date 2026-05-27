@@ -2,7 +2,9 @@ package ch.css.jobrunr.control.jobs.complex;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
 import ch.css.jobrunr.control.annotations.JobDetailPage;
+import ch.css.jobrunr.control.domain.ParameterStorageService;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.context.JobContext;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
@@ -21,6 +23,13 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
     private static final Logger LOG = Logger.getLogger(ComplexParameterDemoJob.class);
 
     private static final String METADATA_KEY_ENQUEUED = "children_enqueued";
+
+    private final ParameterStorageService parameterStorageService;
+
+    @Inject
+    public ComplexParameterDemoJob(ParameterStorageService parameterStorageService) {
+        this.parameterStorageService = parameterStorageService;
+    }
 
     @Override
     @ConfigurableJob(name="Complex Demo Job", isBatch = true, resultPageUrl = "http://{host}:{port}/mybatch/result/{jobId}?stage={stage}&startDate={startDate}&endDate={endDate}")
@@ -41,8 +50,11 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
         ThreadLocalJobContext.getJobContext().logger().info("Start ComplexParameterDemoJob");
         LOG.debug(String.format("[Batch %s] Start ComplexParameterDemoJob", jobId.toString()));
 
+        ComplexParameterDemoJobParameter parameter = parameterStorageService.findById(jobId, ComplexParameterDemoJobParameter.class)
+                .orElseThrow(() -> new IllegalStateException("Parameter set not found: " + jobId));
+
         List<ComplexParameterDemoChildJobRequest> items = IntStream.range(1, 87).boxed()
-                .map(ComplexParameterDemoChildJobRequest::new)
+                .map((Integer number) -> new ComplexParameterDemoChildJobRequest(number, number == 13 && parameter.steuerungPhysischerDruckPortalVersand()))
                 .toList();
 
         markAsEnqueued(items.size());

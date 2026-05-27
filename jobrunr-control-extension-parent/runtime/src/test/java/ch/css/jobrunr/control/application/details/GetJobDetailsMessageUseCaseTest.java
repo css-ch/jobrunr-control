@@ -64,7 +64,7 @@ class GetJobDetailsMessageUseCaseTest {
                 List.of(),
                 new JobDetailPage(null, "complex-demo-message-provider", "", true, true)
         );
-        JobMessage message = new JobMessage(Instant.parse("2026-05-26T10:15:30Z"), JobMessageLevel.INFO, "hello", "26.05.2026 12:15:30");
+        JobMessage message = new JobMessage(Instant.parse("2026-05-26T10:15:30Z"), JobMessageLevel.INFO, "hello", "26.05.2026 12:15:30", null);
 
         when(storageProvider.getJobById(jobId)).thenReturn(batchJob);
         when(batchJob.isBatchJob()).thenReturn(true);

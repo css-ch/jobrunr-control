@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.context.JobDashboardLogger;
+import org.jobrunr.jobs.states.FailedState;
 import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.navigation.AmountRequest;
@@ -74,8 +75,7 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
 
     private List<JobMessage> getMessages(UUID jobId, JobMessageSearch searchFilter) {
         List<JobMessage> messages = new ArrayList<>();
-        getChildJobs(jobId).stream()
-                .flatMap(job -> job.getMetadata().entrySet().stream())
+        getChildJobs(jobId).forEach(job -> job.getMetadata().entrySet().stream()
                 .filter(entry -> entry.getKey().startsWith("jobRunrDashboardLog-"))
                 .map(Map.Entry::getValue)
                 .filter(value -> value instanceof JobDashboardLogger.JobDashboardLogLines)
@@ -86,9 +86,20 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
                         logLine.getLogInstant(),
                         toLevel(logLine.getLevel()),
                         logLine.getLogMessage(),
-                        formatInstant(logLine.getLogInstant())
-                )));
+                        formatInstant(logLine.getLogInstant()),
+                        resolveStackTrace(job, logLine)
+                ))));
         return messages;
+    }
+
+    private String resolveStackTrace(Job childJob, JobDashboardLogger.JobDashboardLogLine logLine) {
+        if (logLine.getLevel() != JobDashboardLogger.Level.ERROR) {
+            return null;
+        }
+        return childJob.getLastJobStateOfType(FailedState.class)
+                .map(FailedState::getStackTrace)
+                .filter(stackTrace -> stackTrace != null && !stackTrace.isBlank())
+                .orElse(null);
     }
 
     private List<Job> getChildJobs(UUID jobId) {
