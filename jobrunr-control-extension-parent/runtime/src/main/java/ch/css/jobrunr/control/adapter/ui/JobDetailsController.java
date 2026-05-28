@@ -4,8 +4,6 @@ import ch.css.jobrunr.control.application.details.GetJobDetailsMessageUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
 import ch.css.jobrunr.control.application.details.JobMessageSearch;
-import ch.css.jobrunr.control.domain.JobParameter;
-import ch.css.jobrunr.control.domain.JobParameterSection;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.vertx.core.json.Json;
@@ -41,7 +39,7 @@ public class JobDetailsController {
             // Utility class
         }
 
-        public static native TemplateInstance jobDetails(String jobId, String jobType, String title, String subtitle, String postTitle);
+        public static native TemplateInstance jobDetails(String jobId, String jobType, String jobName);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -51,7 +49,7 @@ public class JobDetailsController {
         }
 
         public static native TemplateInstance jobDetailsRecap(GetJobDetailsRecapUseCase.Result recap);
-        public static native TemplateInstance jobDetailsParameter(Map<String, Object> parameters, List<JobParameterSection> parameterSections, List<JobParameter> parameterDefinitions, boolean showEmptyParameters);
+        public static native TemplateInstance jobDetailsParameter(GetJobDetailsParametersUseCase.Result parameter);
         public static native TemplateInstance jobDetailsMessages(GetJobDetailsMessageUseCase.MessagesPaginationResult messages);
     }
 
@@ -65,8 +63,7 @@ public class JobDetailsController {
         String jobName = UiRoutingSupport.queryParam(ctx, "jobName");
 
         // Construct title and subtitle on Java side (no template interpolation needed)
-        String title = "Batch Detail " + jobName;
-        UiRoutingSupport.renderHtml(ctx, JobDetailsController.Templates.jobDetails(jobId, jobType, title, jobId, jobType));
+        UiRoutingSupport.renderHtml(ctx, JobDetailsController.Templates.jobDetails(jobId, jobType, jobName));
         plog.log();
     }
 
@@ -130,10 +127,11 @@ public class JobDetailsController {
     private TemplateInstance buildParameterTable(String jobId) {
         try {
             GetJobDetailsParametersUseCase.Result result = getJobDetailsParametersUseCase.execute(jobId);
-            return JobDetailsController.Components.jobDetailsParameter(result.parameters(), result.parameterSections(), result.parameterDefinitions(), result.showEmptyParameters());
+            return JobDetailsController.Components.jobDetailsParameter(result);
+            //lsParameter(result.parameters(), result.parameterSections(), result.parameterDefinitions(), result.showEmptyParameters());
         } catch (Exception e) {
             // Return with empty parameters if loading fails
-            return JobDetailsController.Components.jobDetailsParameter(Map.of(), List.of(), List.of(), false);
+            return JobDetailsController.Components.jobDetailsParameter(new GetJobDetailsParametersUseCase.Result(Map.of(), List.of(), List.of(), false));
         }
     }
 

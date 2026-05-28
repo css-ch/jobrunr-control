@@ -1,9 +1,26 @@
-{#include base title=title subtitle=subtitle postTitle=postTitle}
+{#include base title="Job-Details" subtitle="Details der Job-Ausführung einsehen"}
 
 {#content}
     <!-- Hidden inputs to carry jobId and jobType through HTMX requests -->
     <input type="hidden" name="jobId" value="{jobId}">
     <input type="hidden" name="jobType" value="{jobType}">
+
+    <!-- Batch metadata headline -->
+    <div class="card border-0 bg-light-subtle mb-3">
+        <div class="card-body py-2">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="badge text-bg-primary">
+                    <i class="bi bi-box"></i> {jobName}
+                </span>
+                <span class="badge text-bg-secondary">
+                    <i class="bi bi-tag"></i> {jobType}
+                </span>
+                <span class="badge text-bg-light border text-dark">
+                    <i class="bi bi-hash"></i> <code class="mb-0">{jobId}</code>
+                </span>
+            </div>
+        </div>
+    </div>
 
     <!-- Top Row: Batch Recap and Batch Parameter -->
     <div class="row mb-3">

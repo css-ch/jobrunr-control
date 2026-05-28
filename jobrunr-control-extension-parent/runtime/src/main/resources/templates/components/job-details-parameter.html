@@ -8,7 +8,7 @@
     - parameters: Map<String, Object> - Job execution parameters
 !}
 
-{#if parameters.empty}
+{#if parameter.parameters.empty}
     <div class="alert alert-info" role="alert">
         <i class="bi bi-info-circle"></i> Keine Parameter für diesen Job vorhanden
     </div>
@@ -22,19 +22,19 @@
                 </tr>
             </thead>
             <tbody>
-                {#for section in parameterSections}
-                    {#for paramDef in parameterDefinitions}
+                {#for section in parameter.parameterSections}
+                    {#for paramDef in parameter.parameterDefinitions}
                         {#if paramDef.sectionId == section.id}
-                            {#if parameters.containsKey(paramDef.name)}
+                            {#if parameter.parameters.containsKey(paramDef.name)}
                                 <tr>
                                     <td><code>{paramDef.displayName}</code></td>
                                     <td>
-                                        {#if parameters.get(paramDef.name) == null}
+                                        {#if parameter.parameters.get(paramDef.name) == null}
                                             <span class="text-muted">-</span>
-                                        {#else if parameters.get(paramDef.name).toString().length() > 100}
+                                        {#else if parameter.parameters.get(paramDef.name).toString().length() > 100}
                                             <div class="param-expandable">
                                                 <div class="d-flex align-items-start gap-2">
-                                                    <small class="text-monospace param-preview">{parameters.get(paramDef.name).toString().substring(0, 97)}...</small>
+                                                    <small class="text-monospace param-preview">{parameter.parameters.get(paramDef.name).toString().substring(0, 97)}...</small>
                                                     <button class="btn btn-sm btn-link p-0 param-toggle-btn"
                                                             type="button"
                                                             onclick="toggleParam(this)"
@@ -42,23 +42,23 @@
                                                         <i class="bi bi-chevron-down"></i>
                                                     </button>
                                                 </div>
-                                                <pre class="param-full-value d-none">{parameters.get(paramDef.name)}</pre>
+                                                <pre class="param-full-value d-none">{parameter.parameters.get(paramDef.name)}</pre>
                                             </div>
                                         {#else}
                                             {#if paramDef.type.name() == 'ENUM'}
                                                 {#for enum in paramDef.enumValues}
-                                                    {#if enum.value == parameters.get(paramDef.name)}
+                                                    {#if enum.value == parameter.parameters.get(paramDef.name)}
                                                         <strong>{enum.label}</strong>
                                                     {/if}
                                                 {/for}
                                             {#else}
-                                                <strong>{parameters.get(paramDef.name)}</strong>
+                                                <strong>{parameter.parameters.get(paramDef.name)}</strong>
                                             {/if}
                                         {/if}
                                     </td>
                                 </tr>
                             {#else}
-                                {#if showEmptyParameters}
+                                {#if parameter.showEmptyParameters}
                                     <tr>
                                         <td><code>{paramDef.displayName}</code></td>
                                         <td>
