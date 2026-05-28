@@ -35,8 +35,6 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
     @ConfigurableJob(name="Complex Demo Job", isBatch = true, retries = 0)
     @JobDetailPage(
             recapParameterClass = ComplexParameterDemoJobRecap.class,
-            messageProviderKey = "complex-demo-message-provider",
-            recapProviderKey = "complex-demo-recap-provider",
             showEmptyParameters = false,
             showRecapParameterWithZeroValue = false)
     public void run(ComplexParameterDemoJobRequest complexParameterDemoJobRequest) throws Exception {
@@ -53,13 +51,20 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
         ComplexParameterDemoJobParameter parameter = parameterStorageService.findById(jobId, ComplexParameterDemoJobParameter.class)
                 .orElseThrow(() -> new IllegalStateException("Parameter set not found: " + jobId));
 
-        List<ComplexParameterDemoChildJobRequest> items = IntStream.range(1, 87).boxed()
+        int childCount = 87;
+        try {
+            childCount = Integer.parseInt(parameter.steuerungBeilageNrs());
+        } catch (NumberFormatException e) {
+            ThreadLocalJobContext.getJobContext().logger().warn("Invalid number format for steuerungBeilageNrs: " + parameter.steuerungBeilageNrs());
+        }
+        List<ComplexParameterDemoChildJobRequest> items = IntStream.range(1, childCount).boxed()
                 .map((Integer number) -> new ComplexParameterDemoChildJobRequest(number, number == 13 && parameter.steuerungPhysischerDruckPortalVersand()))
                 .toList();
 
         markAsEnqueued(items.size());
         enqueueChildJobs(items);
         LOG.info(String.format("[Batch %s] Preparing ComplexParameterDemoJob finished. %d Child-Jobs enqueued", jobId, items.size()));
+        ThreadLocalJobContext.getJobContext().logger().info(String.format("Preparing ComplexParameterDemoJob finished. %d Child-Jobs enqueued", items.size()));
     }
 
     private boolean isAlreadyEnqueued() {

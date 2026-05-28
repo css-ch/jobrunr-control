@@ -29,7 +29,7 @@ public class ComplexDemoRecapProvider implements JobRecapProvider {
     }
 
     @Override
-    public Map<String, Object> determineRecap(UUID jobId, String jobType) {
+    public Map<String, Long> determineRecap(UUID jobId) {
         Map<String, Long> counters = new HashMap<>();
         counters.put("policenSelektiert", 0L);
         counters.put("policenRelevant", 0L);
@@ -51,18 +51,22 @@ public class ComplexDemoRecapProvider implements JobRecapProvider {
     }
 
     private void updateCounters(Map<String, Long> counters, Object result) {
-        if (!(result instanceof ComplexParameterDemoJobRecap recap)) {
+        if (!(result instanceof ComplexParameterDemoJobRecap(
+                long policenSelektiert, long policenRelevant, long policenFailed, long policenSperre,
+                long policenAnnulliert, long policenHerausgefilter, long druckauftraegeVerarbeitet,
+                long druckauftraegeGedruckt
+        ))) {
             return;
         }
 
-        counters.computeIfPresent("policenSelektiert", (key, value) -> value + recap.policenSelektiert());
-        counters.computeIfPresent("policenRelevant", (key, value) -> value + recap.policenRelevant());
-        counters.computeIfPresent("policenFailed", (key, value) -> value + recap.policenFailed());
-        counters.computeIfPresent("policenSperre", (key, value) -> value + recap.policenSperre());
-        counters.computeIfPresent("policenAnnulliert", (key, value) -> value + recap.policenAnnulliert());
-        counters.computeIfPresent("policenHerausgefilter", (key, value) -> value + recap.policenHerausgefilter());
-        counters.computeIfPresent("druckauftraegeVerarbeitet", (key, value) -> value + recap.druckauftraegeVerarbeitet());
-        counters.computeIfPresent("druckauftraegeGedruckt", (key, value) -> value + recap.druckauftraegeGedruckt());
+        counters.computeIfPresent("policenSelektiert", (key, value) -> value + policenSelektiert);
+        counters.computeIfPresent("policenRelevant", (key, value) -> value + policenRelevant);
+        counters.computeIfPresent("policenFailed", (key, value) -> value + policenFailed);
+        counters.computeIfPresent("policenSperre", (key, value) -> value + policenSperre);
+        counters.computeIfPresent("policenAnnulliert", (key, value) -> value + policenAnnulliert);
+        counters.computeIfPresent("policenHerausgefilter", (key, value) -> value + policenHerausgefilter);
+        counters.computeIfPresent("druckauftraegeVerarbeitet", (key, value) -> value + druckauftraegeVerarbeitet);
+        counters.computeIfPresent("druckauftraegeGedruckt", (key, value) -> value + druckauftraegeGedruckt);
     }
 }
 

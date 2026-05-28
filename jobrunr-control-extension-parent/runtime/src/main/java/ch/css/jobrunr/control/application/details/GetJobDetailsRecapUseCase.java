@@ -47,14 +47,13 @@ public class GetJobDetailsRecapUseCase {
                     LOG.errorf("Job execution not found: %s", jobId);
                     return new JobNotFoundException("Job execution with ID " + jobId + " not found");
                 });
-        String jobType = jobExecutionInfo.getJobType();
-        JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobType);
+        JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobExecutionInfo.getJobType());
 
         JobStatusAndTimestamp jobStatusAndTimestamp = evaluateJobStatusAndTimestamp(jobExecutionInfo);
         MessageCount messageCount = evaluateMessageCount(jobId, jobDefinition);
         ChildJobCounters childJobCounters = evaluateChildJobCounters(jobId);
         JobDurations jobDurations = evaluateJobDurations(jobExecutionInfo, childJobCounters.succeededChildJobCount);
-        RecapCounters recapCounters = evaluateRecapCounters(jobId, jobType, jobDefinition);
+        RecapCounters recapCounters = evaluateRecapCounters(jobId, jobDefinition);
 
         return new Result(
                 jobStatusAndTimestamp,
@@ -160,11 +159,11 @@ public class GetJobDetailsRecapUseCase {
         return decimalFormat.format(value);
     }
 
-    private RecapCounters evaluateRecapCounters(UUID jobId, String jobType, JobDefinition jobDefinition) {
+    private RecapCounters evaluateRecapCounters(UUID jobId, JobDefinition jobDefinition) {
         Optional<JobRecapProvider> jobRecapProvider = resolveRecapProvider(jobDefinition);
-        Map<String, Object> counters = jobRecapProvider
-                .map(provider -> provider.determineRecap(jobId, jobType))
-                .orElseGet(() -> defaultJobDetailsProvider.determineRecap(jobId, jobType));
+        Map<String, Long> counters = jobRecapProvider
+                .map(provider -> provider.determineRecap(jobId))
+                .orElseGet(() -> defaultJobDetailsProvider.determineRecap(jobId));
         return new RecapCounters(counters, evaluateRecapSettings(jobDefinition));
     }
 
@@ -250,7 +249,7 @@ public class GetJobDetailsRecapUseCase {
     }
 
     public record RecapCounters(
-            Map<String, Object> recapCounters,
+            Map<String, Long> recapCounters,
             RecapSettings recapSettings) {
     }
 

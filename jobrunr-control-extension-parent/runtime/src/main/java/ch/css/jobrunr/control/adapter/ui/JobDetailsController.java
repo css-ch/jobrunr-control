@@ -56,6 +56,7 @@ public class JobDetailsController {
     }
 
     public void handleIndex(RoutingContext ctx) {
+        PerformanceLogger plog = new PerformanceLogger("handleIndex");
         if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
             return;
         }
@@ -66,24 +67,29 @@ public class JobDetailsController {
         // Construct title and subtitle on Java side (no template interpolation needed)
         String title = "Batch Detail " + jobName;
         UiRoutingSupport.renderHtml(ctx, JobDetailsController.Templates.jobDetails(jobId, jobType, title, jobId, jobType));
+        plog.log();
     }
 
     public void handleDetailsRecap(RoutingContext ctx) {
+        PerformanceLogger plog = new PerformanceLogger("handleDetailsRecap");
         if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
             return;
         }
         UiRoutingSupport.renderHtml(ctx, buildRecapTable(
                 UiRoutingSupport.queryParam(ctx, "jobId")
         ));
+        plog.log();
     }
 
     public void handleDetailsParameter(RoutingContext ctx) {
+        PerformanceLogger plog = new PerformanceLogger("handleDetailsParameter");
         if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
             return;
         }
         UiRoutingSupport.renderHtml(ctx, buildParameterTable(
                 UiRoutingSupport.queryParam(ctx, "jobId")
         ));
+        plog.log();
     }
 
     public void handleDetailsParameterDownload(RoutingContext ctx) {
@@ -101,6 +107,7 @@ public class JobDetailsController {
     }
 
     public void handleDetailsMessages(RoutingContext ctx) {
+        PerformanceLogger plog = new PerformanceLogger("handleDetailsMessages");
         if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
             return;
         }
@@ -112,6 +119,7 @@ public class JobDetailsController {
                 UiRoutingSupport.queryParam(ctx, "search"),
                 page,
                 size));
+        plog.log();
     }
 
     private TemplateInstance buildRecapTable(String jobId) {

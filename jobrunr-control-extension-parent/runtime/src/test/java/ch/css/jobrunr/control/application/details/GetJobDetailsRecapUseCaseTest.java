@@ -96,7 +96,7 @@ class GetJobDetailsRecapUseCaseTest {
         when(jobDetailsProviderRegistry.findMessageProvider("complex-demo-message-provider")).thenReturn(Optional.of(jobMessageProvider));
         when(jobDetailsProviderRegistry.findRecapProvider("complex-demo-recap-provider")).thenReturn(Optional.of(jobRecapProvider));
         when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageCounter(12, 5, 4, 3));
-        when(jobRecapProvider.determineRecap(jobId, jobType)).thenReturn(Map.of("processed", 42L));
+        when(jobRecapProvider.determineRecap(jobId)).thenReturn(Map.of("processed", 42L));
 
         GetJobDetailsRecapUseCase.Result result = useCase.execute(jobId);
 
@@ -109,7 +109,7 @@ class GetJobDetailsRecapUseCaseTest {
         assertThat(result.childJobCounters().succeededChildJobCount()).isEqualTo(7);
         assertThat(result.recapCounters().recapCounters()).containsEntry("processed", 42L);
         verify(jobMessageProvider).determineJobMessageCounter(jobId);
-        verify(jobRecapProvider).determineRecap(jobId, jobType);
+        verify(jobRecapProvider).determineRecap(jobId);
         verify(storageProvider, never()).getJobList(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 }

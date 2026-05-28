@@ -1,6 +1,5 @@
 package ch.css.jobrunr.control.application.details;
 
-import ch.css.jobrunr.control.adapter.ui.PaginationHelper;
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -13,17 +12,26 @@ import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.navigation.AmountRequest;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.lang.reflect.Method;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 @ApplicationScoped
 public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapProvider {
+    private static final Duration SNAPSHOT_TTL = Duration.ofSeconds(2);
 
     private final JobExecutionPort jobExecutionPort;
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
+    private final Clock clock = Clock.systemUTC();
+    private final Duration snapshotTtl = SNAPSHOT_TTL;
+    private final Map<UUID, SnapshotCacheEntry> snapshotCache = new ConcurrentHashMap<>();
+    private final Map<UUID, CompletableFuture<BatchDetailsSnapshot>> inFlightSnapshots = new ConcurrentHashMap<>();
 
     @Inject
     public DefaultJobDetailsProvider(JobExecutionPort jobExecutionPort, StorageProvider storageProvider, JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
@@ -38,29 +46,143 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     }
 
     @Override
-    public Map<String, Object> determineRecap(UUID jobId, String jobType) {
+    public Map<String, Long> determineRecap(UUID jobId) {
         Job job = storageProvider.getJobById(jobId);
-        if(!job.isBatchJob()) {
+        if (!job.isBatchJob()) {
             return Map.of();
         }
-        BatchJob batchJob = (BatchJob) job;
-        List<Job> childJobs = getChildJobs(batchJob);
+        BatchDetailsSnapshot snapshot = getOrBuildSnapshot(jobId);
+        return snapshot.recapCounters().entrySet().stream()
+                .collect(HashMap::new, (map, entry) -> map.put(entry.getKey(), entry.getValue()), HashMap::putAll);
+    }
+
+    @Override
+    public JobMessageCounter determineJobMessageCounter(UUID jobId) {
+        Job job = storageProvider.getJobById(jobId);
+        if (!job.isBatchJob()) {
+            return new JobMessageCounter(0, 0, 0, 0);
+        }
+        BatchDetailsSnapshot snapshot = getOrBuildSnapshot(jobId);
+        return snapshot.messageCounter();
+    }
+
+    @Override
+    public PagedJobMessages searchJobMessages(UUID jobId, JobMessageSearch searchFilter, int pageNumber, int pageSize) {
+        Job job = storageProvider.getJobById(jobId);
+        if (!job.isBatchJob()) {
+            return new PagedJobMessages(List.of(), 0, 0, 0);
+        }
+        BatchDetailsSnapshot snapshot = getOrBuildSnapshot(jobId);
+        return paginateMessages(snapshot.messages(), searchFilter, pageNumber, pageSize);
+    }
+
+    private PagedJobMessages paginateMessages(List<CollectedMessage> source,
+                                              JobMessageSearch search,
+                                              int pageNumber,
+                                              int pageSize) {
+        int sanitizedPage = Math.max(0, pageNumber);
+        int sanitizedPageSize = pageSize <= 0 ? 25 : pageSize;
+        long from = (long) sanitizedPage * sanitizedPageSize;
+        long toExclusive = from + sanitizedPageSize;
+
+        long matchedItems = 0;
+        List<JobMessage> pageItems = new ArrayList<>(sanitizedPageSize);
+        for (CollectedMessage message : source) {
+            if (!matchesSearch(message.level(), message.hasStackTrace(), search)) {
+                continue;
+            }
+            if (matchedItems >= from && matchedItems < toExclusive) {
+                pageItems.add(message.toJobMessage());
+            }
+            matchedItems++;
+        }
+
+        return new PagedJobMessages(pageItems, matchedItems, sanitizedPage, sanitizedPageSize);
+    }
+
+    private BatchDetailsSnapshot getOrBuildSnapshot(UUID jobId) {
+        long now = clock.millis();
+        SnapshotCacheEntry cachedSnapshot = snapshotCache.get(jobId);
+        if (cachedSnapshot != null && now - cachedSnapshot.createdAtMillis() < snapshotTtl.toMillis()) {
+            return cachedSnapshot.snapshot();
+        }
+
+        CompletableFuture<BatchDetailsSnapshot> pendingFuture = new CompletableFuture<>();
+        CompletableFuture<BatchDetailsSnapshot> existingFuture = inFlightSnapshots.putIfAbsent(jobId, pendingFuture);
+        if (existingFuture != null) {
+            return existingFuture.join();
+        }
+
+        try {
+            BatchDetailsSnapshot snapshot = buildSnapshot(jobId);
+            // TTL starts after the expensive snapshot build has completed.
+            snapshotCache.put(jobId, new SnapshotCacheEntry(snapshot, clock.millis()));
+            pendingFuture.complete(snapshot);
+            return snapshot;
+        } catch (RuntimeException e) {
+            pendingFuture.completeExceptionally(e);
+            throw e;
+        } finally {
+            inFlightSnapshots.remove(jobId, pendingFuture);
+        }
+    }
+
+    private BatchDetailsSnapshot buildSnapshot(UUID jobId) {
+        Job batch = storageProvider.getJobById(jobId);
+        if (!batch.isBatchJob()) {
+            return BatchDetailsSnapshot.empty();
+        }
+        BatchJob batchJob = (BatchJob) batch;
 
         JobExecutionInfo jobExecutionInfo = jobExecutionPort.getJobExecutionById(jobId)
-                .orElseThrow(() -> {
-                    return new JobNotFoundException("Job execution with ID " + jobId + " not found");
-                });
-        String effectiveJobType = resolveJobType(jobExecutionInfo, jobType);
-        JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(effectiveJobType);
+                .orElseThrow(() -> new JobNotFoundException("Job execution with ID " + jobId + " not found"));
+        JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobExecutionInfo.getJobType());
+        Map<String, AtomicLong> recapCounters = initializeRecapCounters(jobDefinition);
 
-        Map<String, AtomicLong> counters = new HashMap<>();
-        for (JobRecapParameter recapParameter : jobDefinition.recapParameters()) {
-            counters.put(recapParameter.name(), new AtomicLong(0));
+        AtomicLong infoMessages = new AtomicLong(0);
+        AtomicLong warningMessages = new AtomicLong(0);
+        AtomicLong errorMessages = new AtomicLong(0);
+        AtomicLong exceptionMessages = new AtomicLong(0);
+        List<CollectedMessage> messages = new ArrayList<>();
+
+        for (Job childJob : getChildJobs(batchJob)) {
+            updateCounters(recapCounters, childJob.getResult());
+            String stackTrace = resolveStackTrace(childJob);
+            childJob.getMetadata().entrySet().stream()
+                    .filter(entry -> entry.getKey().startsWith("jobRunrDashboardLog-"))
+                    .map(Map.Entry::getValue)
+                    .filter(JobDashboardLogger.JobDashboardLogLines.class::isInstance)
+                    .map(JobDashboardLogger.JobDashboardLogLines.class::cast)
+                    .flatMap(lines -> lines.getLogLines().stream())
+                    .forEach(logLine -> {
+                        boolean hasStackTrace = logLine.getLevel() == JobDashboardLogger.Level.ERROR
+                                && stackTrace != null
+                                && !stackTrace.isBlank();
+                        switch (logLine.getLevel()) {
+                            case INFO -> infoMessages.incrementAndGet();
+                            case WARN -> warningMessages.incrementAndGet();
+                            case ERROR -> {
+                                if (hasStackTrace) {
+                                    exceptionMessages.incrementAndGet();
+                                } else {
+                                    errorMessages.incrementAndGet();
+                                }
+                            }
+                        }
+                        messages.add(new CollectedMessage(
+                                logLine.getLogInstant(),
+                                logLine.getLevel(),
+                                logLine.getLogMessage(),
+                                hasStackTrace ? stackTrace : null
+                        ));
+                    });
         }
-        childJobs.forEach(childJob -> updateCounters(counters, childJob.getResult()));
 
-        return counters.entrySet().stream()
-                .collect(HashMap::new, (map, entry) -> map.put(entry.getKey(), entry.getValue().get()), HashMap::putAll);
+        return new BatchDetailsSnapshot(
+                toLongMap(recapCounters),
+                new JobMessageCounter(infoMessages.get(), warningMessages.get(), errorMessages.get(), exceptionMessages.get()),
+                List.copyOf(messages)
+        );
     }
 
     private void updateCounters(Map<String, AtomicLong> counters, Object recap) {
@@ -78,49 +200,24 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
         }
     }
 
-    @Override
-    public PagedJobMessages searchJobMessages(UUID jobId, JobMessageSearch searchFilter, int pageNumber, int pageSize) {
-        Job job = storageProvider.getJobById(jobId);
-        if(!job.isBatchJob()) {
-            return new PagedJobMessages(List.of(), 0, 0, 0);
+    private Map<String, AtomicLong> initializeRecapCounters(JobDefinition jobDefinition) {
+        Map<String, AtomicLong> counters = new HashMap<>();
+        for (JobRecapParameter recapParameter : jobDefinition.recapParameters()) {
+            counters.put(recapParameter.name(), new AtomicLong(0));
         }
-        BatchJob batchJob = (BatchJob) job;
-        List<JobMessage> allMessages = getMessages(batchJob, searchFilter);
-        PaginationHelper.PaginationResult<JobMessage> paginationResult = PaginationHelper.paginate(allMessages, pageNumber, pageSize);
-        return new PagedJobMessages(paginationResult.pageItems(), paginationResult.metadata().totalElements(), paginationResult.metadata().page(), paginationResult.metadata().size());
+        return counters;
     }
 
-
-    private List<JobMessage> getMessages(BatchJob batchJob, JobMessageSearch search) {
-        final List<JobMessage> messages = new ArrayList<>();
-        getChildJobs(batchJob)
-                .forEach(job -> job.getMetadata().entrySet().stream()
-                        .filter(entry -> entry.getKey().startsWith("jobRunrDashboardLog-"))
-                        .map(Map.Entry::getValue)
-                        .filter(value -> value instanceof JobDashboardLogger.JobDashboardLogLines)
-                        .map(o -> (JobDashboardLogger.JobDashboardLogLines) o)
-                        .flatMap(ll -> ll.getLogLines().stream())
-                        .forEach(message -> {
-                            String stackTrace = resolveStackTrace(job, message);
-                            if (matchesSearch(message.getLevel(), stackTrace != null && !stackTrace.isBlank(), search)) {
-                                messages.add(new JobMessage(
-                                        message.getLogInstant(),
-                                        toJobMessageLevel(message.getLevel(), stackTrace != null && !stackTrace.isBlank()),
-                                        message.getLogMessage(),
-                                        stackTrace
-                                ));
-                            }
-                        }));
-        return messages;
+    private Map<String, Long> toLongMap(Map<String, AtomicLong> counters) {
+        Map<String, Long> result = new HashMap<>();
+        counters.forEach((key, value) -> result.put(key, value.get()));
+        return result;
     }
 
-    private String resolveStackTrace(Job childJob, JobDashboardLogger.JobDashboardLogLine message) {
-        if (message.getLevel() != JobDashboardLogger.Level.ERROR) {
-            return null;
-        }
+    private String resolveStackTrace(Job childJob) {
         return childJob.getLastJobStateOfType(FailedState.class)
                 .map(FailedState::getStackTrace)
-                .filter(stackTrace -> stackTrace != null && !stackTrace.isBlank())
+                .filter(stackTrace -> !stackTrace.isBlank())
                 .orElse(null);
     }
 
@@ -136,7 +233,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
         };
     }
 
-    private JobMessageLevel toJobMessageLevel(JobDashboardLogger.Level level, boolean hasStackTrace) {
+    private static JobMessageLevel toJobMessageLevel(JobDashboardLogger.Level level, boolean hasStackTrace) {
         return switch (level) {
             case INFO -> JobMessageLevel.INFO;
             case WARN -> JobMessageLevel.WARNING;
@@ -144,60 +241,35 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
         };
     }
 
-    @Override
-    public JobMessageCounter determineJobMessageCounter(UUID jobId) {
-        Job job = storageProvider.getJobById(jobId);
-        if(!job.isBatchJob()) {
-            return new JobMessageCounter(0,0,0,0);
-        }
-        BatchJob batchJob = (BatchJob) job;
-        AtomicLong infoMessages = new AtomicLong(0);
-        AtomicLong warningMessages = new AtomicLong(0);
-        AtomicLong errorMessages = new AtomicLong(0);
-        AtomicLong exceptionMessages = new AtomicLong(0);
-
-        getChildJobs(batchJob).forEach(childJob -> childJob.getMetadata().entrySet().stream()
-                .filter(entry -> entry.getKey().startsWith("jobRunrDashboardLog-"))
-                .map(Map.Entry::getValue)
-                .filter(value -> value instanceof JobDashboardLogger.JobDashboardLogLines)
-                .map(JobDashboardLogger.JobDashboardLogLines.class::cast)
-                .flatMap(lines -> lines.getLogLines().stream())
-                .forEach(message -> {
-                    switch (message.getLevel()) {
-                        case INFO -> infoMessages.incrementAndGet();
-                        case WARN -> warningMessages.incrementAndGet();
-                        case ERROR -> {
-                            if (hasStackTrace(childJob, message)) {
-                                exceptionMessages.incrementAndGet();
-                            } else {
-                                errorMessages.incrementAndGet();
-                            }
-                        }
-                    }
-                }));
-
-        return new JobMessageCounter(infoMessages.get(), warningMessages.get(), errorMessages.get(), exceptionMessages.get());
-    }
-
-    private boolean hasStackTrace(Job childJob, JobDashboardLogger.JobDashboardLogLine logLine) {
-        if (logLine.getLevel() != JobDashboardLogger.Level.ERROR) {
-            return false;
-        }
-        return childJob.getLastJobStateOfType(FailedState.class)
-                .map(FailedState::getStackTrace)
-                .filter(stackTrace -> stackTrace != null && !stackTrace.isBlank())
-                .isPresent();
-    }
-
-    private String resolveJobType(JobExecutionInfo jobExecutionInfo, String jobType) {
-        if (jobType != null && !jobType.isBlank()) {
-            return jobType;
-        }
-        return jobExecutionInfo.jobType();
-    }
     private List<Job> getChildJobs(BatchJob batchJob) {
         return storageProvider.getJobList(JobSearchRequestBuilder.aJobSearchRequest()
                 .withParentId(batchJob.getId())
                 .build(), AmountRequest.fromString("limit=1000000"));
+    }
+
+    private record SnapshotCacheEntry(BatchDetailsSnapshot snapshot, long createdAtMillis) {
+    }
+
+    private record CollectedMessage(Instant createdAt,
+                                    JobDashboardLogger.Level level,
+                                    String message,
+                                    String stackTrace) {
+
+        boolean hasStackTrace() {
+            return stackTrace != null && !stackTrace.isBlank();
+        }
+
+        JobMessage toJobMessage() {
+            return new JobMessage(createdAt, toJobMessageLevel(level, hasStackTrace()), message, stackTrace);
+        }
+    }
+
+    private record BatchDetailsSnapshot(Map<String, Long> recapCounters,
+                                        JobMessageCounter messageCounter,
+                                        List<CollectedMessage> messages) {
+
+        static BatchDetailsSnapshot empty() {
+            return new BatchDetailsSnapshot(Map.of(), new JobMessageCounter(0, 0, 0, 0), List.of());
+        }
     }
 }

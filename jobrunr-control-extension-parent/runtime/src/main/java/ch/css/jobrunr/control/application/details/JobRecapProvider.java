@@ -7,6 +7,6 @@ public interface JobRecapProvider {
 
     String providerKey();
 
-    Map<String, Object> determineRecap(UUID jobId, String jobType);
+    Map<String, Long> determineRecap(UUID jobId);
 }
 
