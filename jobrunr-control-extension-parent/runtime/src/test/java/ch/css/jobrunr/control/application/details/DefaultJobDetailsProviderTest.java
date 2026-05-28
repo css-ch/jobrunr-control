@@ -150,7 +150,7 @@ class DefaultJobDetailsProviderTest {
                 new JobSettings("Demo Job", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
                 false,
                 null,
-                List.of(new JobRecapParameter("processed", "Processed", "", "", "", 0)),
+                List.of(new JobRecapParameter("processed", "Processed", "", "", "", "Ops", 0)),
                 null
         );
     }

@@ -17,6 +17,7 @@ public record ComplexParameterDemoJobRecap(
                 description = "Anzahl der Policen, für welche die relevanten Policenschnitte ein Druckstück erzeugt worden ist.",
                 css = "color: green;",
                 icon = "bi-check-circle-fill",
+                section = "Info Meldung",
                 order = 2)
         long policenRelevant,               // Policen für die alle relevanten Policenschnitte gedruckt wurden
 
@@ -25,6 +26,7 @@ public record ComplexParameterDemoJobRecap(
                 description = "Policen, welche mit fachlichem Fehler verarbeitet wurden.",
                 css = "color: orange;",
                 icon = "bi-exclamation-triangle-fill",
+                section = "Fachliche Warnung",
                 order = 3)
         long policenFailed,                 // Policen mit fachlichem Fehler
 
@@ -33,6 +35,7 @@ public record ComplexParameterDemoJobRecap(
                 description = "Policen, welche eine Policen-Sperre gesetzt haben und deshalb nicht verarbeitet wurden.",
                 css = "color: orange;",
                 icon = "bi-lock-fill",
+                section = "Fachliche Warnung",
                 order = 4)
         long policenSperre,                 // Policen mit Policensperre
 
@@ -41,6 +44,7 @@ public record ComplexParameterDemoJobRecap(
                 description = "Policen, welche seit dem Druckauftrag annulliert worden sind und deshalb der Druckauftrag nicht mehr verarbeitet wird",
                 css = "color: orange;",
                 icon = "bi-x-circle-fill",
+                section = "Fachliche Warnung",
                 order = 5)
         long policenAnnulliert,              // Policen annulliert
 
@@ -48,6 +52,7 @@ public record ComplexParameterDemoJobRecap(
                 displayName = "Policen herausgefiltert via Template",
                 description = "Policen, welche zwar selektiert wurden, aber aufgrund eines anderen Filters herausgefiltert wurden.",
                 icon = "bi-funnel",
+                section = "Fachliche Warnung",
                 order = 6)
         long policenHerausgefilter,         // Police herausgefiltert via Template
 

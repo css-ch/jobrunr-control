@@ -32,8 +32,12 @@ public @interface JobRecapParameter {
     String css() default "";
 
     /**
+     * The css section Property will group the Recap-Parameters with the identical section and will show a Sum under the grouped Recap-Counters.
+     */
+    String section() default "";
+
+    /**
      * The order attribute determines the position of the parameter in the Recap-Counter on the Details-Page. Parameters with lower order values will be displayed before those with higher values. This allows you to control the sequence in which parameters are shown.
-     * @return
      */
     int order() default 999;
 }

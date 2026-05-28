@@ -150,7 +150,7 @@
     </div>
 </div>
 
-{#if recap.recapCounters != null && recap.recapCounters.recapCounters != null && recap.recapCounters.recapCounters.size() > 0 && recap.recapCounters.recapSettings != null && recap.recapCounters.recapSettings.recapParameters != null && recap.recapCounters.recapSettings.recapParameters.size() > 0}
+{#if recap.recapView != null && recap.recapView.recapSections != null && recap.recapView.recapSections.size() > 0}
 <div class="mt-4">
     <h6 class="text-muted">
         <i class="bi bi-table"></i> Programmspezifische Kennzahlen
@@ -162,22 +162,28 @@
                 <th class="text-end">Wert</th>
             </tr>
         </thead>
-        <tbody>
-            {#for recapDef in recap.recapCounters.recapSettings.recapParameters}
-                {#let counter=recap.recapCounters.recapCounters.get(recapDef.name)}
-                    {#if recap.recapCounters.recapSettings.showRecapParameterWithZeroValue || (counter != null && counter > 0)}
-                        <tr title="{recapDef.description}">
-                            <td {#if recapDef.css != null && !recapDef.css.isBlank()}style="{recapDef.css}"{/if}>{#if recapDef.icon != null && !recapDef.icon.isBlank()}<i class="bi {recapDef.icon}"></i> {/if}{recapDef.displayName}</td>
-                            {#if counter != null || counter > 0}
-                                 <td class="text-end" {#if recapDef.css != null && !recapDef.css.isBlank()}style="{recapDef.css}"{/if}><strong>{counter}</strong></td>
-                            {#else}
-                                <td class="text-end" {#if recapDef.css != null && !recapDef.css.isBlank()}style="{recapDef.css}"{/if}><strong>--</strong></td>
-                            {/if}
-                        </tr>
-                    {/if}
-                {/let}
-            {/for}
-        </tbody>
+        {#for section in recap.recapView.recapSections}
+            <tbody class="recap-section-group">
+                {#if section.hasSection}
+                <tr class="recap-section-header">
+                    <th class="text-muted recap-section-title">{section.sectionName}</th>
+                    <th class="text-end recap-section-title"><span class="text-body-secondary fw-bold">{section.sectionTotal}</span></th>
+                </tr>
+                {/if}
+                {#for entry in section.recapEntries}
+                    <tr title="{entry.recapParameter.description}">
+                        <td style="{#if section.hasSection}padding-left: 1.15rem !important; {/if}{#if entry.recapParameter.css != null && !entry.recapParameter.css.isBlank()}{entry.recapParameter.css}{/if}">
+                            {#if entry.recapParameter.icon != null && !entry.recapParameter.icon.isBlank()}<i class="bi {entry.recapParameter.icon}"></i> {/if}{entry.recapParameter.displayName}
+                        </td>
+                        {#if entry.counter != null}
+                            <td class="text-end" {#if entry.recapParameter.css != null && !entry.recapParameter.css.isBlank()}style="{entry.recapParameter.css}"{/if}><strong>{entry.counter}</strong></td>
+                        {#else}
+                            <td class="text-end" {#if entry.recapParameter.css != null && !entry.recapParameter.css.isBlank()}style="{entry.recapParameter.css}"{/if}><strong>--</strong></td>
+                        {/if}
+                    </tr>
+                {/for}
+            </tbody>
+        {/for}
     </table>
 </div>
 {/if}
@@ -185,12 +191,6 @@
 <style>
     .border-left-primary {
         border-left: 4px solid #0d6efd !important;
-    }
-    .border-left-success {
-        border-left: 4px solid #198754 !important;
-    }
-    .border-left-danger {
-        border-left: 4px solid #dc3545 !important;
     }
     .border-left-warning {
         border-left: 4px solid #ffc107 !important;
@@ -203,6 +203,25 @@
     }
     .text-orange {
         color: #fd7e14 !important;
+    }
+    .recap-section-header {
+        background-color: #f8f9fa;
+    }
+    .recap-section-header th {
+        border-top: 2px solid #dee2e6;
+    }
+    .recap-section-title {
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
+        color: #6c757d !important;
+    }
+    .recap-section-group td, .recap-section-group th {
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
     }
 </style>
 

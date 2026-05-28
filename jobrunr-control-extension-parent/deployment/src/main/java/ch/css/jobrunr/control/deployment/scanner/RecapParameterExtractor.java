@@ -89,6 +89,7 @@ public class RecapParameterExtractor {
         String description = "";
         String icon = "";
         String css = "";
+        String section = "";
         int order = 999;
 
         // Extract displayName
@@ -115,14 +116,20 @@ public class RecapParameterExtractor {
             css = cssValue.asString();
         }
 
+        // Extract section
+        AnnotationValue sectionValue = recapParamAnnotation.value("section");
+        if (sectionValue != null && !sectionValue.asString().isEmpty()) {
+            section = sectionValue.asString();
+        }
+
         // Extract order
         AnnotationValue orderValue = recapParamAnnotation.value("order");
         if (orderValue != null) {
             order = orderValue.asInt();
         }
 
-        LOG.debugf("Extracted recap parameter '%s' with displayName='%s', order=%d from component", name, displayName, order);
-        return new JobRecapParameter(name, displayName, description, icon, css, order);
+        LOG.debugf("Extracted recap parameter '%s' with displayName='%s', section='%s', order=%d from component", name, displayName, section, order);
+        return new JobRecapParameter(name, displayName, description, icon, css, section, order);
     }
 
     /**

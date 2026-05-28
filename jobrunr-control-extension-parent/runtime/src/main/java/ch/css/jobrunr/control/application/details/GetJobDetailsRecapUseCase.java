@@ -22,6 +22,7 @@ public class GetJobDetailsRecapUseCase {
     private static final Logger LOG = Logger.getLogger(GetJobDetailsRecapUseCase.class);
     private static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.GERMAN);
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+    private static final String UNGROUPED_SECTION_KEY = "";
 
     private final JobExecutionPort jobExecutionPort;
     private final StorageProvider storageProvider;
@@ -53,14 +54,14 @@ public class GetJobDetailsRecapUseCase {
         MessageCount messageCount = evaluateMessageCount(jobId, jobDefinition);
         ChildJobCounters childJobCounters = evaluateChildJobCounters(jobId);
         JobDurations jobDurations = evaluateJobDurations(jobExecutionInfo, childJobCounters.succeededChildJobCount);
-        RecapCounters recapCounters = evaluateRecapCounters(jobId, jobDefinition);
+        RecapView recapView = evaluateRecapView(jobId, jobDefinition);
 
         return new Result(
                 jobStatusAndTimestamp,
                 messageCount,
                 jobDurations,
                 childJobCounters,
-                recapCounters
+                recapView
         );
     }
 
@@ -159,12 +160,67 @@ public class GetJobDetailsRecapUseCase {
         return decimalFormat.format(value);
     }
 
-    private RecapCounters evaluateRecapCounters(UUID jobId, JobDefinition jobDefinition) {
+    private RecapView evaluateRecapView(UUID jobId, JobDefinition jobDefinition) {
         Optional<JobRecapProvider> jobRecapProvider = resolveRecapProvider(jobDefinition);
         Map<String, Long> counters = jobRecapProvider
                 .map(provider -> provider.determineRecap(jobId))
                 .orElseGet(() -> defaultJobDetailsProvider.determineRecap(jobId));
-        return new RecapCounters(counters, evaluateRecapSettings(jobDefinition));
+        return new RecapView(buildRecapSections(counters, jobDefinition));
+    }
+
+    private List<RecapSection> buildRecapSections(Map<String, Long> counters, JobDefinition jobDefinition) {
+        List<JobRecapParameter> recapParameters = jobDefinition.recapParameters();
+        boolean showZeroValues = jobDefinition.jobDetailPage() != null && jobDefinition.jobDetailPage().showRecapParameterWithZeroValue();
+        Map<String, RecapSectionAccumulator> groupedSectionsByName = new LinkedHashMap<>();
+        List<RecapSectionAccumulator> orderedSections = new ArrayList<>();
+
+        for (JobRecapParameter parameter : recapParameters) {
+            Long counter = counters.get(parameter.name());
+            boolean visible = showZeroValues || (counter != null && counter > 0);
+            if (!visible) {
+                continue;
+            }
+
+            boolean hasSection = parameter.section() != null && !parameter.section().isBlank();
+            RecapSectionAccumulator sectionAccumulator;
+            if (hasSection) {
+                sectionAccumulator = groupedSectionsByName.computeIfAbsent(parameter.section(), key -> {
+                    RecapSectionAccumulator created = new RecapSectionAccumulator(key, true);
+                    orderedSections.add(created);
+                    return created;
+                });
+            } else {
+                sectionAccumulator = new RecapSectionAccumulator(UNGROUPED_SECTION_KEY, false);
+                orderedSections.add(sectionAccumulator);
+            }
+            sectionAccumulator.entries().add(new RecapEntry(parameter, counter));
+        }
+
+        return orderedSections.stream()
+                .map(accumulator -> {
+                    long total = accumulator.entries().stream()
+                    .map(RecapEntry::counter)
+                    .filter(Objects::nonNull)
+                    .mapToLong(Long::longValue)
+                    .sum();
+                    return new RecapSection(
+                            accumulator.sectionName(),
+                            accumulator.hasSection(),
+                            List.copyOf(accumulator.entries()),
+                            total
+                    );
+                })
+                .toList();
+    }
+
+    private record RecapSectionAccumulator(
+            String sectionName,
+            boolean hasSection,
+            List<RecapEntry> entries) {
+
+        private RecapSectionAccumulator(String sectionName, boolean hasSection) {
+            this(sectionName, hasSection, new ArrayList<>());
+        }
     }
 
     private Optional<JobMessageProvider> resolveMessageProvider(JobDefinition jobDefinition) {
@@ -193,18 +249,12 @@ public class GetJobDetailsRecapUseCase {
         return provider;
     }
 
-    private RecapSettings evaluateRecapSettings(JobDefinition jobDefinition) {
-        return new RecapSettings(
-                jobDefinition.recapParameters(),
-                jobDefinition.jobDetailPage() != null && jobDefinition.jobDetailPage().showRecapParameterWithZeroValue()
-        );
-    }
-
     public record JobStatusAndTimestamp(
             JobStatus jobStatus,
             Instant startedAt,
             Instant finishedAt) {
 
+        @SuppressWarnings("unused")
         public String getStartedAtFormatted() {
             if (startedAt == null) {
                 return "--";
@@ -212,6 +262,7 @@ public class GetJobDetailsRecapUseCase {
             return DATE_TIME_FORMATTER.format(startedAt.atZone(ZoneId.systemDefault()));
         }
 
+        @SuppressWarnings("unused")
         public String getFinishedAtFormatted() {
             if (finishedAt == null) {
                 return "--";
@@ -243,14 +294,20 @@ public class GetJobDetailsRecapUseCase {
             long completedPercentage) {
     }
 
-    public record RecapSettings(
-            List<JobRecapParameter> recapParameters,
-            boolean showRecapParameterWithZeroValue) {
+    public record RecapView(
+            List<RecapSection> recapSections) {
     }
 
-    public record RecapCounters(
-            Map<String, Long> recapCounters,
-            RecapSettings recapSettings) {
+    public record RecapSection(
+            String sectionName,
+            boolean hasSection,
+            List<RecapEntry> recapEntries,
+            long sectionTotal) {
+    }
+
+    public record RecapEntry(
+            JobRecapParameter recapParameter,
+            Long counter) {
     }
 
     public record Result(
@@ -258,6 +315,6 @@ public class GetJobDetailsRecapUseCase {
             MessageCount messageCount,
             JobDurations jobDurations,
             ChildJobCounters childJobCounters,
-            RecapCounters recapCounters) {
+            RecapView recapView) {
     }
 }
