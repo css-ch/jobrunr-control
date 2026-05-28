@@ -1,6 +1,6 @@
 package ch.css.jobrunr.control.application.details;
 
-public enum JobMessageSearch {
+public enum JobMessageLevelSearch {
     ALL,
     WARNINGS_AND_ERRORS_AND_EXCEPTIONS,
     ERRORS_AND_EXCEPTIONS,

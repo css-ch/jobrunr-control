@@ -11,6 +11,7 @@ import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.navigation.AmountRequest;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,8 +33,14 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
     }
 
     @Override
-    public PagedJobMessages searchJobMessages(UUID jobId, JobMessageSearch searchFilter, int pageNumber, int pageSize) {
-        List<JobMessage> allMessages = getMessages(jobId, searchFilter);
+    public PagedJobMessages searchJobMessages(UUID jobId, JobMessageLevelSearch levelSearch,
+                                              String textSearch, JobMessageSortOrder sortOrder,
+                                              int pageNumber, int pageSize) {
+        List<JobMessage> allMessages = getMessages(jobId, levelSearch, textSearch);
+        if (sortOrder == JobMessageSortOrder.NEWEST_FIRST) {
+            allMessages = new ArrayList<>(allMessages);
+            Collections.reverse(allMessages);
+        }
         int fromIndex = Math.min(pageNumber * pageSize, allMessages.size());
         int toIndex = Math.min(fromIndex + pageSize, allMessages.size());
         return new PagedJobMessages(allMessages.subList(fromIndex, toIndex), allMessages.size(), pageNumber, pageSize);
@@ -79,7 +86,7 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
                 .isPresent();
     }
 
-    private List<JobMessage> getMessages(UUID jobId, JobMessageSearch searchFilter) {
+    private List<JobMessage> getMessages(UUID jobId, JobMessageLevelSearch searchFilter, String textSearch) {
         List<JobMessage> messages = new ArrayList<>();
         getChildJobs(jobId).forEach(job -> job.getMetadata().entrySet().stream()
                 .filter(entry -> entry.getKey().startsWith("jobRunrDashboardLog-"))
@@ -89,16 +96,27 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
                 .flatMap(lines -> lines.getLogLines().stream())
                 .forEach(message -> {
                     String stackTrace = resolveStackTrace(job, message);
-                    if (matchesSearch(message.getLevel(), stackTrace != null && !stackTrace.isBlank(), searchFilter)) {
+                    boolean hasStackTrace = stackTrace != null && !stackTrace.isBlank();
+                    if (matchesSearch(message.getLevel(), hasStackTrace, searchFilter)
+                            && matchesText(message.getLogMessage(), stackTrace, textSearch)) {
                         messages.add(new JobMessage(
                                 message.getLogInstant(),
-                                toLevel(message.getLevel(), stackTrace != null && !stackTrace.isBlank()),
+                                toLevel(message.getLevel(), hasStackTrace),
                                 message.getLogMessage(),
                                 stackTrace
                         ));
                     }
                 }));
         return messages;
+    }
+
+    private boolean matchesText(String logMessage, String stackTrace, String textSearch) {
+        if (textSearch == null || textSearch.isBlank()) {
+            return true;
+        }
+        String lower = textSearch.toLowerCase();
+        return (logMessage != null && logMessage.toLowerCase().contains(lower))
+                || (stackTrace != null && stackTrace.toLowerCase().contains(lower));
     }
 
     private String resolveStackTrace(Job childJob, JobDashboardLogger.JobDashboardLogLine logLine) {
@@ -117,15 +135,15 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
                 .build(), AmountRequest.fromString("limit=1000000"));
     }
 
-    private boolean matchesSearch(JobDashboardLogger.Level level, boolean hasStackTrace, JobMessageSearch search) {
+    private boolean matchesSearch(JobDashboardLogger.Level level, boolean hasStackTrace, JobMessageLevelSearch search) {
         return switch (level) {
-            case INFO -> search == JobMessageSearch.ALL || search == JobMessageSearch.INFO_ONLY;
-            case WARN -> search == JobMessageSearch.ALL || search == JobMessageSearch.WARNING_ONLY || search == JobMessageSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
-            case ERROR -> search == JobMessageSearch.ALL
-                    || search == JobMessageSearch.ERROR_ONLY && !hasStackTrace
-                    || search == JobMessageSearch.EXCEPTION_ONLY && hasStackTrace
-                    || search == JobMessageSearch.ERRORS_AND_EXCEPTIONS
-                    || search == JobMessageSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
+            case INFO -> search == JobMessageLevelSearch.ALL || search == JobMessageLevelSearch.INFO_ONLY;
+            case WARN -> search == JobMessageLevelSearch.ALL || search == JobMessageLevelSearch.WARNING_ONLY || search == JobMessageLevelSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
+            case ERROR -> search == JobMessageLevelSearch.ALL
+                    || search == JobMessageLevelSearch.ERROR_ONLY && !hasStackTrace
+                    || search == JobMessageLevelSearch.EXCEPTION_ONLY && hasStackTrace
+                    || search == JobMessageLevelSearch.ERRORS_AND_EXCEPTIONS
+                    || search == JobMessageLevelSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
         };
     }
 

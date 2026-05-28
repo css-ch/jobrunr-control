@@ -4,6 +4,7 @@
     <!-- Hidden inputs to carry jobId and jobType through HTMX requests -->
     <input type="hidden" name="jobId" value="{jobId}">
     <input type="hidden" name="jobType" value="{jobType}">
+    <input type="hidden" id="message-sort-order" name="sortOrder" value="OLDEST_FIRST">
 
     <!-- Batch metadata headline -->
     <div class="card border-0 bg-light-subtle mb-3">
@@ -87,6 +88,19 @@
                             </h5>
                         </div>
                         <div class="col-md-6 text-end d-flex justify-content-end gap-2 align-items-center">
+                            <label for="message-text-search" class="visually-hidden">Suche Meldung</label>
+                            <input id="message-text-search"
+                                   type="search"
+                                   name="textSearch"
+                                   class="form-control form-control-sm"
+                                   style="width: 220px;"
+                                   placeholder="Meldungen durchsuchen..."
+                                   hx-get="{cp}/history/details/messages"
+                                   hx-target="#batch-messages"
+                                   hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                                   hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                   hx-trigger="keyup changed delay:300ms, search">
+
                             <label for="message-filter" class="visually-hidden">Filter</label>
                             <select id="message-filter"
                                     name="search"
@@ -94,24 +108,36 @@
                                     style="width: 180px;"
                                     hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
-                                    hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
-                                    hx-include="[name='jobId'],[name='jobType'],[name='search']"
+                                    hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
                                     hx-trigger="change">
                                 <option value="ALL">Alle</option>
                                 <option value="WARNINGS_AND_ERRORS_AND_EXCEPTIONS">Warning, Error und Exception</option>
-                                <option value="ERRORS_AND_EXCEPTIONS">Error und Exception</option>ion>
+                                <option value="ERRORS_AND_EXCEPTIONS">Error und Exception</option>
                                 <option value="INFO_ONLY">Nur Info</option>
                                 <option value="WARNING_ONLY">Nur Warning</option>
                                 <option value="ERROR_ONLY">Nur Error</option>
                                 <option value="EXCEPTION_ONLY">Nur Exception</option>
                             </select>
 
+                            <button type="button"
+                                    id="message-sort-toggle"
+                                    class="btn btn-outline-secondary btn-sm"
+                                    title="Sortierung umschalten"
+                                    hx-get="{cp}/history/details/messages"
+                                    hx-target="#batch-messages"
+                                    hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    onclick="jrcToggleMessageSortOrder(this)">
+                                <i class="bi bi-sort-down" data-message-sort-icon aria-hidden="true"></i>
+                            </button>
+
                             <button class="btn btn-secondary btn-sm"
                                     id="refresh-messages-btn"
                                     hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
                                     hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
-                                    hx-include="[name='jobId'],[name='jobType'],[name='search']"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
                                     hx-disabled-elt="this">
                                 <span class="htmx-indicator spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                                 <i class="bi bi-arrow-clockwise"></i> Aktualisieren
@@ -125,7 +151,7 @@
                      hx-trigger="load"
                      hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
                      hx-swap="innerHTML"
-                     hx-include="[name='jobId'],[name='jobType'],[name='search']">
+                     hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']">
                     <div class="text-center py-4">
                         <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
                         <p class="mt-2">Lade Batch Meldungen...</p>
@@ -136,6 +162,40 @@
     </div>
 
     <script>
+        (function() {
+            const storageKey = 'jrc.messageSort.messages';
+
+            function getSortOrder() {
+                const value = localStorage.getItem(storageKey);
+                return value === 'NEWEST_FIRST' ? 'NEWEST_FIRST' : 'OLDEST_FIRST';
+            }
+
+            function applySortOrderState() {
+                const sortOrder = getSortOrder();
+                const hiddenInput = document.getElementById('message-sort-order');
+                const button = document.getElementById('message-sort-toggle');
+                if (hiddenInput) {
+                    hiddenInput.value = sortOrder;
+                }
+                if (button) {
+                    const icon = button.querySelector('[data-message-sort-icon]');
+                    if (icon) {
+                        icon.className = sortOrder === 'NEWEST_FIRST' ? 'bi bi-sort-down-alt' : 'bi bi-sort-down';
+                    }
+                    button.setAttribute('aria-label', sortOrder === 'NEWEST_FIRST' ? 'Datum absteigend sortieren' : 'Datum aufsteigend sortieren');
+                }
+            }
+
+            window.jrcToggleMessageSortOrder = function(button) {
+                const nextSortOrder = getSortOrder() === 'NEWEST_FIRST' ? 'OLDEST_FIRST' : 'NEWEST_FIRST';
+                localStorage.setItem(storageKey, nextSortOrder);
+                applySortOrderState();
+            };
+
+            document.addEventListener('DOMContentLoaded', applySortOrderState);
+            document.body.addEventListener('htmx:afterSwap', applySortOrderState);
+        })();
+
         // Auto-refresh Batch Recap every 10 seconds
         setInterval(() => {
             htmx.trigger('#batch-recap', 'load');

@@ -3,7 +3,8 @@ package ch.css.jobrunr.control.adapter.ui;
 import ch.css.jobrunr.control.application.details.GetJobDetailsMessageUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
-import ch.css.jobrunr.control.application.details.JobMessageSearch;
+import ch.css.jobrunr.control.application.details.JobMessageLevelSearch;
+import ch.css.jobrunr.control.application.details.JobMessageSortOrder;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.vertx.core.json.Json;
@@ -114,6 +115,8 @@ public class JobDetailsController {
                 UiRoutingSupport.queryParam(ctx, "jobId"),
                 UiRoutingSupport.queryParam(ctx, "jobType"),
                 UiRoutingSupport.queryParam(ctx, "search"),
+                UiRoutingSupport.queryParam(ctx, "textSearch"),
+                UiRoutingSupport.queryParam(ctx, "sortOrder"),
                 page,
                 size));
         plog.log();
@@ -135,8 +138,22 @@ public class JobDetailsController {
         }
     }
 
-    private TemplateInstance buildMessagesTable(String jobId, String jobType, String search, int page, int size) {
-        GetJobDetailsMessageUseCase.MessagesPaginationResult result = getJobDetailsMessageUseCase.execute(jobIdAsUUID(jobId), jobType, searchMessageLevel(search), page, size);
+    private TemplateInstance buildMessagesTable(String jobId,
+                                                String jobType,
+                                                String search,
+                                                String textSearch,
+                                                String sortOrder,
+                                                int page,
+                                                int size) {
+        GetJobDetailsMessageUseCase.MessagesPaginationResult result = getJobDetailsMessageUseCase.execute(
+                jobIdAsUUID(jobId),
+                jobType,
+                searchMessageLevel(search),
+                textSearch,
+                parseSortOrder(sortOrder),
+                page,
+                size
+        );
         return JobDetailsController.Components.jobDetailsMessages(result);
     }
 
@@ -151,14 +168,25 @@ public class JobDetailsController {
         }
     }
 
-    private JobMessageSearch searchMessageLevel(String search) {
+    private JobMessageLevelSearch searchMessageLevel(String search) {
         if (search == null || search.isBlank()) {
-            return JobMessageSearch.ALL;
+            return JobMessageLevelSearch.ALL;
         }
         try {
-            return JobMessageSearch.valueOf(search);
+            return JobMessageLevelSearch.valueOf(search);
         } catch (IllegalArgumentException e) {
-            return JobMessageSearch.ALL;
+            return JobMessageLevelSearch.ALL;
+        }
+    }
+
+    private JobMessageSortOrder parseSortOrder(String sortOrder) {
+        if (sortOrder == null || sortOrder.isBlank()) {
+            return JobMessageSortOrder.OLDEST_FIRST;
+        }
+        try {
+            return JobMessageSortOrder.valueOf(sortOrder);
+        } catch (IllegalArgumentException e) {
+            return JobMessageSortOrder.OLDEST_FIRST;
         }
     }
 }

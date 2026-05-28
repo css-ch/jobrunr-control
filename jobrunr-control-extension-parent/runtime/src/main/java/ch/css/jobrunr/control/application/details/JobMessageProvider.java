@@ -7,7 +7,12 @@ public interface JobMessageProvider {
 
     String providerKey();
 
-    PagedJobMessages searchJobMessages(UUID jobId, JobMessageSearch searchFilter, int pageNumber, int pageSize);
+    PagedJobMessages searchJobMessages(UUID jobId,
+                                       JobMessageLevelSearch levelSearch,
+                                       String textSearch,
+                                       JobMessageSortOrder sortOrder,
+                                       int pageNumber,
+                                       int pageSize);
 
     JobMessageCounter determineJobMessageCounter(UUID jobId);
 

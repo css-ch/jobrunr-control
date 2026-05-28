@@ -87,7 +87,7 @@ class DefaultJobDetailsProviderTest {
 
         Map<String, Long> recap = provider.determineRecap(batchId);
         JobMessageCounter messageCounter = provider.determineJobMessageCounter(batchId);
-        JobMessageProvider.PagedJobMessages messages = provider.searchJobMessages(batchId, JobMessageSearch.ALL, 0, 10);
+        JobMessageProvider.PagedJobMessages messages = provider.searchJobMessages(batchId, JobMessageLevelSearch.ALL, null, JobMessageSortOrder.OLDEST_FIRST, 0, 10);
 
         assertThat(recap).containsEntry("processed", 5L);
         assertThat(messageCounter.totalMessages()).isZero();

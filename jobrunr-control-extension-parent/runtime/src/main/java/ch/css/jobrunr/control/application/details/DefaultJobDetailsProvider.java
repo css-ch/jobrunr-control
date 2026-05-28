@@ -66,38 +66,62 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
         return snapshot.messageCounter();
     }
 
+
     @Override
-    public PagedJobMessages searchJobMessages(UUID jobId, JobMessageSearch searchFilter, int pageNumber, int pageSize) {
+    public PagedJobMessages searchJobMessages(UUID jobId,
+                                              JobMessageLevelSearch levelSearch,
+                                              String textSearch,
+                                              JobMessageSortOrder sortOrder,
+                                              int pageNumber,
+                                              int pageSize) {
         Job job = storageProvider.getJobById(jobId);
         if (!job.isBatchJob()) {
             return new PagedJobMessages(List.of(), 0, 0, 0);
         }
         BatchDetailsSnapshot snapshot = getOrBuildSnapshot(jobId);
-        return paginateMessages(snapshot.messages(), searchFilter, pageNumber, pageSize);
+        return paginateMessages(snapshot.messages(), levelSearch, textSearch, sortOrder, pageNumber, pageSize);
     }
 
     private PagedJobMessages paginateMessages(List<CollectedMessage> source,
-                                              JobMessageSearch search,
+                                              JobMessageLevelSearch search,
+                                              String textSearch,
+                                              JobMessageSortOrder sortOrder,
                                               int pageNumber,
                                               int pageSize) {
         int sanitizedPage = Math.max(0, pageNumber);
         int sanitizedPageSize = pageSize <= 0 ? 25 : pageSize;
-        long from = (long) sanitizedPage * sanitizedPageSize;
-        long toExclusive = from + sanitizedPageSize;
+        int from = Math.max(0, sanitizedPage * sanitizedPageSize);
 
-        long matchedItems = 0;
-        List<JobMessage> pageItems = new ArrayList<>(sanitizedPageSize);
-        for (CollectedMessage message : source) {
-            if (!matchesSearch(message.level(), message.hasStackTrace(), search)) {
-                continue;
-            }
-            if (matchedItems >= from && matchedItems < toExclusive) {
-                pageItems.add(message.toJobMessage());
-            }
-            matchedItems++;
+        Comparator<CollectedMessage> sortByDate = Comparator.comparing(CollectedMessage::createdAt);
+        JobMessageSortOrder effectiveSortOrder = sortOrder == null ? JobMessageSortOrder.OLDEST_FIRST : sortOrder;
+
+        List<CollectedMessage> filteredMessages = source.stream()
+                .filter(message -> matchesSearch(message.level(), message.hasStackTrace(), search))
+                .filter(message -> matchesTextSearch(message, textSearch))
+                .sorted(effectiveSortOrder == JobMessageSortOrder.NEWEST_FIRST ? sortByDate.reversed() : sortByDate)
+                .toList();
+
+        long totalItems = filteredMessages.size();
+        if (from >= filteredMessages.size()) {
+            return new PagedJobMessages(List.of(), totalItems, sanitizedPage, sanitizedPageSize);
         }
 
-        return new PagedJobMessages(pageItems, matchedItems, sanitizedPage, sanitizedPageSize);
+        int toExclusive = Math.min(filteredMessages.size(), from + sanitizedPageSize);
+        List<JobMessage> pageItems = filteredMessages.subList(from, toExclusive).stream()
+                .map(CollectedMessage::toJobMessage)
+                .toList();
+
+        return new PagedJobMessages(pageItems, totalItems, sanitizedPage, sanitizedPageSize);
+    }
+
+    private boolean matchesTextSearch(CollectedMessage message, String textSearch) {
+        if (textSearch == null || textSearch.isBlank()) {
+            return true;
+        }
+        String normalizedSearch = textSearch.toLowerCase(Locale.ROOT);
+        boolean inMessage = message.message() != null && message.message().toLowerCase(Locale.ROOT).contains(normalizedSearch);
+        boolean inStackTrace = message.stackTrace() != null && message.stackTrace().toLowerCase(Locale.ROOT).contains(normalizedSearch);
+        return inMessage || inStackTrace;
     }
 
     private BatchDetailsSnapshot getOrBuildSnapshot(UUID jobId) {
@@ -221,15 +245,15 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                 .orElse(null);
     }
 
-    private boolean matchesSearch(JobDashboardLogger.Level level, boolean hasStackTrace, JobMessageSearch search) {
+    private boolean matchesSearch(JobDashboardLogger.Level level, boolean hasStackTrace, JobMessageLevelSearch search) {
         return switch (level) {
-            case INFO -> search == JobMessageSearch.ALL || search == JobMessageSearch.INFO_ONLY;
-            case WARN -> search == JobMessageSearch.ALL || search == JobMessageSearch.WARNING_ONLY || search == JobMessageSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
-            case ERROR -> search == JobMessageSearch.ALL
-                    || search == JobMessageSearch.ERROR_ONLY && !hasStackTrace
-                    || search == JobMessageSearch.EXCEPTION_ONLY && hasStackTrace
-                    || search == JobMessageSearch.ERRORS_AND_EXCEPTIONS
-                    || search == JobMessageSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
+            case INFO -> search == JobMessageLevelSearch.ALL || search == JobMessageLevelSearch.INFO_ONLY;
+            case WARN -> search == JobMessageLevelSearch.ALL || search == JobMessageLevelSearch.WARNING_ONLY || search == JobMessageLevelSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
+            case ERROR -> search == JobMessageLevelSearch.ALL
+                    || search == JobMessageLevelSearch.ERROR_ONLY && !hasStackTrace
+                    || search == JobMessageLevelSearch.EXCEPTION_ONLY && hasStackTrace
+                    || search == JobMessageLevelSearch.ERRORS_AND_EXCEPTIONS
+                    || search == JobMessageLevelSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
         };
     }
 

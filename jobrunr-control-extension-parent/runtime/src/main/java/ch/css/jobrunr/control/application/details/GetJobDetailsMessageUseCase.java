@@ -10,7 +10,6 @@ import org.jboss.logging.Logger;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.storage.StorageProvider;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,16 +42,22 @@ public class GetJobDetailsMessageUseCase {
         this.defaultJobDetailsProvider = defaultJobDetailsProvider;
     }
 
-    public MessagesPaginationResult execute(UUID jobId, String jobType, JobMessageSearch search, int page, int size) {
+    public MessagesPaginationResult execute(UUID jobId,
+                                            String jobType,
+                                            JobMessageLevelSearch search,
+                                            String textSearch,
+                                            JobMessageSortOrder sortOrder,
+                                            int page,
+                                            int size) {
         Job jobById = storageProvider.getJobById(jobId);
         if (jobById.isBatchJob()) {
             JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobType);
             Optional<JobMessageProvider> jobMessageProvider = resolveMessageProvider(jobDefinition);
             JobMessageProvider.PagedJobMessages pagedJobMessages;
             if (jobMessageProvider.isPresent()) {
-                pagedJobMessages = jobMessageProvider.get().searchJobMessages(jobId, search, page, size);
+                pagedJobMessages = jobMessageProvider.get().searchJobMessages(jobId, search, textSearch, sortOrder, page, size);
             } else {
-                pagedJobMessages = defaultJobDetailsProvider.searchJobMessages(jobId, search, page, size);
+                pagedJobMessages = defaultJobDetailsProvider.searchJobMessages(jobId, search, textSearch, sortOrder, page, size);
             }
             return toMessagesPaginationResult(pagedJobMessages);
         } else {
