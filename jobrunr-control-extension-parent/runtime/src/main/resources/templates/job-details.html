@@ -94,6 +94,7 @@
                                     style="width: 180px;"
                                     hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
+                                    hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
                                     hx-include="[name='jobId'],[name='jobType'],[name='search']"
                                     hx-trigger="change">
                                 <option value="ALL">Alle</option>
@@ -109,6 +110,7 @@
                                     id="refresh-messages-btn"
                                     hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
+                                    hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
                                     hx-include="[name='jobId'],[name='jobType'],[name='search']"
                                     hx-disabled-elt="this">
                                 <span class="htmx-indicator spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
@@ -121,6 +123,7 @@
                      id="batch-messages"
                      hx-get="{cp}/history/details/messages"
                      hx-trigger="load"
+                     hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
                      hx-swap="innerHTML"
                      hx-include="[name='jobId'],[name='jobType'],[name='search']">
                     <div class="text-center py-4">
