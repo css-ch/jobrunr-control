@@ -89,14 +89,14 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                                               int pageNumber,
                                               int pageSize) {
         int sanitizedPage = Math.max(0, pageNumber);
-        int sanitizedPageSize = pageSize <= 0 ? 25 : pageSize;
+        int sanitizedPageSize = pageSize <= 0 ? 10 : pageSize;
         int from = Math.max(0, sanitizedPage * sanitizedPageSize);
 
         Comparator<CollectedMessage> sortByDate = Comparator.comparing(CollectedMessage::createdAt);
         JobMessageSortOrder effectiveSortOrder = sortOrder == null ? JobMessageSortOrder.OLDEST_FIRST : sortOrder;
 
         List<CollectedMessage> filteredMessages = source.stream()
-                .filter(message -> matchesSearch(message.level(), message.hasStackTrace(), search))
+                .filter(message -> matchesSearch(message.level(), search))
                 .filter(message -> matchesTextSearch(message, textSearch))
                 .sorted(effectiveSortOrder == JobMessageSortOrder.NEWEST_FIRST ? sortByDate.reversed() : sortByDate)
                 .toList();
@@ -175,7 +175,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
             lastJobState.ifPresent(failedState -> {
                 messages.add(new CollectedMessage(
                         failedState.getCreatedAt(),
-                        JobDashboardLogger.Level.ERROR,
+                        JobMessageLevel.EXCEPTION,
                         "[" + childJob.getJobName() + "] " + failedState.getExceptionMessage(),
                         failedState.getStackTrace()
                 ));
@@ -196,7 +196,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                         }
                         messages.add(new CollectedMessage(
                                 logLine.getLogInstant(),
-                                logLine.getLevel(),
+                                toJobMessageLevel(logLine.getLevel()),
                                 logLine.getLogMessage(),
                                 null
                         ));
@@ -239,31 +239,29 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
         return result;
     }
 
-    private String resolveStackTrace(Job childJob) {
-        return childJob.getLastJobStateOfType(FailedState.class)
-                .map(FailedState::getStackTrace)
-                .filter(stackTrace -> !stackTrace.isBlank())
-                .orElse(null);
-    }
-
-    private boolean matchesSearch(JobDashboardLogger.Level level, boolean hasStackTrace, JobMessageLevelSearch search) {
+    private boolean matchesSearch(JobMessageLevel level, JobMessageLevelSearch search) {
         return switch (level) {
-            case INFO -> search == JobMessageLevelSearch.ALL || search == JobMessageLevelSearch.INFO_ONLY;
-            case WARN ->
-                    search == JobMessageLevelSearch.ALL || search == JobMessageLevelSearch.WARNING_ONLY || search == JobMessageLevelSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
+            case INFO -> search == JobMessageLevelSearch.ALL
+                    || search == JobMessageLevelSearch.INFO_ONLY;
+            case WARNING -> search == JobMessageLevelSearch.ALL
+                    || search == JobMessageLevelSearch.WARNING_ONLY
+                    || search == JobMessageLevelSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
             case ERROR -> search == JobMessageLevelSearch.ALL
-                    || search == JobMessageLevelSearch.ERROR_ONLY && !hasStackTrace
-                    || search == JobMessageLevelSearch.EXCEPTION_ONLY && hasStackTrace
+                    || search == JobMessageLevelSearch.ERROR_ONLY
+                    || search == JobMessageLevelSearch.ERRORS_AND_EXCEPTIONS
+                    || search == JobMessageLevelSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
+            case EXCEPTION -> search == JobMessageLevelSearch.ALL
+                    || search == JobMessageLevelSearch.EXCEPTION_ONLY
                     || search == JobMessageLevelSearch.ERRORS_AND_EXCEPTIONS
                     || search == JobMessageLevelSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
         };
     }
 
-    private static JobMessageLevel toJobMessageLevel(JobDashboardLogger.Level level, boolean hasStackTrace) {
+    private static JobMessageLevel toJobMessageLevel(JobDashboardLogger.Level level) {
         return switch (level) {
             case INFO -> JobMessageLevel.INFO;
             case WARN -> JobMessageLevel.WARNING;
-            case ERROR -> hasStackTrace ? JobMessageLevel.EXCEPTION : JobMessageLevel.ERROR;
+            case ERROR -> JobMessageLevel.ERROR;
         };
     }
 
@@ -277,16 +275,12 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     }
 
     private record CollectedMessage(Instant createdAt,
-                                    JobDashboardLogger.Level level,
+                                    JobMessageLevel level,
                                     String message,
                                     String stackTrace) {
 
-        boolean hasStackTrace() {
-            return stackTrace != null && !stackTrace.isBlank();
-        }
-
         JobMessage toJobMessage() {
-            return new JobMessage(createdAt, toJobMessageLevel(level, hasStackTrace()), message, stackTrace);
+            return new JobMessage(createdAt, level, message, stackTrace);
         }
     }
 
