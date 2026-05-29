@@ -171,7 +171,17 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
 
         for (Job childJob : getChildJobs(batchJob)) {
             updateCounters(recapCounters, childJob.getResult());
-            String stackTrace = resolveStackTrace(childJob);
+            Optional<FailedState> lastJobState = childJob.getLastJobStateOfType(FailedState.class);
+            lastJobState.ifPresent(failedState -> {
+                messages.add(new CollectedMessage(
+                        failedState.getCreatedAt(),
+                        JobDashboardLogger.Level.ERROR,
+                        "[" + childJob.getJobName() + "] " + failedState.getExceptionMessage(),
+                        failedState.getStackTrace()
+                ));
+                exceptionMessages.incrementAndGet();
+            });
+
             childJob.getMetadata().entrySet().stream()
                     .filter(entry -> entry.getKey().startsWith("jobRunrDashboardLog-"))
                     .map(Map.Entry::getValue)
@@ -179,25 +189,16 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                     .map(JobDashboardLogger.JobDashboardLogLines.class::cast)
                     .flatMap(lines -> lines.getLogLines().stream())
                     .forEach(logLine -> {
-                        boolean hasStackTrace = logLine.getLevel() == JobDashboardLogger.Level.ERROR
-                                && stackTrace != null
-                                && !stackTrace.isBlank();
                         switch (logLine.getLevel()) {
                             case INFO -> infoMessages.incrementAndGet();
                             case WARN -> warningMessages.incrementAndGet();
-                            case ERROR -> {
-                                if (hasStackTrace) {
-                                    exceptionMessages.incrementAndGet();
-                                } else {
-                                    errorMessages.incrementAndGet();
-                                }
-                            }
+                            case ERROR -> errorMessages.incrementAndGet();
                         }
                         messages.add(new CollectedMessage(
                                 logLine.getLogInstant(),
                                 logLine.getLevel(),
                                 logLine.getLogMessage(),
-                                hasStackTrace ? stackTrace : null
+                                null
                         ));
                     });
         }
@@ -248,7 +249,8 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     private boolean matchesSearch(JobDashboardLogger.Level level, boolean hasStackTrace, JobMessageLevelSearch search) {
         return switch (level) {
             case INFO -> search == JobMessageLevelSearch.ALL || search == JobMessageLevelSearch.INFO_ONLY;
-            case WARN -> search == JobMessageLevelSearch.ALL || search == JobMessageLevelSearch.WARNING_ONLY || search == JobMessageLevelSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
+            case WARN ->
+                    search == JobMessageLevelSearch.ALL || search == JobMessageLevelSearch.WARNING_ONLY || search == JobMessageLevelSearch.WARNINGS_AND_ERRORS_AND_EXCEPTIONS;
             case ERROR -> search == JobMessageLevelSearch.ALL
                     || search == JobMessageLevelSearch.ERROR_ONLY && !hasStackTrace
                     || search == JobMessageLevelSearch.EXCEPTION_ONLY && hasStackTrace

@@ -22,7 +22,7 @@ public class ComplexParameterDemoChildJob implements JobResultRequestHandler<Com
         int policeNr = jobRequest.number();
         if(jobRequest.exception()) {
             String message = format("[Police %s] Druck mit technischem Fehler abgebrochen: %s", policeNr, "Druckerfehler: Papierstau im Drucker.");
-            ThreadLocalJobContext.getJobContext().logger().error(message);
+//            ThreadLocalJobContext.getJobContext().logger().error(message);
             LOG.error(message);
             throw new RuntimeException("Druckerfehler: Papierstau im Drucker.");
         }
