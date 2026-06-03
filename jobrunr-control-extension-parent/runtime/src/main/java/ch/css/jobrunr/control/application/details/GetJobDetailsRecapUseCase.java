@@ -1,6 +1,10 @@
 package ch.css.jobrunr.control.application.details;
 
 import ch.css.jobrunr.control.domain.*;
+import ch.css.jobrunr.control.domain.details.JobDetailsProviderRegistry;
+import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
+import ch.css.jobrunr.control.domain.details.JobMessageProvider;
+import ch.css.jobrunr.control.domain.details.JobRecapProvider;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -28,18 +32,16 @@ public class GetJobDetailsRecapUseCase {
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
     private final JobDetailsProviderRegistry jobDetailsProviderRegistry;
-    private final DefaultJobDetailsProvider defaultJobDetailsProvider;
 
     @Inject
     public GetJobDetailsRecapUseCase(JobExecutionPort jobExecutionPort,
                                      StorageProvider storageProvider,
                                      JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
-                                     JobDetailsProviderRegistry jobDetailsProviderRegistry, DefaultJobDetailsProvider defaultJobDetailsProvider) {
+                                     JobDetailsProviderRegistry jobDetailsProviderRegistry) {
         this.jobExecutionPort = jobExecutionPort;
         this.storageProvider = storageProvider;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobDetailsProviderRegistry = jobDetailsProviderRegistry;
-        this.defaultJobDetailsProvider = defaultJobDetailsProvider;
     }
 
     public Result execute(UUID jobId) {
@@ -82,13 +84,8 @@ public class GetJobDetailsRecapUseCase {
     }
 
     private MessageCount evaluateMessageCount(UUID jobId, JobDefinition jobDefinition) {
-        Optional<JobMessageProvider> jobMessageProvider = resolveMessageProvider(jobDefinition);
-        JobMessageCounter counter;
-        if (jobMessageProvider.isPresent()) {
-            counter = jobMessageProvider.get().determineJobMessageCounter(jobId);
-        } else {
-            counter = defaultJobDetailsProvider.determineJobMessageCounter(jobId);
-        }
+        JobMessageProvider jobMessageProvider = jobDetailsProviderRegistry.getMessageProvider(jobDefinition.jobDetailPage() != null ? jobDefinition.jobDetailPage().messageProviderKey() : null);
+        JobMessageLevelCounters counter = jobMessageProvider.determineJobMessageCounter(jobId);
         return new MessageCount(counter.totalMessages(), counter.infoMessages(), counter.warningMessages(), counter.errorMessages(), counter.exceptionMessages());
     }
 
@@ -161,10 +158,8 @@ public class GetJobDetailsRecapUseCase {
     }
 
     private RecapView evaluateRecapView(UUID jobId, JobDefinition jobDefinition) {
-        Optional<JobRecapProvider> jobRecapProvider = resolveRecapProvider(jobDefinition);
-        Map<String, Long> counters = jobRecapProvider
-                .map(provider -> provider.determineRecap(jobId))
-                .orElseGet(() -> defaultJobDetailsProvider.determineRecap(jobId));
+        JobRecapProvider jobRecapProvider = jobDetailsProviderRegistry.getRecapProvider(jobDefinition.jobDetailPage() != null ? jobDefinition.jobDetailPage().recapProviderKey() : null);
+        Map<String, Long> counters = jobRecapProvider.determineRecap(jobId);
         return new RecapView(buildRecapSections(counters, jobDefinition));
     }
 
@@ -221,32 +216,6 @@ public class GetJobDetailsRecapUseCase {
         private RecapSectionAccumulator(String sectionName, boolean hasSection) {
             this(sectionName, hasSection, new ArrayList<>());
         }
-    }
-
-    private Optional<JobMessageProvider> resolveMessageProvider(JobDefinition jobDefinition) {
-        if (jobDefinition.jobDetailPage() == null || jobDefinition.jobDetailPage().messageProviderKey() == null || jobDefinition.jobDetailPage().messageProviderKey().isBlank()) {
-            return Optional.empty();
-        }
-
-        Optional<JobMessageProvider> provider = jobDetailsProviderRegistry.findMessageProvider(jobDefinition.jobDetailPage().messageProviderKey());
-        if (provider.isEmpty()) {
-            LOG.warnf("Configured JobMessageProvider with key '%s' for jobType %s was not found. Falling back to default message counter lookup.",
-                    jobDefinition.jobDetailPage().messageProviderKey(), jobDefinition.jobType());
-        }
-        return provider;
-    }
-
-    private Optional<JobRecapProvider> resolveRecapProvider(JobDefinition jobDefinition) {
-        if (jobDefinition.jobDetailPage() == null || jobDefinition.jobDetailPage().recapProviderKey() == null || jobDefinition.jobDetailPage().recapProviderKey().isBlank()) {
-            return Optional.empty();
-        }
-
-        Optional<JobRecapProvider> provider = jobDetailsProviderRegistry.findRecapProvider(jobDefinition.jobDetailPage().recapProviderKey());
-        if (provider.isEmpty()) {
-            LOG.warnf("Configured JobRecapProvider with key '%s' for jobType %s was not found. Falling back to default recap lookup.",
-                    jobDefinition.jobDetailPage().recapProviderKey(), jobDefinition.jobType());
-        }
-        return provider;
     }
 
     public record JobStatusAndTimestamp(

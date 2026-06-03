@@ -8,6 +8,10 @@ import ch.css.jobrunr.control.domain.JobExecutionPort;
 import ch.css.jobrunr.control.domain.JobRecapParameter;
 import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.domain.JobStatus;
+import ch.css.jobrunr.control.domain.details.JobDetailsProviderRegistry;
+import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
+import ch.css.jobrunr.control.domain.details.JobMessageProvider;
+import ch.css.jobrunr.control.domain.details.JobRecapProvider;
 import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.storage.StorageProvider;
 import org.junit.jupiter.api.DisplayName;
@@ -93,9 +97,9 @@ class GetJobDetailsRecapUseCaseTest {
         when(batchJob.isBatchJob()).thenReturn(true);
         when(batchJob.getBatchJobStats()).thenReturn(new BatchJob.BatchJobStats(10, 7, 1));
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
-        when(jobDetailsProviderRegistry.findMessageProvider("complex-demo-message-provider")).thenReturn(Optional.of(jobMessageProvider));
-        when(jobDetailsProviderRegistry.findRecapProvider("complex-demo-recap-provider")).thenReturn(Optional.of(jobRecapProvider));
-        when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageCounter(12, 5, 4, 3));
+        when(jobDetailsProviderRegistry.getMessageProvider("complex-demo-message-provider")).thenReturn(jobMessageProvider);
+        when(jobDetailsProviderRegistry.getRecapProvider("complex-demo-recap-provider")).thenReturn(jobRecapProvider);
+        when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageLevelCounters(12, 5, 4, 3));
         when(jobRecapProvider.determineRecap(jobId)).thenReturn(Map.of("processed", 42L));
 
         GetJobDetailsRecapUseCase.Result result = useCase.execute(jobId);
@@ -159,9 +163,9 @@ class GetJobDetailsRecapUseCaseTest {
         when(batchJob.isBatchJob()).thenReturn(true);
         when(batchJob.getBatchJobStats()).thenReturn(new BatchJob.BatchJobStats(10, 7, 1));
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
-        when(jobDetailsProviderRegistry.findMessageProvider("complex-demo-message-provider")).thenReturn(Optional.of(jobMessageProvider));
-        when(jobDetailsProviderRegistry.findRecapProvider("complex-demo-recap-provider")).thenReturn(Optional.of(jobRecapProvider));
-        when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageCounter(2, 1, 1, 0));
+        when(jobDetailsProviderRegistry.getMessageProvider("complex-demo-message-provider")).thenReturn(jobMessageProvider);
+        when(jobDetailsProviderRegistry.getRecapProvider("complex-demo-recap-provider")).thenReturn(jobRecapProvider);
+        when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageLevelCounters(2, 1, 1, 0));
         when(jobRecapProvider.determineRecap(jobId)).thenReturn(Map.of(
                 "u1", 5L,
                 "u2", 3L,

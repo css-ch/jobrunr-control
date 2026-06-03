@@ -1,9 +1,10 @@
 package ch.css.jobrunr.control.application.details;
 
 import ch.css.jobrunr.control.domain.JobDefinition;
-import ch.css.jobrunr.control.domain.JobDetailPage;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
+import ch.css.jobrunr.control.domain.JobDetailPage;
 import ch.css.jobrunr.control.domain.JobSettings;
+import ch.css.jobrunr.control.domain.details.*;
 import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.storage.StorageProvider;
 import org.junit.jupiter.api.DisplayName;
@@ -15,13 +16,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetJobDetailsMessageUseCase")
@@ -64,16 +62,16 @@ class GetJobDetailsMessageUseCaseTest {
                 List.of(),
                 new JobDetailPage(null, "complex-demo-message-provider", "", true, true)
         );
-        JobMessage message = new JobMessage(Instant.parse("2026-05-26T10:15:30Z"), JobMessageLevel.INFO, "hello", null);
+        JobMessage message = new JobMessage(Instant.parse("2026-05-26T10:15:30Z"), null, JobMessageLevel.INFO, "hello", null);
 
         when(storageProvider.getJobById(jobId)).thenReturn(batchJob);
         when(batchJob.isBatchJob()).thenReturn(true);
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
-        when(jobDetailsProviderRegistry.findMessageProvider("complex-demo-message-provider")).thenReturn(Optional.of(jobMessageProvider));
+        when(jobDetailsProviderRegistry.getMessageProvider("complex-demo-message-provider")).thenReturn(jobMessageProvider);
         when(jobMessageProvider.searchJobMessages(jobId, JobMessageLevelSearch.ALL, "hello", JobMessageSortOrder.NEWEST_FIRST, 0, 10))
-                .thenReturn(new JobMessageProvider.PagedJobMessages(List.of(message), 1, 0, 10));
+                .thenReturn(new JobMessagesPaged(List.of(message), 1, 0, 10));
 
-        GetJobDetailsMessageUseCase.MessagesPaginationResult result = useCase.execute(
+        JobMessagesPaged result = useCase.execute(
                 jobId,
                 jobType,
                 JobMessageLevelSearch.ALL,
@@ -83,8 +81,8 @@ class GetJobDetailsMessageUseCaseTest {
                 10
         );
 
-        assertThat(result.pageItems()).containsExactly(message);
-        assertThat(result.pagination().totalElements()).isEqualTo(1);
+        assertThat(result.messages()).containsExactly(message);
+        assertThat(result.totalMessages()).isEqualTo(1);
         verify(jobMessageProvider).searchJobMessages(jobId, JobMessageLevelSearch.ALL, "hello", JobMessageSortOrder.NEWEST_FIRST, 0, 10);
         verify(storageProvider, never()).getJobList(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }

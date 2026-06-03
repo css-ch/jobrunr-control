@@ -1,12 +1,10 @@
-package ch.css.jobrunr.control.application.details;
+package ch.css.jobrunr.control.infrastructure.details;
 
-import ch.css.jobrunr.control.domain.JobDefinition;
-import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
-import ch.css.jobrunr.control.domain.JobExecutionInfo;
-import ch.css.jobrunr.control.domain.JobExecutionPort;
-import ch.css.jobrunr.control.domain.JobRecapParameter;
-import ch.css.jobrunr.control.domain.JobSettings;
-import ch.css.jobrunr.control.domain.JobStatus;
+import ch.css.jobrunr.control.domain.*;
+import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
+import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
+import ch.css.jobrunr.control.domain.details.JobMessageSortOrder;
+import ch.css.jobrunr.control.domain.details.JobMessagesPaged;
 import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.storage.StorageProvider;
@@ -25,9 +23,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DefaultJobDetailsProvider")
@@ -86,13 +82,13 @@ class DefaultJobDetailsProviderTest {
         when(jobDefinitionDiscoveryService.requireJobByType("DemoJob")).thenReturn(jobDefinition());
 
         Map<String, Long> recap = provider.determineRecap(batchId);
-        JobMessageCounter messageCounter = provider.determineJobMessageCounter(batchId);
-        JobMessageProvider.PagedJobMessages messages = provider.searchJobMessages(batchId, JobMessageLevelSearch.ALL, null, JobMessageSortOrder.OLDEST_FIRST, 0, 10);
+        JobMessageLevelCounters messageCounter = provider.determineJobMessageCounter(batchId);
+        JobMessagesPaged messages = provider.searchJobMessages(batchId, JobMessageLevelSearch.ALL, null, JobMessageSortOrder.OLDEST_FIRST, 0, 10);
 
         assertThat(recap).containsEntry("processed", 5L);
         assertThat(messageCounter.totalMessages()).isZero();
-        assertThat(messages.items()).isEmpty();
-        assertThat(messages.totalItems()).isZero();
+        assertThat(messages.messages()).isEmpty();
+        assertThat(messages.totalMessages()).isZero();
 
         verify(storageProvider, times(1)).getJobList(any(), any());
         verify(jobExecutionPort, times(1)).getJobExecutionById(batchId);

@@ -1,6 +1,6 @@
 package ch.css.jobrunr.control.jobs.complex;
 
-import ch.css.jobrunr.control.application.details.*;
+import ch.css.jobrunr.control.domain.details.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jobrunr.jobs.Job;
@@ -33,7 +33,7 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
     }
 
     @Override
-    public PagedJobMessages searchJobMessages(UUID jobId, JobMessageLevelSearch levelSearch,
+    public JobMessagesPaged searchJobMessages(UUID jobId, JobMessageLevelSearch levelSearch,
                                               String textSearch, JobMessageSortOrder sortOrder,
                                               int pageNumber, int pageSize) {
         List<JobMessage> allMessages = getMessages(jobId, levelSearch, textSearch);
@@ -43,11 +43,11 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
         }
         int fromIndex = Math.min(pageNumber * pageSize, allMessages.size());
         int toIndex = Math.min(fromIndex + pageSize, allMessages.size());
-        return new PagedJobMessages(allMessages.subList(fromIndex, toIndex), allMessages.size(), pageNumber, pageSize);
+        return new JobMessagesPaged(allMessages.subList(fromIndex, toIndex), allMessages.size(), pageNumber, pageSize);
     }
 
     @Override
-    public JobMessageCounter determineJobMessageCounter(UUID jobId) {
+    public JobMessageLevelCounters determineJobMessageCounter(UUID jobId) {
         AtomicLong infoMessages = new AtomicLong(0);
         AtomicLong warningMessages = new AtomicLong(0);
         AtomicLong errorMessages = new AtomicLong(0);
@@ -73,7 +73,7 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
                     }
                 }));
 
-        return new JobMessageCounter(infoMessages.get(), warningMessages.get(), errorMessages.get(), exceptionMessages.get());
+        return new JobMessageLevelCounters(infoMessages.get(), warningMessages.get(), errorMessages.get(), exceptionMessages.get());
     }
 
     private boolean hasStackTrace(Job childJob, JobDashboardLogger.JobDashboardLogLine logLine) {
@@ -101,6 +101,7 @@ public class ComplexDemoMessageProvider implements JobMessageProvider {
                             && matchesText(message.getLogMessage(), stackTrace, textSearch)) {
                         messages.add(new JobMessage(
                                 message.getLogInstant(),
+                                job.getId(),
                                 toLevel(message.getLevel(), hasStackTrace),
                                 message.getLogMessage(),
                                 stackTrace

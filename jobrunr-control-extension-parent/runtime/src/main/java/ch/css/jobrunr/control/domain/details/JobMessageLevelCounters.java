@@ -1,6 +1,6 @@
-package ch.css.jobrunr.control.application.details;
+package ch.css.jobrunr.control.domain.details;
 
-public record JobMessageCounter(
+public record JobMessageLevelCounters(
         long infoMessages,
         long warningMessages,
         long errorMessages,

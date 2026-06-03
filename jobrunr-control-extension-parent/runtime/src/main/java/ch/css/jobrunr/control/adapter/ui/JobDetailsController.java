@@ -3,8 +3,10 @@ package ch.css.jobrunr.control.adapter.ui;
 import ch.css.jobrunr.control.application.details.GetJobDetailsMessageUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
-import ch.css.jobrunr.control.application.details.JobMessageLevelSearch;
-import ch.css.jobrunr.control.application.details.JobMessageSortOrder;
+import ch.css.jobrunr.control.domain.details.JobMessage;
+import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
+import ch.css.jobrunr.control.domain.details.JobMessageSortOrder;
+import ch.css.jobrunr.control.domain.details.JobMessagesPaged;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.vertx.core.json.Json;
@@ -51,7 +53,7 @@ public class JobDetailsController {
 
         public static native TemplateInstance jobDetailsRecap(GetJobDetailsRecapUseCase.Result recap);
         public static native TemplateInstance jobDetailsParameter(GetJobDetailsParametersUseCase.Result parameter);
-        public static native TemplateInstance jobDetailsMessages(GetJobDetailsMessageUseCase.MessagesPaginationResult messages);
+        public static native TemplateInstance jobDetailsMessages(MessagesPaginationResult messages);
     }
 
     public void handleIndex(RoutingContext ctx) {
@@ -145,7 +147,7 @@ public class JobDetailsController {
                                                 String sortOrder,
                                                 int page,
                                                 int size) {
-        GetJobDetailsMessageUseCase.MessagesPaginationResult result = getJobDetailsMessageUseCase.execute(
+        JobMessagesPaged result = getJobDetailsMessageUseCase.execute(
                 jobIdAsUUID(jobId),
                 jobType,
                 searchMessageLevel(search),
@@ -154,7 +156,7 @@ public class JobDetailsController {
                 page,
                 size
         );
-        return JobDetailsController.Components.jobDetailsMessages(result);
+        return JobDetailsController.Components.jobDetailsMessages(toMessagesPaginationResult(result));
     }
 
     private UUID jobIdAsUUID(String jobId) {
@@ -188,6 +190,23 @@ public class JobDetailsController {
         } catch (IllegalArgumentException e) {
             return JobMessageSortOrder.OLDEST_FIRST;
         }
+    }
+
+    private MessagesPaginationResult toMessagesPaginationResult(JobMessagesPaged jobMessagesPaged) {
+        PaginationHelper.PaginationMetadata paginationMetadata = PaginationHelper.createPaginationMetadata(
+                jobMessagesPaged.page(),
+                jobMessagesPaged.pageSize(),
+                jobMessagesPaged.totalMessages()
+        );
+        List<TemplateExtensions.PageItem> pageRange = TemplateExtensions.computePageRange(paginationMetadata);
+        return new MessagesPaginationResult(jobMessagesPaged.messages(), paginationMetadata, pageRange);
+    }
+
+    public record MessagesPaginationResult(
+            List<JobMessage> pageItems,
+            PaginationHelper.PaginationMetadata pagination,
+            List<TemplateExtensions.PageItem> pageRange
+    ) {
     }
 }
 

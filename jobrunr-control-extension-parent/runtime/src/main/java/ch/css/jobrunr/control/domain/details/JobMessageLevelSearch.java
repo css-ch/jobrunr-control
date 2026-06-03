@@ -1,4 +1,4 @@
-package ch.css.jobrunr.control.application.details;
+package ch.css.jobrunr.control.domain.details;
 
 public enum JobMessageLevelSearch {
     ALL,

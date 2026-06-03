@@ -1,6 +1,7 @@
-package ch.css.jobrunr.control.application.details;
+package ch.css.jobrunr.control.infrastructure.details;
 
 import ch.css.jobrunr.control.domain.*;
+import ch.css.jobrunr.control.domain.details.*;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -57,10 +58,10 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     }
 
     @Override
-    public JobMessageCounter determineJobMessageCounter(UUID jobId) {
+    public JobMessageLevelCounters determineJobMessageCounter(UUID jobId) {
         Job job = storageProvider.getJobById(jobId);
         if (!job.isBatchJob()) {
-            return new JobMessageCounter(0, 0, 0, 0);
+            return new JobMessageLevelCounters(0, 0, 0, 0);
         }
         BatchDetailsSnapshot snapshot = getOrBuildSnapshot(jobId);
         return snapshot.messageCounter();
@@ -68,7 +69,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
 
 
     @Override
-    public PagedJobMessages searchJobMessages(UUID jobId,
+    public JobMessagesPaged searchJobMessages(UUID jobId,
                                               JobMessageLevelSearch levelSearch,
                                               String textSearch,
                                               JobMessageSortOrder sortOrder,
@@ -76,13 +77,13 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                                               int pageSize) {
         Job job = storageProvider.getJobById(jobId);
         if (!job.isBatchJob()) {
-            return new PagedJobMessages(List.of(), 0, 0, 0);
+            return new JobMessagesPaged(List.of(), 0, 0, 0);
         }
         BatchDetailsSnapshot snapshot = getOrBuildSnapshot(jobId);
         return paginateMessages(snapshot.messages(), levelSearch, textSearch, sortOrder, pageNumber, pageSize);
     }
 
-    private PagedJobMessages paginateMessages(List<CollectedMessage> source,
+    private JobMessagesPaged paginateMessages(List<CollectedMessage> source,
                                               JobMessageLevelSearch search,
                                               String textSearch,
                                               JobMessageSortOrder sortOrder,
@@ -103,7 +104,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
 
         long totalItems = filteredMessages.size();
         if (from >= filteredMessages.size()) {
-            return new PagedJobMessages(List.of(), totalItems, sanitizedPage, sanitizedPageSize);
+            return new JobMessagesPaged(List.of(), totalItems, sanitizedPage, sanitizedPageSize);
         }
 
         int toExclusive = Math.min(filteredMessages.size(), from + sanitizedPageSize);
@@ -111,7 +112,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                 .map(CollectedMessage::toJobMessage)
                 .toList();
 
-        return new PagedJobMessages(pageItems, totalItems, sanitizedPage, sanitizedPageSize);
+        return new JobMessagesPaged(pageItems, totalItems, sanitizedPage, sanitizedPageSize);
     }
 
     private boolean matchesTextSearch(CollectedMessage message, String textSearch) {
@@ -175,6 +176,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
             lastJobState.ifPresent(failedState -> {
                 messages.add(new CollectedMessage(
                         failedState.getCreatedAt(),
+                        childJob.getId(),
                         JobMessageLevel.EXCEPTION,
                         "[" + childJob.getJobName() + "] " + failedState.getExceptionMessage(),
                         failedState.getStackTrace()
@@ -196,6 +198,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                         }
                         messages.add(new CollectedMessage(
                                 logLine.getLogInstant(),
+                                childJob.getId(),
                                 toJobMessageLevel(logLine.getLevel()),
                                 logLine.getLogMessage(),
                                 null
@@ -205,7 +208,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
 
         return new BatchDetailsSnapshot(
                 toLongMap(recapCounters),
-                new JobMessageCounter(infoMessages.get(), warningMessages.get(), errorMessages.get(), exceptionMessages.get()),
+                new JobMessageLevelCounters(infoMessages.get(), warningMessages.get(), errorMessages.get(), exceptionMessages.get()),
                 List.copyOf(messages)
         );
     }
@@ -275,21 +278,22 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     }
 
     private record CollectedMessage(Instant createdAt,
+                                    UUID jobId,
                                     JobMessageLevel level,
                                     String message,
                                     String stackTrace) {
 
         JobMessage toJobMessage() {
-            return new JobMessage(createdAt, level, message, stackTrace);
+            return new JobMessage(createdAt, jobId, level, message, stackTrace);
         }
     }
 
     private record BatchDetailsSnapshot(Map<String, Long> recapCounters,
-                                        JobMessageCounter messageCounter,
+                                        JobMessageLevelCounters messageCounter,
                                         List<CollectedMessage> messages) {
 
         static BatchDetailsSnapshot empty() {
-            return new BatchDetailsSnapshot(Map.of(), new JobMessageCounter(0, 0, 0, 0), List.of());
+            return new BatchDetailsSnapshot(Map.of(), new JobMessageLevelCounters(0, 0, 0, 0), List.of());
         }
     }
 }

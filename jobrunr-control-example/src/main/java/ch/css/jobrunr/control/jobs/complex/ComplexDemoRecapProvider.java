@@ -1,6 +1,6 @@
 package ch.css.jobrunr.control.jobs.complex;
 
-import ch.css.jobrunr.control.application.details.JobRecapProvider;
+import ch.css.jobrunr.control.domain.details.JobRecapProvider;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jobrunr.jobs.Job;
