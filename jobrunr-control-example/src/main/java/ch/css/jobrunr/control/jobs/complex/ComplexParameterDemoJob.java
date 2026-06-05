@@ -1,8 +1,10 @@
 package ch.css.jobrunr.control.jobs.complex;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
+import ch.css.jobrunr.control.annotations.DbBasedRecapAndMessages;
 import ch.css.jobrunr.control.annotations.JobDetailPage;
 import ch.css.jobrunr.control.domain.ParameterStorageService;
+import ch.css.jobrunr.control.domain.details.JobMessageService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -17,6 +19,7 @@ import java.util.stream.IntStream;
 
 import static org.jobrunr.scheduling.JobBuilder.aJob;
 
+@DbBasedRecapAndMessages
 @ApplicationScoped
 public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParameterDemoJobRequest> {
 
@@ -25,27 +28,29 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
     private static final String METADATA_KEY_ENQUEUED = "children_enqueued";
 
     private final ParameterStorageService parameterStorageService;
+    private final JobMessageService messageService;
 
     @Inject
-    public ComplexParameterDemoJob(ParameterStorageService parameterStorageService) {
+    public ComplexParameterDemoJob(ParameterStorageService parameterStorageService, JobMessageService messageService) {
         this.parameterStorageService = parameterStorageService;
+        this.messageService = messageService;
     }
 
     @Override
-    @ConfigurableJob(name="Complex Demo Job", isBatch = true, retries = 0)
+    @ConfigurableJob(name = "Complex Demo Job", isBatch = true, retries = 0)
     @JobDetailPage(
-            recapParameterClass = ComplexParameterDemoJobRecap.class,
-            showEmptyParameters = false,
-            showRecapParameterWithZeroValue = false)
+            recapParameterClass = ComplexParameterDemoJobRecap.class, showEmptyParameters = false, showRecapParameterWithZeroValue = false,
+            messageProviderKey = "db-based-job-details-provider", recapProviderKey = "db-based-job-details-provider"
+    )
     public void run(ComplexParameterDemoJobRequest complexParameterDemoJobRequest) throws Exception {
         final UUID jobId = ThreadLocalJobContext.getJobContext().getJobId();
 
         if (isAlreadyEnqueued()) {
-            ThreadLocalJobContext.getJobContext().logger().info("Child jobs already enqueued, skipping to prevent duplicates");
+            messageService.info("Child jobs already enqueued, skipping to prevent duplicates");
             return;
         }
 
-        ThreadLocalJobContext.getJobContext().logger().info("Start ComplexParameterDemoJob");
+        messageService.info("Start ComplexParameterDemoJob");
         LOG.debug(String.format("[Batch %s] Start ComplexParameterDemoJob", jobId.toString()));
 
         ComplexParameterDemoJobParameter parameter = parameterStorageService.findById(jobId, ComplexParameterDemoJobParameter.class)
@@ -55,7 +60,7 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
         try {
             childCount = Integer.parseInt(parameter.steuerungBeilageNrs());
         } catch (NumberFormatException e) {
-            ThreadLocalJobContext.getJobContext().logger().warn("Invalid number format for steuerungBeilageNrs: " + parameter.steuerungBeilageNrs());
+            messageService.warning("Invalid number format for steuerungBeilageNrs: " + parameter.steuerungBeilageNrs());
         }
         List<ComplexParameterDemoChildJobRequest> items = IntStream.range(1, childCount).boxed()
                 .map((Integer number) -> new ComplexParameterDemoChildJobRequest(number, number == 13 && parameter.steuerungPhysischerDruckPortalVersand()))
@@ -64,7 +69,7 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
         markAsEnqueued(items.size());
         enqueueChildJobs(items);
         LOG.info(String.format("[Batch %s] Preparing ComplexParameterDemoJob finished. %d Child-Jobs enqueued", jobId, items.size()));
-        ThreadLocalJobContext.getJobContext().logger().info(String.format("Preparing ComplexParameterDemoJob finished. %d Child-Jobs enqueued", items.size()));
+        messageService.info(String.format("Preparing ComplexParameterDemoJob finished. %d Child-Jobs enqueued", items.size()));
     }
 
     private boolean isAlreadyEnqueued() {
@@ -86,6 +91,6 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
                 .withJobRequest(item)
                 .withAmountOfRetries(0)
                 .withName("Complex Parameter Child-Worker Nr: " + item.number())));
-        ThreadLocalJobContext.getJobContext().logger().info(String.format("Enqueued %d child jobs (retry-safe via metadata check)", items.size()));
+        messageService.info(String.format("Enqueued %d child jobs (retry-safe via metadata check)", items.size()));
     }
 }
