@@ -1,6 +1,9 @@
 package ch.css.jobrunr.control.deployment;
 
+import ch.css.jobrunr.control.domain.JobDefinition;
+import ch.css.jobrunr.control.deployment.scanner.RecapValueExtractorGenerator;
 import ch.css.jobrunr.control.infrastructure.discovery.JobDefinitionRecorder;
+import io.quarkus.arc.deployment.GeneratedBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
@@ -10,6 +13,8 @@ import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jobrunr.jobs.lambdas.JobRequest;
+
+import java.util.Set;
 
 /**
  * Build-time processor that scans for ConfigurableJob implementations
@@ -23,8 +28,11 @@ public class JobDiscoveryProcessor {
     @Record(ExecutionTime.STATIC_INIT)
     void discoverAndRegisterJobs(
             CombinedIndexBuildItem indexBuildItem,
+            BuildProducer<GeneratedBeanBuildItem> generatedBeanProducer,
             JobDefinitionRecorder recorder) {
-        recorder.registerJobMetadata(JobDefinitionIndexScanner.findJobSpecifications(indexBuildItem.getIndex()));
+        Set<JobDefinition> jobDefinitions = JobDefinitionIndexScanner.findJobSpecifications(indexBuildItem.getIndex());
+        new RecapValueExtractorGenerator(indexBuildItem.getIndex(), generatedBeanProducer).generate(jobDefinitions);
+        recorder.registerJobMetadata(jobDefinitions);
     }
 
     /**

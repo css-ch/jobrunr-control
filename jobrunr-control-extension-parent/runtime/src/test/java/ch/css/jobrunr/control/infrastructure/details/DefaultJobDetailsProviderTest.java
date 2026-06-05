@@ -39,6 +39,12 @@ class DefaultJobDetailsProviderTest {
     private JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
 
     @Mock
+    private RecapValueExtractorRegistry recapValueExtractorRegistry;
+
+    @Mock
+    private RecapValueExtractor recapValueExtractor;
+
+    @Mock
     private BatchJob batchJob;
 
     @Mock
@@ -51,7 +57,8 @@ class DefaultJobDetailsProviderTest {
     @DisplayName("reuses one child scan for recap, message counter, and message page")
     void usesSharedSnapshotAcrossProviderMethods() {
         UUID batchId = UUID.randomUUID();
-        DefaultJobDetailsProvider provider = new DefaultJobDetailsProvider(jobExecutionPort, storageProvider, jobDefinitionDiscoveryService);
+        DefaultJobDetailsProvider provider = new DefaultJobDetailsProvider(
+                jobExecutionPort, storageProvider, jobDefinitionDiscoveryService, recapValueExtractorRegistry);
 
         when(storageProvider.getJobById(batchId)).thenReturn(batchJob);
         when(batchJob.isBatchJob()).thenReturn(true);
@@ -80,6 +87,11 @@ class DefaultJobDetailsProviderTest {
         );
         when(jobExecutionPort.getJobExecutionById(batchId)).thenReturn(Optional.of(executionInfo));
         when(jobDefinitionDiscoveryService.requireJobByType("DemoJob")).thenReturn(jobDefinition());
+        when(recapValueExtractorRegistry.findByRecapClassName(RecapResult.class.getName())).thenReturn(Optional.of(recapValueExtractor));
+        when(recapValueExtractor.extract(any())).thenAnswer(invocation -> {
+            RecapResult recapResult = invocation.getArgument(0);
+            return Map.of("processed", recapResult.processed());
+        });
 
         Map<String, Long> recap = provider.determineRecap(batchId);
         JobMessageLevelCounters messageCounter = provider.determineJobMessageCounter(batchId);
@@ -99,7 +111,8 @@ class DefaultJobDetailsProviderTest {
     @DisplayName("rebuilds snapshot after ttl expires")
     void rebuildsSnapshotAfterTtlExpiration() throws InterruptedException {
         UUID batchId = UUID.randomUUID();
-        DefaultJobDetailsProvider provider = new DefaultJobDetailsProvider(jobExecutionPort, storageProvider, jobDefinitionDiscoveryService);
+        DefaultJobDetailsProvider provider = new DefaultJobDetailsProvider(
+                jobExecutionPort, storageProvider, jobDefinitionDiscoveryService, recapValueExtractorRegistry);
 
         when(storageProvider.getJobById(batchId)).thenReturn(batchJob);
         when(batchJob.isBatchJob()).thenReturn(true);
@@ -125,6 +138,11 @@ class DefaultJobDetailsProviderTest {
         );
         when(jobExecutionPort.getJobExecutionById(batchId)).thenReturn(Optional.of(executionInfo));
         when(jobDefinitionDiscoveryService.requireJobByType("DemoJob")).thenReturn(jobDefinition());
+        when(recapValueExtractorRegistry.findByRecapClassName(RecapResult.class.getName())).thenReturn(Optional.of(recapValueExtractor));
+        when(recapValueExtractor.extract(any())).thenAnswer(invocation -> {
+            RecapResult recapResult = invocation.getArgument(0);
+            return Map.of("processed", recapResult.processed());
+        });
 
         provider.determineRecap(batchId);
 
@@ -147,7 +165,7 @@ class DefaultJobDetailsProviderTest {
                 false,
                 null,
                 List.of(new JobRecapParameter("processed", "Processed", "", "", "", "Ops", 0)),
-                null
+                new JobDetailPage(RecapResult.class.getName(), "", "", true, true)
         );
     }
 

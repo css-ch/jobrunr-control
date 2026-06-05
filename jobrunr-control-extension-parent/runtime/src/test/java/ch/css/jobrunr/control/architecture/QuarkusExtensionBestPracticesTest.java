@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.architecture;
 
+import ch.css.jobrunr.control.infrastructure.discovery.JobDefinitionRecorder;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -36,30 +37,30 @@ public class QuarkusExtensionBestPracticesTest {
                 .importPackages(BASE_PACKAGE);
     }
 
-//    /**
-//     * Runtime module should not use java.lang.reflect API.
-//     * Reflection should be performed at build time in the deployment module.
-//     * <p>
-//     * This is a critical Quarkus extension best practice:
-//     * - Build-time reflection → deployment module
-//     * - Runtime code → should be reflection-free for GraalVM native-image
-//     */
-//    @Test
-//    @DisplayName("Runtime module should not use reflection API")
-//    void runtimeModuleShouldNotUseReflection() {
-//        ArchRule rule = noClasses()
-//                .that().resideInAPackage(BASE_PACKAGE + "..")
-//                .and().areNotAssignableTo(JobDefinitionRecorder.class)
-//                .should().dependOnClassesThat().resideInAnyPackage(
-//                        "java.lang.reflect..",
-//                        "sun.reflect.."
-//                )
-//                .because("Reflection should be done at build-time in the deployment module, " +
-//                        "not at runtime. This ensures GraalVM native-image compatibility and better performance. " +
-//                        "Exception: Quarkus @Recorder classes run at STATIC_INIT time.");
-//
-//        rule.check(importedClasses);
-//    }
+    /**
+     * Runtime module should not use java.lang.reflect API.
+     * Reflection should be performed at build time in the deployment module.
+     * <p>
+     * This is a critical Quarkus extension best practice:
+     * - Build-time reflection → deployment module
+     * - Runtime code → should be reflection-free for GraalVM native-image
+     */
+    @Test
+    @DisplayName("Runtime module should not use reflection API")
+    void runtimeModuleShouldNotUseReflection() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage(BASE_PACKAGE + "..")
+                .and().areNotAssignableTo(JobDefinitionRecorder.class)
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "java.lang.reflect..",
+                        "sun.reflect.."
+                )
+                .because("Reflection should be done at build-time in the deployment module, " +
+                        "not at runtime. This ensures GraalVM native-image compatibility and better performance. " +
+                        "Exception: Quarkus @Recorder classes run at STATIC_INIT time.");
+
+        rule.check(importedClasses);
+    }
 
     /**
      * Runtime module should not contain build steps.

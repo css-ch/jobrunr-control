@@ -16,7 +16,6 @@ import org.jobrunr.storage.navigation.AmountRequest;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,16 +28,21 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     private final JobExecutionPort jobExecutionPort;
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
+    private final RecapValueExtractorRegistry recapValueExtractorRegistry;
     private final Clock clock = Clock.systemUTC();
     private final Duration snapshotTtl = SNAPSHOT_TTL;
     private final Map<UUID, SnapshotCacheEntry> snapshotCache = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<BatchDetailsSnapshot>> inFlightSnapshots = new ConcurrentHashMap<>();
 
     @Inject
-    public DefaultJobDetailsProvider(JobExecutionPort jobExecutionPort, StorageProvider storageProvider, JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
+    public DefaultJobDetailsProvider(JobExecutionPort jobExecutionPort,
+                                     StorageProvider storageProvider,
+                                     JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
+                                     RecapValueExtractorRegistry recapValueExtractorRegistry) {
         this.jobExecutionPort = jobExecutionPort;
         this.storageProvider = storageProvider;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
+        this.recapValueExtractorRegistry = recapValueExtractorRegistry;
     }
 
     @Override
@@ -163,6 +167,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                 .orElseThrow(() -> new JobNotFoundException("Job execution with ID " + jobId + " not found"));
         JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobExecutionInfo.getJobType());
         Map<String, AtomicLong> recapCounters = initializeRecapCounters(jobDefinition);
+        RecapValueExtractor recapValueExtractor = resolveRecapValueExtractor(jobDefinition);
 
         AtomicLong infoMessages = new AtomicLong(0);
         AtomicLong warningMessages = new AtomicLong(0);
@@ -171,7 +176,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
         List<CollectedMessage> messages = new ArrayList<>();
 
         for (Job childJob : getChildJobs(batchJob)) {
-            updateCounters(recapCounters, childJob.getResult());
+            updateCounters(recapCounters, recapValueExtractor, childJob.getResult());
             Optional<FailedState> lastJobState = childJob.getLastJobStateOfType(FailedState.class);
             lastJobState.ifPresent(failedState -> {
                 messages.add(new CollectedMessage(
@@ -213,17 +218,24 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
         );
     }
 
-    private void updateCounters(Map<String, AtomicLong> counters, Object recap) {
-        if (recap == null) return;
-        for (Map.Entry<String, AtomicLong> entry : counters.entrySet()) {
-            try {
-                Method method = recap.getClass().getMethod(entry.getKey());
-                Object result = method.invoke(recap);
-                if (result instanceof Number) {
-                    entry.getValue().addAndGet(((Number) result).longValue());
-                }
-            } catch (Exception e) {
-                // Handle exception
+    private RecapValueExtractor resolveRecapValueExtractor(JobDefinition jobDefinition) {
+        if (jobDefinition.jobDetailPage() == null || jobDefinition.jobDetailPage().recapParameterClass() == null
+                || jobDefinition.jobDetailPage().recapParameterClass().isBlank()) {
+            return null;
+        }
+        return recapValueExtractorRegistry.findByRecapClassName(jobDefinition.jobDetailPage().recapParameterClass())
+                .orElse(null);
+    }
+
+    private void updateCounters(Map<String, AtomicLong> counters, RecapValueExtractor recapValueExtractor, Object recap) {
+        if (recap == null || recapValueExtractor == null) {
+            return;
+        }
+        Map<String, Long> extractedValues = recapValueExtractor.extract(recap);
+        for (Map.Entry<String, Long> extractedEntry : extractedValues.entrySet()) {
+            AtomicLong counter = counters.get(extractedEntry.getKey());
+            if (counter != null && extractedEntry.getValue() != null) {
+                counter.addAndGet(extractedEntry.getValue());
             }
         }
     }
