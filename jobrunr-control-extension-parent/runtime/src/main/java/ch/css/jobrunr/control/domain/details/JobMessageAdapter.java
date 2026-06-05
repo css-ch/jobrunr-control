@@ -49,11 +49,9 @@ public class JobMessageAdapter implements JobMessageService {
 
     private void writeMessage(JobMessageLevel level, String message, String stackTrace) {
         UUID batchJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
-        UUID jobId = null;
+        UUID jobId = ThreadLocalJobContext.getJobContext().getJobId();
         if(batchJobId == null) {
-            batchJobId = ThreadLocalJobContext.getJobContext().getJobId();
-        } else {
-            jobId = ThreadLocalJobContext.getJobContext().getJobId();
+            batchJobId = jobId;
         }
         JobMessage jobMessage = new JobMessage(Instant.now(), jobId, level, message, stackTrace);
         jobMessageStorage.writeMessage(batchJobId, jobMessage);
