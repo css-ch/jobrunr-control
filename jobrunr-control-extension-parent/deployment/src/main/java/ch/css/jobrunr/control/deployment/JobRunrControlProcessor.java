@@ -212,6 +212,11 @@ public class JobRunrControlProcessor {
                 .handler(recorder.jobDetailsMessages())
                 .handlerType(HandlerType.BLOCKING)
                 .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/history/details/messages/download")
+                .handler(recorder.jobDetailsMessagesDownload())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
     }
 
     /**

@@ -142,6 +142,13 @@
                                 <span class="htmx-indicator spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                                 <i class="bi bi-arrow-clockwise"></i> Aktualisieren
                             </button>
+
+                            <button class="btn btn-outline-secondary btn-sm"
+                                    id="messages-download-btn"
+                                    title="Gefilterte Meldungen als CSV herunterladen"
+                                    onclick="jrcDownloadMessages('{cp}')">
+                                <i class="bi bi-download"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -190,6 +197,19 @@
                 const nextSortOrder = getSortOrder() === 'NEWEST_FIRST' ? 'OLDEST_FIRST' : 'NEWEST_FIRST';
                 localStorage.setItem(storageKey, nextSortOrder);
                 applySortOrderState();
+            };
+
+            window.jrcDownloadMessages = function(cp) {
+                const jobId = document.querySelector("[name='jobId']").value;
+                const jobType = document.querySelector("[name='jobType']").value;
+                const searchEl = document.getElementById('message-filter');
+                const textSearchEl = document.getElementById('message-text-search');
+                const sortOrderEl = document.getElementById('message-sort-order');
+                const search = searchEl ? searchEl.value : 'ALL';
+                const textSearch = textSearchEl ? textSearchEl.value : '';
+                const sortOrder = sortOrderEl ? sortOrderEl.value : 'OLDEST_FIRST';
+                const params = new URLSearchParams([['jobId', jobId], ['jobType', jobType], ['search', search], ['textSearch', textSearch], ['sortOrder', sortOrder]]);
+                window.location.href = cp + '/history/details/messages/download?' + params.toString();
             };
 
             document.addEventListener('DOMContentLoaded', applySortOrderState);

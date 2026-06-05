@@ -170,6 +170,11 @@ public class JobRunrControlRouteRecorder {
                 () -> controller(JobDetailsController.class).handleDetailsMessages(ctx));
     }
 
+    public Handler<RoutingContext> jobDetailsMessagesDownload() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(JobDetailsController.class).handleDetailsMessagesDownload(ctx));
+    }
+
 
     private static <T> T controller(Class<T> type) {
         return Arc.container().instance(type).get();

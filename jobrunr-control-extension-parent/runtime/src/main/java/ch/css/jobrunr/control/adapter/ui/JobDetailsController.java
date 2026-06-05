@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.adapter.ui;
 
+import ch.css.jobrunr.control.application.details.DownloadJobMessagesAsCsvUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsMessageUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
@@ -28,12 +29,17 @@ public class JobDetailsController {
     private final GetJobDetailsParametersUseCase getJobDetailsParametersUseCase;
     private final GetJobDetailsRecapUseCase getJobDetailsRecapUseCase;
     private final GetJobDetailsMessageUseCase getJobDetailsMessageUseCase;
+    private final DownloadJobMessagesAsCsvUseCase downloadJobMessagesAsCsvUseCase;
 
     @Inject
-    public JobDetailsController(GetJobDetailsParametersUseCase getJobDetailsParametersUseCase, GetJobDetailsRecapUseCase getJobDetailsRecapUseCase, GetJobDetailsMessageUseCase getJobDetailsMessageUseCase) {
+    public JobDetailsController(GetJobDetailsParametersUseCase getJobDetailsParametersUseCase,
+                                GetJobDetailsRecapUseCase getJobDetailsRecapUseCase,
+                                GetJobDetailsMessageUseCase getJobDetailsMessageUseCase,
+                                DownloadJobMessagesAsCsvUseCase downloadJobMessagesAsCsvUseCase) {
         this.getJobDetailsParametersUseCase = getJobDetailsParametersUseCase;
         this.getJobDetailsRecapUseCase = getJobDetailsRecapUseCase;
         this.getJobDetailsMessageUseCase = getJobDetailsMessageUseCase;
+        this.downloadJobMessagesAsCsvUseCase = downloadJobMessagesAsCsvUseCase;
     }
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -122,6 +128,26 @@ public class JobDetailsController {
                 page,
                 size));
         plog.log();
+    }
+
+    public void handleDetailsMessagesDownload(RoutingContext ctx) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
+            return;
+        }
+        String jobId = UiRoutingSupport.queryParam(ctx, "jobId");
+        String jobType = UiRoutingSupport.queryParam(ctx, "jobType");
+        JobMessageLevelSearch levelSearch = searchMessageLevel(UiRoutingSupport.queryParam(ctx, "search"));
+        String textSearch = UiRoutingSupport.queryParam(ctx, "textSearch");
+        JobMessageSortOrder sortOrder = parseSortOrder(UiRoutingSupport.queryParam(ctx, "sortOrder"));
+
+        String csvContent = downloadJobMessagesAsCsvUseCase.execute(
+                jobIdAsUUID(jobId), jobType, levelSearch, textSearch, sortOrder);
+
+        String fileName = "messages-" + jobId + ".csv";
+        ctx.response()
+                .putHeader("Content-Type", "text/csv; charset=utf-8")
+                .putHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"")
+                .end(csvContent);
     }
 
     private TemplateInstance buildRecapTable(String jobId) {
