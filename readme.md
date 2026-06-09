@@ -11,13 +11,13 @@ Quarkus extension providing a web-based control dashboard and REST API for manag
 - **Execution History** - Monitor job executions and batch progress
 - **Security** - Role-based access control with separate UI and REST API roles
 - **Batch Job Support** - Create and monitor batch jobs with real-time progress tracking
-- **Job Chain Status** - Accurate status evaluation for jobs with continuation chains
+- **Job Chain Status** - Conservative status evaluation for jobs with continuation chains
 
 ## Requirements
 
 - Java 21+
-- Quarkus 3.31.2
-- JobRunr Pro 8.4.2 (license required)
+- Quarkus 3.36.1
+- JobRunr Pro 8.6.1 (license required)
 
 ## Installation
 
@@ -28,15 +28,15 @@ Add the extension to your Quarkus project:
 <dependency>
     <groupId>ch.css.quarkus</groupId>
     <artifactId>quarkus-jobrunr-control</artifactId>
-    <version>1.3.1</version>
+    <version>2.1.2-SNAPSHOT</version>
 </dependency>
 ```
 
 The extension automatically brings in:
 
-- JobRunr Pro 8.4.2
+- JobRunr Pro 8.6.1
 - Qute templates
-- htmx 2.0.8
+- htmx 2.0.10
 - Bootstrap 5.3.8
 - Bootstrap Icons
 
@@ -45,10 +45,11 @@ The extension automatically brings in:
 ### Extension Configuration
 
 ```properties
-# Enable/disable UI (default: true)
-quarkus.jobrunr-control.ui.enabled=true
-# Enable/disable REST API (default: true)
-quarkus.jobrunr-control.api.enabled=true
+# Show the UUID column in dashboard tables (default: false)
+quarkus.jobrunr-control.ui.show-job-uuid=false
+
+# Parameter storage mode: INLINE (default) or EXTERNAL
+quarkus.jobrunr-control.parameter-storage.strategy=INLINE
 ```
 
 ### Base Path Configuration
@@ -83,7 +84,8 @@ used in `/q/swagger-ui`). Consumers that declare `@ApplicationPath("/api")` or s
 REST API accordingly, e.g.
 
 ```properties
-quarkus.http.auth.permission.jobrunr-control-api.paths=/api/q/jobrunr-control/api/*
+quarkus.http.auth.permission.jobrunr-control-api-read.paths=/api/q/jobrunr-control/api/*
+quarkus.http.auth.permission.jobrunr-control-api-write.paths=/api/q/jobrunr-control/api/*
 ```
 
 ### JobRunr Configuration
@@ -149,9 +151,13 @@ Navigate to `http://localhost:9090/q/jobrunr-control` to:
 
 Start a job or template externally:
 
+> **Path note:** the extension's default REST path is `/q/jobrunr-control/api/*`.
+> The bundled example application declares `@ApplicationPath("/api")`, so its effective
+> path is `/api/q/jobrunr-control/api/*`.
+
 ```bash
 # Start a job (or template) immediately
-curl -X POST http://localhost:9090/q/jobrunr-control/api/jobs/{jobId}/start \
+curl -X POST http://localhost:9090/api/q/jobrunr-control/api/jobs/{jobRef}/start \
   -H "Content-Type: application/json" \
   -d '{
     "postfix": "20240127",
@@ -162,7 +168,7 @@ curl -X POST http://localhost:9090/q/jobrunr-control/api/jobs/{jobId}/start \
   }'
 
 # Check job status
-curl http://localhost:9090/q/jobrunr-control/api/jobs/{jobId}
+curl http://localhost:9090/api/q/jobrunr-control/api/jobs/{jobId}
 ```
 
 **Automated Script**: For batch processing and polling, use the provided script:
@@ -179,10 +185,10 @@ Base path: `/q/jobrunr-control`
 
 | Path          | Description             |
 |---------------|-------------------------|
-| `/`           | Redirects to jobs list  |
-| `/jobs`       | List all scheduled jobs |
+| `/`           | Dashboard entry page    |
+| `/scheduled`  | List all scheduled jobs |
 | `/templates`  | Manage template jobs    |
-| `/executions` | View execution history  |
+| `/history`    | View execution history  |
 
 ## REST API Endpoints
 
@@ -190,7 +196,7 @@ Base path: `/q/jobrunr-control/api`
 
 | Method | Path                  | Roles Required                        | Description                                                                   |
 |--------|-----------------------|---------------------------------------|-------------------------------------------------------------------------------|
-| POST   | `/jobs/{jobId}/start` | `api-executor`, `admin`               | Start a job immediately. If the job is a template, it is cloned and executed. |
+| POST   | `/jobs/{jobRef}/start` | `api-executor`, `admin`               | Start a job immediately. `jobRef` may be a UUID or a template name. If the target is a template, it is cloned and executed. |
 | GET    | `/jobs/{jobId}`       | `api-reader`, `api-executor`, `admin` | Get job status and progress                                                   |
 
 **Note:** All REST API endpoints require authentication and appropriate role assignment.
@@ -224,13 +230,16 @@ Access to the REST API at `/q/jobrunr-control/api` uses separate roles:
 
 ### Configuration Examples
 
-**Development Mode** (all roles granted automatically):
+**Development Mode** (OIDC disabled, `admin` granted automatically by `JobRunrControlRoleAugmentor`):
 
 ```properties
-%dev.quarkus.security.users.embedded.enabled=true
-%dev.quarkus.security.users.embedded.plain-text=true
-%dev.quarkus.security.users.embedded.users.admin=admin
-%dev.quarkus.security.users.embedded.roles.admin=admin,viewer,configurator,api-reader,api-executor
+%dev.quarkus.oidc.enabled=false
+%dev.quarkus.http.auth.permission.jobrunr-control.policy=permit
+%dev.quarkus.http.auth.permission.jobrunr-dashboard.policy=permit
+%dev.quarkus.http.auth.permission.jobrunr-control-api-read.policy=permit
+%dev.quarkus.http.auth.permission.jobrunr-control-api-write.policy=permit
+%dev.quarkus.http.auth.permission.jobrunr-api-read.policy=permit
+%dev.quarkus.http.auth.permission.jobrunr-api-write.policy=permit
 ```
 
 **Production with OIDC/OAuth2**:
@@ -239,7 +248,18 @@ Access to the REST API at `/q/jobrunr-control/api` uses separate roles:
 quarkus.oidc.auth-server-url=https://your-keycloak.com/realms/your-realm
 quarkus.oidc.client-id=jobrunr-control
 quarkus.oidc.credentials.secret=${OIDC_CLIENT_SECRET}
+quarkus.oidc.application-type=web-app
 quarkus.oidc.roles.source=accesstoken
+quarkus.oidc.roles.role-claim-path=realm_access/roles
+
+# Bearer tenant for REST API service accounts only
+quarkus.oidc.bearer.tenant-paths=/q/jobrunr-control/api/*
+quarkus.oidc.bearer.auth-server-url=https://your-keycloak.com/realms/your-realm
+quarkus.oidc.bearer.client-id=jobrunr-control
+quarkus.oidc.bearer.credentials.secret=${OIDC_CLIENT_SECRET}
+quarkus.oidc.bearer.application-type=service
+quarkus.oidc.bearer.roles.source=accesstoken
+quarkus.oidc.bearer.roles.role-claim-path=realm_access/roles
 ```
 
 Configure your OIDC provider to issue the appropriate roles:
@@ -247,17 +267,10 @@ Configure your OIDC provider to issue the appropriate roles:
 - For UI users: `viewer`, `configurator`, `admin`
 - For API clients: `api-reader`, `api-executor`, `admin`
 
-**Production with Basic Auth**:
+> **Important:** keep the REST tenant name `bearer`. Naming it `api` collides with Quarkus
+> path-segment tenant resolution and breaks embedded JobRunr Dashboard requests.
 
-```properties
-quarkus.security.users.embedded.enabled=true
-quarkus.security.users.embedded.users.operator=${OPERATOR_PASSWORD}
-quarkus.security.users.embedded.roles.operator=viewer,configurator
-quarkus.security.users.embedded.users.api-client=${API_CLIENT_PASSWORD}
-quarkus.security.users.embedded.roles.api-client=api-reader,api-executor
-```
-
-For detailed security setup, see the [Programmer's Guide](docs/programmers.adoc#_security_configuration).
+For detailed security setup, see the [Programmer's Guide](docs/programmers.adoc).
 
 ### Development without OIDC
 
@@ -267,8 +280,8 @@ For local development and testing, you can disable OIDC authentication:
 quarkus.oidc.enabled=false
 ```
 
-**⚠️ WARNING**: This grants all roles (admin, configurator, viewer, api-reader, api-executor)
-to ALL requests without authentication. Use ONLY in development and testing environments!
+**⚠️ WARNING**: This does not authenticate users. The extension augments every request with the
+`admin` role so all UI and API checks pass. Use ONLY in development and testing environments.
 
 When OIDC is disabled:
 
@@ -278,14 +291,6 @@ When OIDC is disabled:
 - Audit logs show "anonymous-user" as the actor
 
 **Production deployments MUST use OIDC authentication** (enabled by default).
-
-### Dev Mode
-
-For development and testing, grant all roles automatically:
-
-```properties
-dev.test.roles=admin,viewer,configurator,api-reader,api-executor
-```
 
 ## Key Features
 
@@ -308,16 +313,21 @@ dev.test.roles=admin,viewer,configurator,api-reader,api-executor
 - **Inline Storage** (default): Parameters stored directly in JobRunr's job table
 - **External Storage**: Parameters stored in a separate database table for large parameter sets
 
-Use `@JobParameterSet` on a JobRequest to enable external storage. Requires Hibernate ORM. The external Parameter Set must be defined in a separated Record.
+Use `@JobParameterSet(parameterSetClass = ...)` on a `JobRequest` to enable external storage.
+The parameter schema lives in a separate record referenced by `parameterSetClass`, and values are
+persisted in `jobrunr_control_parameter_sets` via the configured datasource.
 
 ### Job Chain Status Evaluation
 
-For jobs with continuation chains (`continueWith()` or `onFailure()`), the extension evaluates the overall chain status:
+For jobs with continuation chains (`continueWith()` or `onFailure()`), the extension evaluates the overall chain status conservatively:
 
-- A chain is **complete** when all relevant leaf jobs have finished (SUCCEEDED, FAILED, or DELETED)
-- A chain is **in progress** when any leaf job is still running (ENQUEUED, PROCESSING, PROCESSED)
-- A chain **succeeded** when all executed leaf jobs succeeded
-- A chain **failed** when any executed leaf job failed
+- A chain is **complete** when all continuation leaves considered by the evaluator have finished (SUCCEEDED, FAILED, or DELETED)
+- A chain is **in progress** when any considered continuation leaf is still running (ENQUEUED, PROCESSING, PROCESSED)
+- A chain **succeeded** when all terminal continuation leaves considered by the evaluator succeeded
+- A chain **failed** when any terminal continuation leaf considered by the evaluator failed
+
+Because JobRunr's public API does not expose whether a continuation was created by `continueWith()`
+or `onFailure()`, the implementation may temporarily treat both continuation types as potentially relevant.
 
 ## Advanced Configuration
 
@@ -326,10 +336,11 @@ For jobs with continuation chains (`continueWith()` or `onFailure()`), the exten
 ```properties
 # Storage strategy: INLINE (default) or EXTERNAL
 quarkus.jobrunr-control.parameter-storage.strategy=INLINE
-# Persistence unit for external parameter storage (build-time config)
-# Default: <default> (Hibernate ORM default persistence unit)
+# Reserved configuration key in the current runtime model
+# (not actively consumed by the JDBC-based external storage implementation)
 quarkus.jobrunr-control.parameter-storage.persistence-unit-name=<default>
-# Cleanup configuration for external parameter storage
+# Reserved cleanup keys in the current runtime model
+# The implemented cleanup path deletes parameter sets when the owning job is deleted
 quarkus.jobrunr-control.parameter-storage.cleanup.enabled=true
 quarkus.jobrunr-control.parameter-storage.cleanup.retention-days=30
 ```
@@ -458,7 +469,6 @@ runtime/
 ├── adapter/
 │   ├── rest/        # REST API
 │   └── ui/          # UI controllers
-└── dev/             # Dev mode features
 ```
 
 See [Architecture Documentation](docs/arc42.adoc) for full details.
@@ -494,64 +504,33 @@ cd jobrunr-control-example
 
 ### Authentication in Dev Mode
 
-By default, dev mode starts with **Keycloak DevServices** using Testcontainers:
+By default, dev mode starts **without OIDC**:
 
-- **Automatic Setup**: Keycloak container starts automatically with a pre-configured realm
-- **Pre-configured Users**:
-    - `admin` / `admin` - Full access (all roles)
-    - `configurator` / `configurator` - Can create/modify templates
-    - `viewer` / `viewer` - Read-only access
+- No Keycloak instance is required
+- All HTTP auth policies are set to `permit`
+- `JobRunrControlRoleAugmentor` grants the `admin` role to every request
 
-See [DEV-MODE-KEYCLOAK.md](jobrunr-control-example/DEV-MODE-KEYCLOAK.md) for detailed setup and customization.
+To test the real OIDC setup with the bundled example realm, start Keycloak separately and enable the `keycloak` profile:
+
+```bash
+./start-keycloak.sh
+./mvnw -f jobrunr-control-example/pom.xml quarkus:dev -Dquarkus.profile=dev,keycloak
+```
 
 ### Troubleshooting Dev Mode Startup
 
-#### Application Hangs on Startup with Podman
+If you explicitly enable the `keycloak` profile but keep the `dev` profile active, remember that
+the `%keycloak.*` overrides restore the role-based policies for `/q/jobrunr/api/*`. Without them,
+the permissive `%dev.*` values would otherwise bleed into `dev,keycloak` mode.
 
-**Symptom:** Application hangs during startup in dev mode, port 9090 doesn't open, no error displayed. Tests work fine.
-
-**Root Cause:** The OIDC Dev UI attempts to discover metadata from Keycloak before the DevServices container is fully
-ready. With Podman, this causes an indefinite hang.
-
-**Solutions:**
-
-1. **Use the no-docker profile** (bypasses OIDC completely):
-   ```bash
-   ./mvnw -f jobrunr-control-example/pom.xml quarkus:dev -Dquarkus.profile=dev,no-docker
-   ```
-
-2. **Disable OIDC Dev UI** in `application.properties` (already configured):
-   ```properties
-   %dev.quarkus.oidc.dev-ui.enabled=false
-   ```
-
-3. **Use external Keycloak** (start separately):
-   ```bash
-   ./start-keycloak.sh
-   ./mvnw -f jobrunr-control-example/pom.xml quarkus:dev -Dquarkus.profile=dev,start-keycloak
-   ```
-
-**Diagnostic Commands:**
-
-```bash
-# Check if process is hanging
-ps aux | grep quarkus
-
-# Get thread dump (replace PID)
-jstack <PID> | grep -A 10 "Quarkus Main Thread"
-
-# If you see "OidcDevUiRecorder.discoverMetadata", it's the OIDC Dev UI issue
-```
-
-**Note:** This is a known limitation with Quarkus OIDC DevServices when using Podman. The fix (
-`%dev.quarkus.oidc.dev-ui.enabled=false`) is already applied in the configuration.
+For the authoritative configuration details, see `docs/programmers.adoc` and `docs/security.md`.
 
 ### Access Points
 
 - JobRunr Control: `http://localhost:9090/q/jobrunr-control`
 - JobRunr Dashboard: `http://localhost:9090/q/jobrunr`
+- REST API in the example app: `http://localhost:9090/api/q/jobrunr-control/api`
 - Swagger UI: `http://localhost:9090/q/swagger-ui/`
-- Keycloak Admin: Check console output for dynamic URL
 
 ## License
 
