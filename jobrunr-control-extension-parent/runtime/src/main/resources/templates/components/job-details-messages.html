@@ -36,12 +36,14 @@
                         <p class="mb-0 mt-1">{m.message()}</p>
                         {#if m.hasStackTrace()}
                             <div class="mt-2">
-                                <pre class="stacktrace-preview small mb-1">{m.stackTracePreview()}</pre>
                                 {#if m.isStackTraceTruncated()}
                                     <details class="stacktrace-details">
-                                        <summary class="btn btn-link btn-sm p-0">StackTrace anzeigen</summary>
+                                        <summary class="btn btn-link btn-sm p-0 stacktrace-toggle-summary">StackTrace anzeigen</summary>
                                         <pre class="stacktrace-full small mt-1 mb-0">{m.stackTrace()}</pre>
                                     </details>
+                                    <pre class="stacktrace-preview small mt-1 mb-0">{m.stackTracePreview()}</pre>
+                                {#else}
+                                    <pre class="stacktrace-preview small mb-1">{m.stackTracePreview()}</pre>
                                 {/if}
                             </div>
                         {/if}
@@ -210,10 +212,38 @@
 
     .stacktrace-details summary {
         list-style: none;
+        cursor: pointer;
     }
 
     .stacktrace-details summary::-webkit-details-marker {
         display: none;
+    }
+
+    .stacktrace-toggle-summary::before {
+        content: "▸";
+        display: inline-block;
+        margin-right: 0.35rem;
+        transition: transform 0.15s ease;
+    }
+
+    .stacktrace-details[open] .stacktrace-toggle-summary::before {
+        transform: rotate(90deg);
+    }
+
+    .stacktrace-details .stacktrace-full {
+        display: none;
+    }
+
+    .stacktrace-details + .stacktrace-preview {
+        display: block;
+    }
+
+    .stacktrace-details[open] + .stacktrace-preview {
+        display: none;
+    }
+
+    .stacktrace-details[open] .stacktrace-full {
+        display: block;
     }
 
     .message-item small {

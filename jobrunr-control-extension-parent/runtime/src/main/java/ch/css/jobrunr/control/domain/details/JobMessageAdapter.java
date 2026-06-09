@@ -36,8 +36,28 @@ public class JobMessageAdapter implements JobMessageService {
     }
 
     @Override
-    public void exception(Throwable throwable) {
-        writeMessage(JobMessageLevel.EXCEPTION, "An exception occurred: " + throwable.getMessage(), stackTraceAsString(throwable));
+    public void exception(String message, Throwable throwable) {
+        writeMessage(JobMessageLevel.EXCEPTION, message, stackTraceAsString(throwable));
+    }
+
+    @Override
+    public void exception(String message, Object args1, Throwable throwable) {
+        writeMessage(JobMessageLevel.EXCEPTION, String.format(message, args1), stackTraceAsString(throwable));
+    }
+
+    @Override
+    public void exception(String message, Object args1, Object args2, Throwable throwable) {
+        writeMessage(JobMessageLevel.EXCEPTION, String.format(message, args1, args2), stackTraceAsString(throwable));
+    }
+
+    @Override
+    public void exception(String message, Object args1, Object args2, Object args3, Throwable throwable) {
+        writeMessage(JobMessageLevel.EXCEPTION, String.format(message, args1, args2, args3), stackTraceAsString(throwable));
+    }
+
+    @Override
+    public void exception(String message, Object args1, Object args2, Object args3, Object args4, Throwable throwable) {
+        writeMessage(JobMessageLevel.EXCEPTION, String.format(message, args1, args2, args3, args4), stackTraceAsString(throwable));
     }
 
     private static String stackTraceAsString(Throwable t) {

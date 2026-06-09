@@ -54,7 +54,7 @@ BEGIN
         EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_batch_recap.child_job_id IS ''Child job identifier (UUID)''';
         EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_batch_recap.counter_name IS ''Recap counter name''';
         EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_batch_recap.counter_value IS ''Counter value for one child job''';
-        EXECUTE IMMEDIATE 'CREATE INDEX idx_batch_recap_agg ON jobrunr_control_batch_recap(batch_job_id, counter_name)';
+        EXECUTE IMMEDIATE 'CREATE INDEX idx_batch_recap_agg ON jobrunr_control_batch_recap(batch_job_id, counter_name, counter_value)';
         DBMS_OUTPUT.PUT_LINE('Table jobrunr_control_batch_recap created successfully.');
     ELSE
         DBMS_OUTPUT.PUT_LINE('Table jobrunr_control_batch_recap already exists, skipping.');

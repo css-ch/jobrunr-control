@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS jobrunr_control_batch_recap (
     counter_value BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (batch_job_id, child_job_id, counter_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recap counters per child job in a batch';
-CREATE INDEX idx_batch_recap_agg ON jobrunr_control_batch_recap(batch_job_id, counter_name);
+CREATE INDEX idx_batch_recap_agg ON jobrunr_control_batch_recap(batch_job_id, counter_name, counter_value);
 
 CREATE TABLE IF NOT EXISTS jobrunr_control_batch_messages (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,

@@ -48,7 +48,7 @@ public class DbBaseRecapAndMessagesInterceptor {
             }
             return resultObject;
         } catch (Exception exception) {
-            jobMessageService.exception(exception);
+            jobMessageService.exception("Exception while processing Worker", exception);
             throw exception;
         }
     }
@@ -67,7 +67,7 @@ public class DbBaseRecapAndMessagesInterceptor {
                             jobRecapStoragePort.writeRecap(batchJobId, jobId, recapValues);
                         }
                     } catch (Exception exception) {
-                        jobMessageService.exception(exception);
+                        jobMessageService.exception("Exception while processing Recap-Values", exception);
                     }
                 });
     }

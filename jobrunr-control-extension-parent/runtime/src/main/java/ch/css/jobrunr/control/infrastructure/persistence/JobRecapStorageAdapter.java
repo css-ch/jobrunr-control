@@ -46,34 +46,27 @@ public class JobRecapStorageAdapter implements JobRecapStoragePort {
     @Override
     public void writeRecap(UUID batchJobId, UUID childJobId, Map<String, Long> recap) {
         try (Connection conn = dataSource.getConnection()) {
-            boolean previousAutoCommit = conn.getAutoCommit();
-            conn.setAutoCommit(false);
-            try {
-                try (PreparedStatement deleteStatement = conn.prepareStatement(DELETE_RECAP_FOR_CHILD_SQL)) {
-                    deleteStatement.setString(1, batchJobId.toString());
-                    deleteStatement.setString(2, childJobId.toString());
-                    deleteStatement.executeUpdate();
-                }
+            try (PreparedStatement deleteStatement = conn.prepareStatement(DELETE_RECAP_FOR_CHILD_SQL)) {
+                deleteStatement.setString(1, batchJobId.toString());
+                deleteStatement.setString(2, childJobId.toString());
+                deleteStatement.executeUpdate();
+            }
 
-                if (recap != null && !recap.isEmpty()) {
-                    try (PreparedStatement insertStatement = conn.prepareStatement(INSERT_RECAP_SQL)) {
-                        for (Map.Entry<String, Long> recapEntry : recap.entrySet()) {
-                            insertStatement.setString(1, batchJobId.toString());
-                            insertStatement.setString(2, childJobId.toString());
-                            insertStatement.setString(3, recapEntry.getKey());
-                            insertStatement.setLong(4, recapEntry.getValue() == null ? 0L : recapEntry.getValue());
-                            insertStatement.addBatch();
-                        }
-                        insertStatement.executeBatch();
+            if (recap != null) {
+                recap.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue() == 0L);
+            }
+
+            if (recap != null && !recap.isEmpty()) {
+                try (PreparedStatement insertStatement = conn.prepareStatement(INSERT_RECAP_SQL)) {
+                    for (Map.Entry<String, Long> recapEntry : recap.entrySet()) {
+                        insertStatement.setString(1, batchJobId.toString());
+                        insertStatement.setString(2, childJobId.toString());
+                        insertStatement.setString(3, recapEntry.getKey());
+                        insertStatement.setLong(4, recapEntry.getValue() == null ? 0L : recapEntry.getValue());
+                        insertStatement.addBatch();
                     }
+                    insertStatement.executeBatch();
                 }
-
-                conn.commit();
-            } catch (SQLException e) {
-                rollbackQuietly(conn, batchJobId, childJobId);
-                throw e;
-            } finally {
-                conn.setAutoCommit(previousAutoCommit);
             }
         } catch (SQLException e) {
             LOG.errorf(e, "Failed to write recap for batchJobId %s and childJobId %s", batchJobId, childJobId);
@@ -97,17 +90,6 @@ public class JobRecapStorageAdapter implements JobRecapStoragePort {
         } catch (SQLException e) {
             LOG.errorf(e, "Failed to read recap for batchJobId %s", batchJobId);
             throw new IllegalStateException("Failed to read job recap", e);
-        }
-    }
-
-    private void rollbackQuietly(Connection conn, UUID batchJobId, UUID childJobId) {
-        try {
-            conn.rollback();
-        } catch (SQLException rollbackException) {
-            LOG.errorf(rollbackException,
-                    "Failed to rollback recap write for batchJobId %s and childJobId %s",
-                    batchJobId,
-                    childJobId);
         }
     }
 }
