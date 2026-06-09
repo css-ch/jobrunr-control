@@ -26,9 +26,9 @@ import java.util.UUID;
  * CSV column order: Zeitstempel, Level, jobId, Message, StackTrace
  */
 @ApplicationScoped
-public class DownloadJobMessagesAsCsvUseCase {
+public class GetJobDetailsMessagesAsCsvUseCase {
 
-    private static final Logger LOG = Logger.getLogger(DownloadJobMessagesAsCsvUseCase.class);
+    private static final Logger LOG = Logger.getLogger(GetJobDetailsMessagesAsCsvUseCase.class);
 
     /** Maximum number of rows exported to avoid excessive memory consumption. */
     static final int MAX_EXPORT_SIZE = 100_000;
@@ -40,9 +40,9 @@ public class DownloadJobMessagesAsCsvUseCase {
     private final JobDetailsProviderRegistry jobDetailsProviderRegistry;
 
     @Inject
-    public DownloadJobMessagesAsCsvUseCase(StorageProvider storageProvider,
-                                           JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
-                                           JobDetailsProviderRegistry jobDetailsProviderRegistry) {
+    public GetJobDetailsMessagesAsCsvUseCase(StorageProvider storageProvider,
+                                             JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
+                                             JobDetailsProviderRegistry jobDetailsProviderRegistry) {
         this.storageProvider = storageProvider;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobDetailsProviderRegistry = jobDetailsProviderRegistry;

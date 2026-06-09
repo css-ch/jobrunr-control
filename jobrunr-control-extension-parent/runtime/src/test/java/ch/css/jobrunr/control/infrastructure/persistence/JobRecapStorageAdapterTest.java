@@ -64,13 +64,11 @@ class JobRecapStorageAdapterTest {
 
         adapter.writeRecap(batchId, childId, recap);
 
-        verify(connection).setAutoCommit(false);
         verify(deleteStatement).setString(1, batchId.toString());
         verify(deleteStatement).setString(2, childId.toString());
         verify(deleteStatement).executeUpdate();
         verify(insertStatement, times(2)).addBatch();
         verify(insertStatement).executeBatch();
-        verify(connection).commit();
     }
 
     @Test
@@ -86,7 +84,6 @@ class JobRecapStorageAdapterTest {
 
         verify(deleteStatement).executeUpdate();
         verify(connection, never()).prepareStatement(contains("INSERT INTO jobrunr_control_batch_recap"));
-        verify(connection).commit();
     }
 
     @Test

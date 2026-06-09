@@ -1,6 +1,6 @@
 package ch.css.jobrunr.control.adapter.ui;
 
-import ch.css.jobrunr.control.application.details.DownloadJobMessagesAsCsvUseCase;
+import ch.css.jobrunr.control.application.details.GetJobDetailsMessagesAsCsvUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsMessageUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
@@ -29,17 +29,17 @@ public class JobDetailsController {
     private final GetJobDetailsParametersUseCase getJobDetailsParametersUseCase;
     private final GetJobDetailsRecapUseCase getJobDetailsRecapUseCase;
     private final GetJobDetailsMessageUseCase getJobDetailsMessageUseCase;
-    private final DownloadJobMessagesAsCsvUseCase downloadJobMessagesAsCsvUseCase;
+    private final GetJobDetailsMessagesAsCsvUseCase getJobDetailsMessagesAsCsvUseCase;
 
     @Inject
     public JobDetailsController(GetJobDetailsParametersUseCase getJobDetailsParametersUseCase,
                                 GetJobDetailsRecapUseCase getJobDetailsRecapUseCase,
                                 GetJobDetailsMessageUseCase getJobDetailsMessageUseCase,
-                                DownloadJobMessagesAsCsvUseCase downloadJobMessagesAsCsvUseCase) {
+                                GetJobDetailsMessagesAsCsvUseCase getJobDetailsMessagesAsCsvUseCase) {
         this.getJobDetailsParametersUseCase = getJobDetailsParametersUseCase;
         this.getJobDetailsRecapUseCase = getJobDetailsRecapUseCase;
         this.getJobDetailsMessageUseCase = getJobDetailsMessageUseCase;
-        this.downloadJobMessagesAsCsvUseCase = downloadJobMessagesAsCsvUseCase;
+        this.getJobDetailsMessagesAsCsvUseCase = getJobDetailsMessagesAsCsvUseCase;
     }
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -140,7 +140,7 @@ public class JobDetailsController {
         String textSearch = UiRoutingSupport.queryParam(ctx, "textSearch");
         JobMessageSortOrder sortOrder = parseSortOrder(UiRoutingSupport.queryParam(ctx, "sortOrder"));
 
-        String csvContent = downloadJobMessagesAsCsvUseCase.execute(
+        String csvContent = getJobDetailsMessagesAsCsvUseCase.execute(
                 jobIdAsUUID(jobId), jobType, levelSearch, textSearch, sortOrder);
 
         String fileName = "messages-" + jobId + ".csv";

@@ -1,5 +1,9 @@
-package ch.css.jobrunr.control.domain.details;
+package ch.css.jobrunr.control.infrastructure.details;
 
+import ch.css.jobrunr.control.domain.details.JobMessage;
+import ch.css.jobrunr.control.domain.details.JobMessageLevel;
+import ch.css.jobrunr.control.domain.details.JobMessageService;
+import ch.css.jobrunr.control.domain.details.JobMessageStoragePort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jobrunr.server.runner.ThreadLocalJobContext;
