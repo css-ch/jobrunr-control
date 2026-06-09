@@ -6,6 +6,7 @@ import ch.css.jobrunr.control.domain.details.JobMessageService;
 import ch.css.jobrunr.control.domain.details.JobMessageStoragePort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.jobrunr.server.runner.ThreadLocalJobContext;
 
 import java.io.PrintWriter;
@@ -30,7 +31,19 @@ public class JobMessageAdapter implements JobMessageService {
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void infoTxNew(String message, Object... args) {
+        writeMessage(JobMessageLevel.INFO, String.format(message, args), null);
+    }
+
+    @Override
     public void warning(String message, Object... args) {
+        writeMessage(JobMessageLevel.WARNING, String.format(message, args), null);
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void warningTxNew(String message, Object... args) {
         writeMessage(JobMessageLevel.WARNING, String.format(message, args), null);
     }
 
@@ -40,26 +53,37 @@ public class JobMessageAdapter implements JobMessageService {
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void errorTxNew(String message, Object... args) {
+        writeMessage(JobMessageLevel.ERROR, String.format(message, args), null);
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void exception(String message, Throwable throwable) {
         writeMessage(JobMessageLevel.EXCEPTION, message, stackTraceAsString(throwable));
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void exception(String message, Object args1, Throwable throwable) {
         writeMessage(JobMessageLevel.EXCEPTION, String.format(message, args1), stackTraceAsString(throwable));
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void exception(String message, Object args1, Object args2, Throwable throwable) {
         writeMessage(JobMessageLevel.EXCEPTION, String.format(message, args1, args2), stackTraceAsString(throwable));
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void exception(String message, Object args1, Object args2, Object args3, Throwable throwable) {
         writeMessage(JobMessageLevel.EXCEPTION, String.format(message, args1, args2, args3), stackTraceAsString(throwable));
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void exception(String message, Object args1, Object args2, Object args3, Object args4, Throwable throwable) {
         writeMessage(JobMessageLevel.EXCEPTION, String.format(message, args1, args2, args3, args4), stackTraceAsString(throwable));
     }

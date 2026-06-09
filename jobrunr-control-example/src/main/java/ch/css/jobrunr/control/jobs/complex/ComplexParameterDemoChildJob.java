@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.annotations.DbBasedRecapAndMessages;
 import ch.css.jobrunr.control.domain.details.JobMessageService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.lambdas.JobResultRequestHandler;
 import org.jobrunr.server.runner.ThreadLocalJobContext;
@@ -29,9 +30,12 @@ public class ComplexParameterDemoChildJob implements JobResultRequestHandler<Com
     }
 
     @Override
+    @Transactional
     public ComplexParameterDemoJobRecap runAndReturn(ComplexParameterDemoChildJobRequest jobRequest) {
         int policeNr = jobRequest.number();
         if (jobRequest.exception()) {
+            messageService.info("Diese Meldung möchte ich aufgrund des Rollbacks nicht sehen.");
+            messageService.infoTxNew("Diese Meldung möchte trotz des Rollbacks sehen.");
             throw new RuntimeException("Druckerfehler: Papierstau im Drucker.");
         }
         ComplexParameterDemoChildJob.PolicenResult policenResult = randomValue(Arrays.asList(ComplexParameterDemoChildJob.PolicenResult.values()));

@@ -219,8 +219,9 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
         }
 
         if (!normalizedTextSearch.isBlank()) {
-            where.append(" AND (LOWER(message) LIKE ? OR LOWER(stack_trace) LIKE ?)");
+            where.append(" AND (LOWER(message) LIKE ? OR LOWER(stack_trace) LIKE ? OR LOWER(child_job_id) LIKE ?)");
             String searchPattern = "%" + normalizedTextSearch + "%";
+            parameters.add(searchPattern);
             parameters.add(searchPattern);
             parameters.add(searchPattern);
         }

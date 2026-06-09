@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @DbBasedRecapAndMessages
 @Interceptor
-@Priority(Interceptor.Priority.APPLICATION)
+@Priority(Interceptor.Priority.APPLICATION + 10) // Priority after @Transactional
 public class DbBasedRecapAndMessagesInterceptor {
 
     private final JobMessageService messageService;
@@ -50,13 +50,9 @@ public class DbBasedRecapAndMessagesInterceptor {
         }
         recapValueExtractorRegistry.findByRecapClassName(resultObject.getClass().getName())
                 .ifPresent(extractor -> {
-                    try {
-                        Map<String, Long> recapValues = extractor.extract(resultObject);
-                        if (recapValues != null && !recapValues.isEmpty()) {
-                            recapService.writeRecap(recapValues);
-                        }
-                    } catch (Exception exception) {
-                        messageService.exception("Exception while processing Recap-Values", exception);
+                    Map<String, Long> recapValues = extractor.extract(resultObject);
+                    if (recapValues != null && !recapValues.isEmpty()) {
+                        recapService.writeRecap(recapValues);
                     }
                 });
     }

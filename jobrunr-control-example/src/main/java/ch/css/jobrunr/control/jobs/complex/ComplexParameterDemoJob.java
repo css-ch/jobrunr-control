@@ -7,6 +7,7 @@ import ch.css.jobrunr.control.domain.ParameterStorageService;
 import ch.css.jobrunr.control.domain.details.JobMessageService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.context.JobContext;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
@@ -38,6 +39,7 @@ public class ComplexParameterDemoJob implements JobRequestHandler<ComplexParamet
 
     @Override
     @ConfigurableJob(name = "Complex Demo Job", isBatch = true, retries = 0)
+    @Transactional
     @JobDetailPage(
             recapParameterClass = ComplexParameterDemoJobRecap.class, showEmptyParameters = false, showRecapParameterWithZeroValue = false,
             messageProviderKey = "db-based-job-details-provider", recapProviderKey = "db-based-job-details-provider"
