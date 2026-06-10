@@ -96,7 +96,7 @@ public class ParameterStorageAdapter implements ParameterStorageService {
      */
     @Override
     public <T> Optional<T> findById(UUID id, Class<T> type) {
-        return findById(id).map(params -> objectMapper.convertValue(params, type));
+        return findById(id).map(params -> objectMapper.convertValue(params.parameters(), type));
     }
 
     /**

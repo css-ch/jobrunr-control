@@ -1,0 +1,236 @@
+{#include base title="Job-Details" subtitle="Details der Job-Ausführung einsehen"}
+
+{#content}
+    <!-- Hidden inputs to carry jobId and jobType through HTMX requests -->
+    <input type="hidden" name="jobId" value="{jobId}">
+    <input type="hidden" name="jobType" value="{jobType}">
+    <input type="hidden" id="message-sort-order" name="sortOrder" value="OLDEST_FIRST">
+
+    <!-- Batch metadata headline -->
+    <div class="card border-0 bg-light-subtle mb-3">
+        <div class="card-body py-2">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="badge text-bg-primary">
+                    <i class="bi bi-box"></i> {jobName}
+                </span>
+                <span class="badge text-bg-secondary">
+                    <i class="bi bi-tag"></i> {jobType}
+                </span>
+                <span class="badge text-bg-light border text-dark">
+                    <i class="bi bi-hash"></i> <code class="mb-0">{jobId}</code>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Row: Batch Recap and Batch Parameter -->
+    <div class="row mb-3">
+        <!-- Batch Recap Section (Left) -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-graph-up"></i> Batch Recap
+                    </h5>
+                </div>
+                <div class="card-body"
+                     id="batch-recap"
+                     hx-get="{cp}/history/details/recap"
+                     hx-trigger="load"
+                     hx-swap="innerHTML"
+                     hx-include="[name='jobId']">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                        <p class="mt-2">Lade Batch Recap...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Parameter Section (Right) -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-sliders"></i> Batch Parameter
+                        </h5>
+                        <a class="btn btn-outline-secondary btn-sm"
+                           title="Parameter als JSON herunterladen"
+                           href="{cp}/history/details/parameter/download?jobId={jobId}">
+                            <i class="bi bi-download"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body"
+                     id="batch-parameters"
+                     hx-get="{cp}/history/details/parameter"
+                     hx-trigger="load"
+                     hx-swap="innerHTML"
+                     hx-include="[name='jobId']">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                        <p class="mt-2">Lade Batch Parameter...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Row: Batch Messages -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-chat-left-text"></i> Batch Meldungen
+                            </h5>
+                        </div>
+                        <div class="col-md-6 text-end d-flex justify-content-end gap-2 align-items-center">
+                            <label for="message-text-search" class="visually-hidden">Suche Meldung</label>
+                            <input id="message-text-search"
+                                   type="search"
+                                   name="textSearch"
+                                   class="form-control form-control-sm"
+                                   style="width: 220px;"
+                                   placeholder="Meldungen durchsuchen..."
+                                   hx-get="{cp}/history/details/messages"
+                                   hx-target="#batch-messages"
+                                   hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                                   hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                   hx-trigger="keyup changed delay:300ms, search">
+
+                            <label for="message-filter" class="visually-hidden">Filter</label>
+                            <select id="message-filter"
+                                    name="search"
+                                    class="form-select form-select-sm"
+                                    style="width: 180px;"
+                                    hx-get="{cp}/history/details/messages"
+                                    hx-target="#batch-messages"
+                                    hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    hx-trigger="change">
+                                <option value="ALL">Alle</option>
+                                <option value="WARNINGS_AND_ERRORS_AND_EXCEPTIONS">Warning, Error und Exception</option>
+                                <option value="ERRORS_AND_EXCEPTIONS">Error und Exception</option>
+                                <option value="INFO_ONLY">Nur Info</option>
+                                <option value="WARNING_ONLY">Nur Warning</option>
+                                <option value="ERROR_ONLY">Nur Error</option>
+                                <option value="EXCEPTION_ONLY">Nur Exception</option>
+                            </select>
+
+                            <button type="button"
+                                    id="message-sort-toggle"
+                                    class="btn btn-outline-secondary btn-sm"
+                                    title="Sortierung umschalten"
+                                    hx-get="{cp}/history/details/messages"
+                                    hx-target="#batch-messages"
+                                    hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    onclick="jrcToggleMessageSortOrder(this)">
+                                <i class="bi bi-sort-down" data-message-sort-icon aria-hidden="true"></i>
+                            </button>
+
+                            <button class="btn btn-secondary btn-sm"
+                                    id="refresh-messages-btn"
+                                    hx-get="{cp}/history/details/messages"
+                                    hx-target="#batch-messages"
+                                    hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    hx-disabled-elt="this">
+                                <span class="htmx-indicator spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                                <i class="bi bi-arrow-clockwise"></i> Aktualisieren
+                            </button>
+
+                            <button class="btn btn-outline-secondary btn-sm"
+                                    id="messages-download-btn"
+                                    title="Gefilterte Meldungen als CSV herunterladen"
+                                    onclick="jrcDownloadMessages('{cp}')">
+                                <i class="bi bi-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body"
+                     id="batch-messages"
+                     hx-get="{cp}/history/details/messages"
+                     hx-trigger="load"
+                     hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
+                     hx-swap="innerHTML"
+                     hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                        <p class="mt-2">Lade Batch Meldungen...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const storageKey = 'jrc.messageSort.messages';
+
+            function getSortOrder() {
+                const value = localStorage.getItem(storageKey);
+                return value === 'NEWEST_FIRST' ? 'NEWEST_FIRST' : 'OLDEST_FIRST';
+            }
+
+            function applySortOrderState() {
+                const sortOrder = getSortOrder();
+                const hiddenInput = document.getElementById('message-sort-order');
+                const button = document.getElementById('message-sort-toggle');
+                if (hiddenInput) {
+                    hiddenInput.value = sortOrder;
+                }
+                if (button) {
+                    const icon = button.querySelector('[data-message-sort-icon]');
+                    if (icon) {
+                        icon.className = sortOrder === 'NEWEST_FIRST' ? 'bi bi-sort-down-alt' : 'bi bi-sort-down';
+                    }
+                    button.setAttribute('aria-label', sortOrder === 'NEWEST_FIRST' ? 'Datum absteigend sortieren' : 'Datum aufsteigend sortieren');
+                }
+            }
+
+            window.jrcToggleMessageSortOrder = function(button) {
+                const nextSortOrder = getSortOrder() === 'NEWEST_FIRST' ? 'OLDEST_FIRST' : 'NEWEST_FIRST';
+                localStorage.setItem(storageKey, nextSortOrder);
+                applySortOrderState();
+            };
+
+            window.jrcDownloadMessages = function(cp) {
+                const jobId = document.querySelector("[name='jobId']").value;
+                const jobType = document.querySelector("[name='jobType']").value;
+                const searchEl = document.getElementById('message-filter');
+                const textSearchEl = document.getElementById('message-text-search');
+                const sortOrderEl = document.getElementById('message-sort-order');
+                const search = searchEl ? searchEl.value : 'ALL';
+                const textSearch = textSearchEl ? textSearchEl.value : '';
+                const sortOrder = sortOrderEl ? sortOrderEl.value : 'OLDEST_FIRST';
+                const params = new URLSearchParams([['jobId', jobId], ['jobType', jobType], ['search', search], ['textSearch', textSearch], ['sortOrder', sortOrder]]);
+                window.location.href = cp + '/history/details/messages/download?' + params.toString();
+            };
+
+            document.addEventListener('DOMContentLoaded', applySortOrderState);
+            document.body.addEventListener('htmx:afterSwap', applySortOrderState);
+        })();
+
+        // Auto-refresh Batch Recap every 10 seconds
+        setInterval(() => {
+            htmx.trigger('#batch-recap', 'load');
+        }, 10000);
+
+        // Auto-refresh Batch Parameter every 30 seconds
+        setInterval(() => {
+            htmx.trigger('#batch-parameters', 'load');
+        }, 30000);
+
+        // Auto-refresh Batch Messages every 5 seconds
+        setInterval(() => {
+            htmx.trigger('#batch-messages', 'load');
+        }, 5000);
+    </script>
+{/content}
+

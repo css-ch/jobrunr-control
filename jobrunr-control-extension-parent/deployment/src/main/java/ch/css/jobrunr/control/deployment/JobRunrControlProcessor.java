@@ -40,7 +40,7 @@ public class JobRunrControlProcessor {
     AdditionalBeanBuildItem registerControllers() {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClasses(
-                        DashboardController.class,
+                        JobDetailsController.class,
                         ScheduledJobsController.class,
                         TemplatesController.class,
                         JobExecutionsController.class,
@@ -183,6 +183,38 @@ public class JobRunrControlProcessor {
         routes.produce(nonApp.routeBuilder()
                 .route(UI_BASE + "/history/:id/batch-progress")
                 .handler(recorder.historyBatchProgress())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+
+        // ---- Dashboard ----
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/history/details")
+                .handler(recorder.jobDetailsIndex())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/history/details/recap")
+                .handler(recorder.jobDetailsRecap())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/history/details/parameter")
+                .handler(recorder.jobDetailsParameter())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/history/details/parameter/download")
+                .handler(recorder.jobDetailsParameterDownload())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/history/details/messages")
+                .handler(recorder.jobDetailsMessages())
+                .handlerType(HandlerType.BLOCKING)
+                .build());
+        routes.produce(nonApp.routeBuilder()
+                .route(UI_BASE + "/history/details/messages/download")
+                .handler(recorder.jobDetailsMessagesDownload())
                 .handlerType(HandlerType.BLOCKING)
                 .build());
     }

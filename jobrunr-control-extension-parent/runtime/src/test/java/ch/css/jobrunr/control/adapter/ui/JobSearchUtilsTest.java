@@ -23,6 +23,8 @@ class JobSearchUtilsTest {
             List.of(), List.of(),
             new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null, null),
             false,
+            null,
+            List.of(),
             null
     );
 

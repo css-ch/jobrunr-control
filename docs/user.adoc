@@ -41,7 +41,7 @@ tokens directly:
 
 |`/q/jobrunr-control`, `/q/jobrunr-control/*`
 |OIDC session cookie
-|Any authenticated user
+|`viewer`, `configurator`, or `admin`
 
 |`/q/jobrunr`, `/q/jobrunr/*` (JobRunr Pro Dashboard)
 |OIDC session cookie
@@ -448,7 +448,7 @@ Use the search box to filter jobs by:
 
 * Job name
 * Job type
-* Parameter values
+* Parameter values using `key=value` syntax (for example `customerId=123`)
 
 === Sorting
 
@@ -617,16 +617,18 @@ The job only stores a reference ID to the parameter set.
 
 [NOTE]
 ====
-External storage requires a database connection to be configured in your Quarkus application.
+External storage requires a configured datasource in your Quarkus application.
+Jobs using `@JobParameterSet(parameterSetClass = ...)` keep their parameter values in the
+`jobrunr_control_parameter_sets` table and load them transparently in the UI.
 You must manually create the required database table (`jobrunr_control_parameter_sets`) using the SQL scripts provided in the `docs/sql/` directory.
 ====
 
 .Parameter Set Cleanup
-The extension provides automatic cleanup of orphaned parameter sets:
+The extension automatically deletes external parameter sets when the corresponding job is deleted:
 
-* Configured via `quarkus.jobrunr-control.parameter-storage.cleanup.enabled`
-* Default retention period: 30 days
-* Runs periodically to remove unused parameter sets
+* Triggered by the job lifecycle when a job moves to `DELETED`
+* Uses the job UUID as the parameter-set ID
+* Does not require manual cleanup for deleted jobs
 
 [TIP]
 ====
@@ -642,7 +644,9 @@ Select "Scheduled" as the trigger type to execute a job at a specific time:
 
 . Set the date using the date picker
 . Set the time using the time picker
-. The job will automatically execute at the specified time == Template Jobs
+. The job will automatically execute at the specified time
+
+== Template Jobs
 
 Template jobs are reusable job configurations that serve as blueprints for creating and executing jobs on demand.
 
@@ -954,7 +958,7 @@ Select "External Trigger" to create a job that waits for an API call:
 
 * The job remains in scheduled state until triggered via REST API
 * Useful for integration with external systems
-* Can be triggered multiple times (creates new executions)
+* Starts the configured scheduled job immediately when triggered
 
 == Monitoring Jobs
 
@@ -986,12 +990,12 @@ The Execution History view shows all job executions with their current status:
 
 For jobs with continuation chains (using success or failure callbacks), the displayed status represents the **overall chain status**, not just the parent job:
 
-* **Chain Complete**: All continuation jobs have finished (SUCCEEDED, FAILED, or DELETED)
-* **Chain In-Progress**: At least one continuation job is still running (ENQUEUED, PROCESSING, PROCESSED)
-* **Chain Success**: All executed continuation jobs succeeded
-* **Chain Failure**: Any executed continuation job failed
+* **Chain Complete**: All continuation leaves considered by the evaluator have finished (SUCCEEDED, FAILED, or DELETED)
+* **Chain In-Progress**: At least one considered continuation leaf is still running (ENQUEUED, PROCESSING, PROCESSED)
+* **Chain Success**: All terminal continuation leaves considered by the evaluator succeeded
+* **Chain Failure**: At least one terminal continuation leaf considered by the evaluator failed
 
-This provides accurate visibility into complex job workflows.
+This provides conservative visibility into complex job workflows.
 Click the deep-link to JobRunr Pro Dashboard to see individual job details.
 ====
 
@@ -1172,6 +1176,14 @@ All create, update, delete, and execute operations for both templates and jobs a
 * For executions: source (REST/UI) and resulting job ID
 
 == Documentation Changelog
+
+=== 2026-06-09
+
+* **Aligned the guide with the current implementation**:
+** Clarified scheduled-job search syntax (`key=value`) for parameter lookups
+** Corrected external-parameter storage behavior and delete-on-job-deletion cleanup
+** Fixed the section split between scheduling and template documentation
+** Updated the continuation-chain explanation to describe the current conservative status evaluation
 
 === 2026-03-04
 

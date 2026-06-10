@@ -1,9 +1,9 @@
 package ch.css.jobrunr.control.deployment;
 
-import ch.css.jobrunr.control.deployment.scanner.JobRequestAnalyzer;
-import ch.css.jobrunr.control.deployment.scanner.JobSettingsExtractor;
-import ch.css.jobrunr.control.deployment.scanner.ParameterExtractor;
+import ch.css.jobrunr.control.deployment.scanner.*;
 import ch.css.jobrunr.control.domain.JobDefinition;
+import ch.css.jobrunr.control.domain.JobDetailPage;
+import ch.css.jobrunr.control.domain.JobRecapParameter;
 import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobTypeLabel;
 import org.jboss.jandex.*;
@@ -52,6 +52,8 @@ final class JobDefinitionIndexScanner {
         JobRequestAnalyzer requestAnalyzer = new JobRequestAnalyzer(index);
         ParameterExtractor parameterExtractor = new ParameterExtractor(index);
         JobSettingsExtractor settingsExtractor = new JobSettingsExtractor();
+        RecapParameterExtractor recapParameterExtractor = new RecapParameterExtractor(index);
+        JobDetailPageExtractor jobDetailPageExtractor = new JobDetailPageExtractor();
 
         LOG.debugf("Searching for JobRequestHandler implementations");
 
@@ -89,6 +91,13 @@ final class JobDefinitionIndexScanner {
             // Extract job settings
             JobSettings jobSettings = settingsExtractor.extractJobSettings(runMethod);
 
+            // Extract job detail page
+            JobDetailPage jobDetailPage = jobDetailPageExtractor.extractJobDetailPage(runMethod);
+            String recapParameterClass = jobDetailPage != null ? jobDetailPage.recapParameterClass() : null;
+            List<JobRecapParameter> analyzedRecapParameters = recapParameterClass != null && !recapParameterClass.isBlank()
+                    ? recapParameterExtractor.analyzeRecapParameters(recapParameterClass)
+                    : List.of();
+
             boolean isBatchJob = settingsExtractor.getBatchJobFlag(runMethod);
             // jobType defaults to the handler simple name, which stays aligned with
             // JobDetails.getClassName() so JobRunrSchedulerAdapter.mapToScheduledJobInfo and
@@ -116,7 +125,9 @@ final class JobDefinitionIndexScanner {
                     analyzedParams.parameterSections(),
                     jobSettings,
                     analyzedParams.usesExternalParameters(),
-                    analyzedParams.externalParametersClassName()
+                    analyzedParams.externalParametersClassName(),
+                    analyzedRecapParameters,
+                    jobDetailPage
             ));
         }
 

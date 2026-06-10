@@ -143,6 +143,39 @@ public class JobRunrControlRouteRecorder {
                 () -> controller(JobExecutionsController.class).handleBatchProgress(ctx));
     }
 
+    // ---------------- Dashboard ----------------
+
+    public Handler<RoutingContext> jobDetailsIndex() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(JobDetailsController.class).handleIndex(ctx));
+    }
+
+    public Handler<RoutingContext> jobDetailsRecap() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(JobDetailsController.class).handleDetailsRecap(ctx));
+    }
+
+    public Handler<RoutingContext> jobDetailsParameter() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(JobDetailsController.class).handleDetailsParameter(ctx));
+    }
+
+    public Handler<RoutingContext> jobDetailsParameterDownload() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(JobDetailsController.class).handleDetailsParameterDownload(ctx));
+    }
+
+    public Handler<RoutingContext> jobDetailsMessages() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(JobDetailsController.class).handleDetailsMessages(ctx));
+    }
+
+    public Handler<RoutingContext> jobDetailsMessagesDownload() {
+        return ctx -> UiRoutingSupport.withRequestContext(ctx,
+                () -> controller(JobDetailsController.class).handleDetailsMessagesDownload(ctx));
+    }
+
+
     private static <T> T controller(Class<T> type) {
         return Arc.container().instance(type).get();
     }

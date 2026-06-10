@@ -13,9 +13,9 @@ JobRunr Control secures three distinct HTTP surfaces:
 Access control is enforced at two complementary layers:
 
 1. **Quarkus HTTP Auth Policies** – path + method matching before a request reaches any handler
-2. **`@RolesAllowed`** – method-level enforcement inside JAX-RS resources
+2. **Handler-level role checks** – `UiRoutingSupport.requireAnyRole(...)` for Vert.x UI routes and `@RolesAllowed` for JAX-RS resources
 
-Both layers must pass. HTTP policies act as the outer gate; `@RolesAllowed` acts as the inner guard.
+Both layers must pass. HTTP policies act as the outer gate; the handler-level check acts as the inner guard.
 
 ---
 
@@ -47,29 +47,29 @@ Both layers must pass. HTTP policies act as the outer gate; `@RolesAllowed` acts
 
 | Roles | HTTP | Path | Method |
 |---|---|---|---|
-| `viewer`, `configurator`, `admin` | GET | `/` | `DashboardController.index()` |
-| `viewer`, `configurator`, `admin` | GET | `/scheduled/` | `ScheduledJobsController.getScheduledJobsView()` |
-| `viewer`, `configurator`, `admin` | GET | `/scheduled/table` | `ScheduledJobsController.getScheduledJobsTable()` |
-| `viewer`, `configurator`, `admin` | GET | `/scheduled/modal/parameters` | `ScheduledJobsController.getJobParameters()` |
-| `configurator`, `admin` | GET | `/scheduled/modal/new` | `ScheduledJobsController.getNewJobModal()` |
-| `configurator`, `admin` | GET | `/scheduled/modal/{id}/edit` | `ScheduledJobsController.getEditJobModal()` |
-| `configurator`, `admin` | POST | `/scheduled/` | `ScheduledJobsController.createJob()` |
-| `configurator`, `admin` | PUT | `/scheduled/{id}` | `ScheduledJobsController.updateJob()` |
-| `configurator`, `admin` | DELETE | `/scheduled/{id}` | `ScheduledJobsController.deleteJob()` |
-| **`admin` only** | POST | `/scheduled/{id}/execute` | `ScheduledJobsController.executeJob()` |
-| `viewer`, `configurator`, `admin` | GET | `/history/` | `JobExecutionsController.getExecutionHistoryView()` |
-| `viewer`, `configurator`, `admin` | GET | `/history/table` | `JobExecutionsController.getExecutionHistoryTable()` |
-| `viewer`, `configurator`, `admin` | GET | `/history/{id}/batch-progress` | `JobExecutionsController.getBatchProgressFragment()` |
-| `viewer`, `configurator`, `admin` | GET | `/templates/` | `TemplatesController.getTemplatesView()` |
-| `viewer`, `configurator`, `admin` | GET | `/templates/table` | `TemplatesController.getTemplatesTable()` |
-| `viewer`, `configurator`, `admin` | GET | `/templates/modal/parameters` | `TemplatesController.getJobParameters()` |
-| `configurator`, `admin` | GET | `/templates/modal/new` | `TemplatesController.getNewTemplateModal()` |
-| `configurator`, `admin` | GET | `/templates/modal/{id}/edit` | `TemplatesController.getEditTemplateModal()` |
-| `configurator`, `admin` | POST | `/templates/` | `TemplatesController.createTemplate()` |
-| `configurator`, `admin` | PUT | `/templates/{id}` | `TemplatesController.updateTemplate()` |
-| `configurator`, `admin` | DELETE | `/templates/{id}` | `TemplatesController.deleteTemplate()` |
-| `configurator`, `admin` | POST | `/templates/{id}/clone` | `TemplatesController.cloneTemplate()` |
-| **`admin` only** | POST | `/templates/{id}/start` | `TemplatesController.startTemplate()` |
+| `viewer`, `configurator`, `admin` | GET | `/` | `DashboardController.handleIndex()` |
+| `viewer`, `configurator`, `admin` | GET | `/scheduled` | `ScheduledJobsController.handleIndex()` |
+| `viewer`, `configurator`, `admin` | GET | `/scheduled/table` | `ScheduledJobsController.handleTable()` |
+| `viewer`, `configurator`, `admin` | GET | `/scheduled/modal/parameters` | `ScheduledJobsController.handleParametersModal()` |
+| `configurator`, `admin` | GET | `/scheduled/modal/new` | `ScheduledJobsController.handleNewModal()` |
+| `configurator`, `admin` | GET | `/scheduled/modal/{id}/edit` | `ScheduledJobsController.handleEditModal()` |
+| `configurator`, `admin` | POST | `/scheduled` | `ScheduledJobsController.handleCreate()` |
+| `configurator`, `admin` | PUT | `/scheduled/{id}` | `ScheduledJobsController.handleUpdate()` |
+| `configurator`, `admin` | DELETE | `/scheduled/{id}` | `ScheduledJobsController.handleDelete()` |
+| **`admin` only** | POST | `/scheduled/{id}/execute` | `ScheduledJobsController.handleExecute()` |
+| `viewer`, `configurator`, `admin` | GET | `/history` | `JobExecutionsController.handleIndex()` |
+| `viewer`, `configurator`, `admin` | GET | `/history/table` | `JobExecutionsController.handleTable()` |
+| `viewer`, `configurator`, `admin` | GET | `/history/{id}/batch-progress` | `JobExecutionsController.handleBatchProgress()` |
+| `viewer`, `configurator`, `admin` | GET | `/templates` | `TemplatesController.handleIndex()` |
+| `viewer`, `configurator`, `admin` | GET | `/templates/table` | `TemplatesController.handleTable()` |
+| `viewer`, `configurator`, `admin` | GET | `/templates/modal/parameters` | `TemplatesController.handleParametersModal()` |
+| `configurator`, `admin` | GET | `/templates/modal/new` | `TemplatesController.handleNewModal()` |
+| `configurator`, `admin` | GET | `/templates/modal/{id}/edit` | `TemplatesController.handleEditModal()` |
+| `configurator`, `admin` | POST | `/templates` | `TemplatesController.handleCreate()` |
+| `configurator`, `admin` | PUT | `/templates/{id}` | `TemplatesController.handleUpdate()` |
+| `configurator`, `admin` | DELETE | `/templates/{id}` | `TemplatesController.handleDelete()` |
+| `configurator`, `admin` | POST | `/templates/{id}/clone` | `TemplatesController.handleClone()` |
+| **`admin` only** | POST | `/templates/{id}/start` | `TemplatesController.handleStart()` |
 
 ### Embedded JobRunr Pro Dashboard (`/q/jobrunr`)
 

@@ -92,6 +92,8 @@ class DiscoverJobsUseCaseTest {
                 List.of(),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
                 false,
+                null,
+                List.of(),
                 null
         );
     }

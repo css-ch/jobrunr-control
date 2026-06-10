@@ -136,6 +136,11 @@ public class JobSettingsExtractor {
         return value != null ? value.asInt() : defaultValue;
     }
 
+    private String getAnnotationValueAsString(AnnotationInstance annotation, String name) {
+        AnnotationValue value = annotation.value(name);
+        return value != null ? value.asClass().name().toString() : null;
+    }
+
     private List<String> getAnnotationValueAsStringList(AnnotationInstance annotation, String name) {
         AnnotationValue value = annotation.value(name);
         if (value == null) {

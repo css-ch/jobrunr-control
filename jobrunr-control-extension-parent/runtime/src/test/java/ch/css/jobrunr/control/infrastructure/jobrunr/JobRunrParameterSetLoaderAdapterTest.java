@@ -65,7 +65,9 @@ class JobRunrParameterSetLoaderAdapterTest {
                 SIMPLE_CLASS, false, "InlineJobRequest", HANDLER_CLASS,
                 List.of(), List.of(),
                 new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null, null),
-                false, null
+                false, null,
+                List.of(),
+                null
         );
 
         when(storageProvider.getJobById(jobId)).thenReturn(job);
@@ -93,7 +95,9 @@ class JobRunrParameterSetLoaderAdapterTest {
                 "ExternalJobHandler", false, "ExternalJobRequest", "com.example.ExternalJobHandler",
                 List.of(), List.of(),
                 new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null, null),
-                true, "parameterSetId"
+                true, "parameterSetId",
+                List.of(),
+                null
         );
 
         when(storageProvider.getJobById(jobId)).thenReturn(job);
