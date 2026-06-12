@@ -25,7 +25,6 @@ public class ExampleBatchFailure implements JobRequestHandler<ExampleBatchFailur
     }
 
     @Override
-    @Job(name = "Example Batch Failure Post-Processing Job", retries = 0)
     public void run(ExampleBatchFailureRequest jobRequest) {
         UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJob();
         LOG.infof("Starting example batch failure job. Parent job id: %s", parentJobId);

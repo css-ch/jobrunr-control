@@ -25,7 +25,6 @@ public class ExampleBatchSuccess implements JobRequestHandler<ExampleBatchSucces
         this.storageProvider = storageProvider;
     }
 
-    @Job(name = "Example Batch Success Post-Processing Job", retries = 0)
     @Override
     public void run(ExampleBatchSuccessRequest jobRequest) {
         UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJob();

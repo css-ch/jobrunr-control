@@ -14,6 +14,7 @@ import org.jboss.logging.Logger;
 import org.jobrunr.jobs.JobId;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.scheduling.JobBuilder;
+import org.jobrunr.scheduling.JobProId;
 import org.jobrunr.scheduling.JobRequestId;
 import org.jobrunr.scheduling.JobRequestScheduler;
 
@@ -83,10 +84,25 @@ public class JobInvoker {
             applyJobSettings(jobBuilder, jobDefinition.jobSettings(), allLabels);
             JobRequestId jobRequestId = jobScheduler.createOrReplace(jobBuilder);
             if (jobRequest instanceof JobRequestOnSuccessFactory jobRequestOnSuccessFactory) {
-                jobRequestId.continueWith(jobRequestOnSuccessFactory.createOnSuccessJobRequest(jobRequestId, jobRequest));
+                // Erstellen Sie eine deterministische ID für den Success-Continuation-Job
+                UUID successJobId = JobProId.fromIdentifier(jobRequestId.asUUID().toString() + "-on-success");
+
+                jobScheduler.createOrReplace(aJob()
+                        .withId(successJobId)
+                        .runAfterSuccessOf(jobRequestId.asUUID())
+                        .withAmountOfRetries(0)
+                        .withJobRequest(jobRequestOnSuccessFactory.createOnSuccessJobRequest(jobRequestId, jobRequest)));
             }
+
             if (jobRequest instanceof JobRequestOnFailureFactory jobRequestOnFailureFactory) {
-                jobRequestId.onFailure(jobRequestOnFailureFactory.createOnFailureJobRequest(jobRequestId, jobRequest));
+                // Erstellen Sie eine deterministische ID für den Failure-Continuation-Job
+                UUID failureJobId = JobProId.fromIdentifier(jobRequestId.asUUID().toString() + "-on-failure");
+
+                jobScheduler.createOrReplace(aJob()
+                        .withId(failureJobId)
+                        .runAfterFailureOf(jobRequestId.asUUID())
+                        .withAmountOfRetries(0)
+                        .withJobRequest(jobRequestOnFailureFactory.createOnFailureJobRequest(jobRequestId, jobRequest)));
             }
             LOG.debugf("Job scheduled successfully: %s (batch=%s) with JobId: %s", jobDefinition.jobSettings().name(), jobDefinition.jobType(), jobRequestId);
             return jobRequestId;
