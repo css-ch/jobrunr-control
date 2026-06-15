@@ -1513,6 +1513,524 @@ Response:
 }
 ----
 
+== Job Detail Page
+
+The execution detail page can show three kinds of information for a job:
+
+* the original job parameters
+* aggregated recap counters for batch processing
+* execution messages and exceptions
+
+To customize this view, add `@JobDetailPage` to the same `run(...)` method that already carries `@ConfigurableJob`.
+The annotation name is `@JobDetailPage` (not `@DetailPage`).
+
+=== When to Use `@JobDetailPage`
+
+Use `@JobDetailPage` when at least one of the following is true:
+
+* Your batch job returns recap counters from child jobs
+* You want to hide empty parameters on the detail page
+* You want to hide recap entries with zero values
+* You want to switch message or recap lookup to the database-backed or application-specific provider model
+
+For simple jobs without recap counters, the annotation is optional.
+
+=== Basic Integration
+
+The most common setup is a batch parent job plus a child job returning a recap record.
+
+[source,java]
+----
+package com.example.jobs;
+
+import ch.css.jobrunr.control.annotations.ConfigurableJob;
+import ch.css.jobrunr.control.annotations.JobDetailPage;
+import ch.css.jobrunr.control.annotations.JobRecapParameter;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.jobrunr.jobs.lambdas.JobRequest;
+import org.jobrunr.jobs.lambdas.JobRequestHandler;
+import org.jobrunr.jobs.lambdas.JobResultRequestHandler;
+import org.jobrunr.scheduling.BackgroundJobRequest;
+
+import java.util.List;
+
+public record ImportBatchRequest(Integer amount) implements JobRequest {
+    @Override
+    public Class<ImportBatchJob> getJobRequestHandler() {
+        return ImportBatchJob.class;
+    }
+}
+
+public record ImportItemRequest(Long itemId) implements JobRequest {
+    @Override
+    public Class<ImportItemJob> getJobRequestHandler() {
+        return ImportItemJob.class;
+    }
+}
+
+public record ImportRecap(
+    @JobRecapParameter(displayName = "Processed", icon = "bi-gear-fill", order = 1)
+    long processed,
+
+    @JobRecapParameter(displayName = "Succeeded", icon = "bi-check-circle-fill", section = "Outcome", order = 2)
+    long succeeded,
+
+    @JobRecapParameter(displayName = "Failed", icon = "bi-exclamation-triangle-fill", section = "Outcome", order = 3)
+    long failed
+) {
+}
+
+@ApplicationScoped
+public class ImportBatchJob implements JobRequestHandler<ImportBatchRequest> {
+
+    @Override
+    @ConfigurableJob(name = "Import Batch", isBatch = true)
+    @JobDetailPage(recapParameterClass = ImportRecap.class)
+    public void run(ImportBatchRequest request) {
+        List<ImportItemRequest> childRequests = List.of(
+            new ImportItemRequest(1L),
+            new ImportItemRequest(2L)
+        );
+
+        childRequests.forEach(BackgroundJobRequest::enqueue);
+    }
+}
+
+@ApplicationScoped
+public class ImportItemJob implements JobResultRequestHandler<ImportItemRequest> {
+
+    @Override
+    public ImportRecap runAndReturn(ImportItemRequest request) {
+        return new ImportRecap(1, 1, 0);
+    }
+}
+----
+
+In this setup, the detail page for the batch job resolves the recap definition from `ImportRecap.class` and aggregates the return values of the child jobs.
+
+=== `@JobDetailPage` Annotation Reference
+
+[source,java]
+----
+@JobDetailPage(
+    recapParameterClass = ImportRecap.class,
+    messageProviderKey = "",
+    recapProviderKey = "",
+    showRecapParameterWithZeroValue = true,
+    showEmptyParameters = true
+)
+----
+
+.Annotation Properties
+[cols="1,1,3"]
+|===
+|Property |Type |Description
+
+|`recapParameterClass`
+|`Class<?>`
+|Recap type used to define the counters shown in the detail page. Default: `Void.class`.
+
+|`messageProviderKey`
+|`String`
+|Provider key for a custom `JobMessageProvider`. Empty means: use the default provider.
+
+|`recapProviderKey`
+|`String`
+|Provider key for a custom `JobRecapProvider`. Empty means: use the default provider.
+
+|`showRecapParameterWithZeroValue`
+|`boolean`
+|Whether recap counters with value `0` are visible. Default: `true`.
+
+|`showEmptyParameters`
+|`boolean`
+|Whether parameters with empty values are shown in the parameter section of the detail page. Default: `true`.
+|===
+
+[IMPORTANT]
+====
+`@JobDetailPage` targets the handler method, not the request record and not the handler class.
+Place it on the `run(...)` method that is annotated with `@ConfigurableJob`.
+====
+
+=== Defining Recap Counters
+
+Recap counters are declared in a dedicated recap type and annotated with `@JobRecapParameter`.
+The extension discovers the recap definition at build time and generates an internal extractor for supported numeric fields.
+
+[source,java]
+----
+public record InvoiceImportRecap(
+    @JobRecapParameter(
+        displayName = "Invoices read",
+        description = "All invoices loaded from the source system",
+        icon = "bi-folder2-open",
+        css = "color: steelblue;",
+        order = 1
+    )
+    long invoicesRead,
+
+    @JobRecapParameter(
+        displayName = "Invoices imported",
+        section = "Result",
+        icon = "bi-check-circle-fill",
+        css = "color: green;",
+        order = 2
+    )
+    long invoicesImported,
+
+    @JobRecapParameter(
+        displayName = "Invoices rejected",
+        section = "Result",
+        icon = "bi-exclamation-triangle-fill",
+        css = "color: orange;",
+        order = 3
+    )
+    long invoicesRejected
+) {
+}
+----
+
+.`@JobRecapParameter` Properties
+[cols="1,3"]
+|===
+|Property |Description
+
+|`displayName`
+|Label shown on the detail page. Defaults to the Java field name when omitted.
+
+|`description`
+|Tooltip text shown on hover.
+
+|`icon`
+|CSS icon class rendered before the label, for example Bootstrap Icons.
+
+|`css`
+|Inline CSS style applied to the recap counter.
+
+|`section`
+|Logical group name. Counters in the same section are rendered together and get a section total.
+
+|`order`
+|Display order. Lower values appear first. Default: `999`.
+|===
+
+[NOTE]
+====
+The generated recap extractor supports numeric recap values. Keep recap fields strictly typed as `int`, `Integer`, `long`, or `Long`.
+====
+
+=== Message and Recap Collection Modes
+
+The detail page resolves messages and recap data through provider interfaces:
+
+* `JobMessageProvider`
+* `JobRecapProvider`
+
+Both provider types are selected independently via `messageProviderKey` and `recapProviderKey`.
+This means you can mix strategies, for example default recap plus application-specific messages.
+
+==== Mode 1: Default Provider - Iterate over Child Jobs
+
+This is the built-in mode used when both provider keys are empty.
+
+How it works:
+
+* The extension loads the batch job's child jobs from JobRunr
+* Messages are collected from JobRunr dashboard log lines and failed states
+* Recap values are aggregated from each child job result object
+* The recap result is matched against the configured `recapParameterClass`
+
+Recommended when:
+
+* You already model batch work as child jobs
+* Child jobs can return a recap object directly
+* JobRunr log output is sufficient as the message source
+* You do not need dedicated persistence for messages and recap data
+
+[source,java]
+----
+@ApplicationScoped
+public class ImportBatchJob implements JobRequestHandler<ImportBatchRequest> {
+
+    @Override
+    @ConfigurableJob(name = "Import Batch", isBatch = true)
+    @JobDetailPage(recapParameterClass = ImportRecap.class)
+    public void run(ImportBatchRequest request) {
+        // enqueue child jobs
+    }
+}
+
+@ApplicationScoped
+public class ImportItemJob implements JobResultRequestHandler<ImportItemRequest> {
+
+    @Override
+    public ImportRecap runAndReturn(ImportItemRequest request) {
+        if (request.itemId() < 0) {
+            return new ImportRecap(1, 0, 1);
+        }
+        return new ImportRecap(1, 1, 0);
+    }
+}
+----
+
+==== Mode 2: Database-Based Provider
+
+Use the database-backed mode when messages and recap values should be written during execution and loaded later from dedicated storage.
+
+How it works:
+
+* You select the built-in provider key `db-based-job-details-provider`
+* You annotate the relevant job handlers with `@DbBasedRecapAndMessages`
+* During execution, messages are written through `JobMessageService`
+* Returned recap objects are extracted and persisted by the interceptor
+* The detail page reads messages and recap values back from the database-backed storage tables through the built-in providers
+
+Recommended when:
+
+* Message lookup must not depend on JobRunr dashboard log metadata
+* You want recap values persisted immediately during processing
+* You need a stable storage model for very large batches or long retention periods
+
+[source,java]
+----
+package com.example.jobs;
+
+import ch.css.jobrunr.control.annotations.ConfigurableJob;
+import ch.css.jobrunr.control.annotations.DbBasedRecapAndMessages;
+import ch.css.jobrunr.control.annotations.JobDetailPage;
+import ch.css.jobrunr.control.domain.details.JobMessageService;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.jobrunr.jobs.lambdas.JobRequestHandler;
+import org.jobrunr.jobs.lambdas.JobResultRequestHandler;
+
+@DbBasedRecapAndMessages
+@ApplicationScoped
+public class ImportBatchJob implements JobRequestHandler<ImportBatchRequest> {
+
+    @Inject
+    JobMessageService jobMessageService;
+
+    @Override
+    @ConfigurableJob(name = "Import Batch", isBatch = true)
+    @JobDetailPage(
+        recapParameterClass = ImportRecap.class,
+        messageProviderKey = "db-based-job-details-provider",
+        recapProviderKey = "db-based-job-details-provider",
+        showEmptyParameters = false,
+        showRecapParameterWithZeroValue = false
+    )
+    public void run(ImportBatchRequest request) {
+        jobMessageService.info("Starting import batch with %s items", request.amount());
+        // enqueue child jobs
+    }
+}
+
+@DbBasedRecapAndMessages
+@ApplicationScoped
+public class ImportItemJob implements JobResultRequestHandler<ImportItemRequest> {
+
+    @Inject
+    JobMessageService jobMessageService;
+
+    @Override
+    public ImportRecap runAndReturn(ImportItemRequest request) {
+        jobMessageService.info("Processing item %s", request.itemId());
+        return new ImportRecap(1, 1, 0);
+    }
+}
+----
+
+[TIP]
+====
+The database-backed mode is a good fit when you want the detail page to read from your persistence layer instead of reconstructing everything from child jobs.
+====
+
+===== Transactions, Rollbacks, and Persistence Timing
+
+The database-based mode is transaction-sensitive.
+This is especially important when a job method is annotated with `@Transactional`.
+
+The relevant behavior is:
+
+* The `DbBasedRecapAndMessagesInterceptor` runs after the transactional interceptor
+* Recap values are written only after the intercepted method returns successfully
+* If the method throws an exception, no recap is written
+* Regular message writes such as `info(...)`, `warning(...)`, and `error(...)` participate in the current transaction
+* If that transaction rolls back, those regular messages are rolled back as well
+* `exception(...)` messages are persisted in a separate transaction and therefore survive rollback
+* `infoTxNew(...)`, `warningTxNew(...)`, and `errorTxNew(...)` also run in a separate transaction and therefore survive rollback
+
+In practice this means:
+
+* **Recap requires success**: the job must return a recap object and finish without exception
+* **Regular messages are transactional**: they are visible only if the surrounding transaction commits
+* **`...TxNew` and `exception(...)` are rollback-safe**: they are committed independently of the outer job transaction
+
+[source,java]
+----
+@DbBasedRecapAndMessages
+@ApplicationScoped
+public class ImportItemJob implements JobResultRequestHandler<ImportItemRequest> {
+
+    @Inject
+    JobMessageService jobMessageService;
+
+    @Override
+    @Transactional
+    public ImportRecap runAndReturn(ImportItemRequest request) {
+        jobMessageService.info("This message is part of the current transaction");
+
+        if (request.itemId() < 0) {
+            jobMessageService.infoTxNew("This message survives rollback");
+            throw new IllegalStateException("Import failed");
+        }
+
+        return new ImportRecap(1, 1, 0);
+    }
+}
+----
+
+Behavior of the example above:
+
+* For a successful call, the returned `ImportRecap` can be extracted and written by the interceptor.
+* For a failing call, the interceptor writes an exception entry via `messageService.exception(...)`, but no recap is persisted.
+* The plain `info(...)` message rolls back together with the failing transaction.
+* The `infoTxNew(...)` message is committed in its own transaction and remains available on the detail page.
+
+[IMPORTANT]
+====
+If you rely on the database-based detail page for operational diagnostics during rollback scenarios, prefer `exception(...)` or one of the `...TxNew` variants for messages that must remain visible.
+====
+
+==== Mode 3: Application-Based Provider
+
+Use this mode when the detail page must read messages or recap values from an application-specific source.
+Typical examples are business event tables, audit tables, or an external aggregation model.
+
+How it works:
+
+* Implement `JobMessageProvider` and/or `JobRecapProvider` as CDI beans
+* Return a unique `providerKey()` from each implementation
+* Reference those keys from `@JobDetailPage`
+* The framework resolves the providers from the CDI registry at runtime
+
+Recommended when:
+
+* Your application already persists job messages in a business-specific format
+* Recap values are not represented as child job return values
+* You want complete control over paging, filtering, aggregation, or source selection
+
+[source,java]
+----
+package com.example.jobs;
+
+import ch.css.jobrunr.control.annotations.ConfigurableJob;
+import ch.css.jobrunr.control.annotations.JobDetailPage;
+import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
+import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
+import ch.css.jobrunr.control.domain.details.JobMessageProvider;
+import ch.css.jobrunr.control.domain.details.JobMessageSortOrder;
+import ch.css.jobrunr.control.domain.details.JobMessagesPaged;
+import ch.css.jobrunr.control.domain.details.JobRecapProvider;
+import jakarta.enterprise.context.ApplicationScoped;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@ApplicationScoped
+public class InvoiceMessageProvider implements JobMessageProvider {
+
+    @Override
+    public String providerKey() {
+        return "invoice-message-provider";
+    }
+
+    @Override
+    public JobMessagesPaged searchJobMessages(UUID jobId,
+                                              JobMessageLevelSearch levelSearch,
+                                              String textSearch,
+                                              JobMessageSortOrder sortOrder,
+                                              int pageNumber,
+                                              int pageSize) {
+        return new JobMessagesPaged(List.of(), 0, pageNumber, pageSize);
+    }
+
+    @Override
+    public JobMessageLevelCounters determineJobMessageCounter(UUID jobId) {
+        return new JobMessageLevelCounters(0, 0, 0, 0);
+    }
+}
+
+@ApplicationScoped
+public class InvoiceRecapProvider implements JobRecapProvider {
+
+    @Override
+    public String providerKey() {
+        return "invoice-recap-provider";
+    }
+
+    @Override
+    public Map<String, Long> determineRecap(UUID jobId) {
+        return Map.of(
+            "invoicesRead", 250L,
+            "invoicesImported", 248L,
+            "invoicesRejected", 2L
+        );
+    }
+}
+
+@ApplicationScoped
+public class InvoiceBatchJob implements JobRequestHandler<InvoiceBatchRequest> {
+
+    @Override
+    @ConfigurableJob(name = "Invoice Import", isBatch = true)
+    @JobDetailPage(
+        recapParameterClass = InvoiceImportRecap.class,
+        messageProviderKey = "invoice-message-provider",
+        recapProviderKey = "invoice-recap-provider"
+    )
+    public void run(InvoiceBatchRequest request) {
+        // regular batch orchestration
+    }
+}
+----
+
+=== Choosing the Right Mode
+
+[cols="1,2,2"]
+|===
+|Mode |Best fit |Trade-offs
+
+|Default child-job iteration
+|Standard batch jobs with recap objects returned by child jobs
+|Simple to adopt, but recap and messages are reconstructed from JobRunr state
+
+|Database-based provider
+|Large or long-running batches that persist operational detail data during execution
+|Requires message/recap persistence during processing, but gives stable lookup later
+
+|Application-based provider
+|Applications with custom message or recap sources
+|Most flexible option, but requires explicit provider implementations
+|===
+
+=== Practical Recommendations
+
+* Start with the default mode if your batch already has child jobs and recap return values.
+* Switch to the database-backed mode when operational detail data must be persisted explicitly during execution.
+* Use application-based providers when your source of truth is outside the default JobRunr model.
+* Keep `messageProviderKey` and `recapProviderKey` independent; using different strategies for messages and recap is supported.
+* Treat the recap type as part of your public job contract: keep names stable because provider implementations and generated extractors rely on those field names.
+
+[TIP]
+====
+For a complete sample, see the example module classes `jobrunr-control-example/src/main/java/ch/css/jobrunr/control/jobs/complex/ComplexParameterDemoJob.java`,
+`ComplexParameterDemoChildJob.java`, `ComplexParameterDemoJobRecap.java`, `ComplexDemoMessageProvider.java`, and `ComplexDemoRecapProvider.java`.
+====
+
 == Best Practices
 
 === Job Design
@@ -1585,6 +2103,14 @@ public void run(MyJobRequest request) throws Exception {
 * Review Quarkus build output for scanner warnings
 
 == Documentation Changelog
+
+=== 2026-06-09
+
+* Added a dedicated **Job Detail Page** chapter
+** Documented `@JobDetailPage` usage and all annotation parameters
+** Explained recap counters via `@JobRecapParameter`
+** Added examples for the three detail-page data modes: default child-job iteration, database-based, and application-based providers
+** Clarified transaction behavior for database-based recap and message persistence, including rollback semantics and `...TxNew` methods
 
 === 2026-03-04
 

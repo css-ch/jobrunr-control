@@ -72,7 +72,9 @@ class ParameterCleanupJobFilterTest {
                 SIMPLE_CLASS, false, "TestJobRequest", HANDLER_CLASS,
                 List.of(), List.of(),
                 new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null, null),
-                true, "parameterSetId"
+                true, "parameterSetId",
+                List.of(),
+                null
         );
     }
 
@@ -130,7 +132,9 @@ class ParameterCleanupJobFilterTest {
                 SIMPLE_CLASS, false, "TestJobRequest", HANDLER_CLASS,
                 List.of(), List.of(),
                 new JobSettings(null, false, 0, List.of(), List.of(), null, null, null, null, null, null, null, null),
-                false, null
+                false, null,
+                List.of(),
+                null
         );
         when(jobDefinitionDiscoveryService.findJobByHandlerClassName(HANDLER_CLASS))
                 .thenReturn(Optional.of(inlineJobDef));

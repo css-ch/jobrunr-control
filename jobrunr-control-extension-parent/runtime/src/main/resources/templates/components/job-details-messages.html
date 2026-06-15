@@ -1,0 +1,254 @@
+{!
+    Job Details Messages Component
+    Renders paginated list of JobMessage objects
+    Parameters:
+    - messages: GetJobDetailsMessageUseCase.MessagesPaginationResult
+!}
+
+<div id="batch-messages">
+    {#if messages.pagination().isEmpty()}
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i> Keine Meldungen gefunden
+        </div>
+    {#else}
+        <div>
+            {#for m in messages.pageItems()}
+            {#let level = m.messageLevel().name()}
+            <div class="message-item {#if level == 'INFO'}message-info{#else if level == 'WARNING'}message-warning{#else if level == 'ERROR'}message-error{#else}message-exception{/if}">
+                <div class="row align-items-start g-2">
+                    <div class="col-auto">
+                        {#if level == 'INFO'}
+                            <span class="badge bg-info"><i class="bi bi-info-circle"></i></span>
+                        {#else if level == 'WARNING'}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i></span>
+                        {#else if level == 'ERROR'}
+                            <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i></span>
+                        {#else if level == 'EXCEPTION'}
+                            <span class="badge bg-danger"><i class="bi bi-bug-fill"></i></span>
+                        {#else}
+                            <span class="badge bg-secondary"><i class="bi bi-question-circle"></i></span>
+                        {/if}
+                    </div>
+                    <div class="col">
+                        <div class="small">
+                            <strong>{level}</strong> - {m.createdAtFormatted()} - <span class="job-id-chip"><i class="bi bi-hash"></i><code class="mb-0">{m.jobId()}</code></span>
+                        </div>
+                        <p class="mb-0 mt-1">{m.message()}</p>
+                        {#if m.hasStackTrace()}
+                            <div class="mt-2">
+                                {#if m.isStackTraceTruncated()}
+                                    <details class="stacktrace-details">
+                                        <summary class="btn btn-link btn-sm p-0 stacktrace-toggle-summary">StackTrace anzeigen</summary>
+                                        <pre class="stacktrace-full small mt-1 mb-0">{m.stackTrace()}</pre>
+                                    </details>
+                                    <pre class="stacktrace-preview small mt-1 mb-0">{m.stackTracePreview()}</pre>
+                                {#else}
+                                    <pre class="stacktrace-preview small mb-1">{m.stackTracePreview()}</pre>
+                                {/if}
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+            </div>
+            {/let}
+            {/for}
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted small">
+                Zeige {messages.pagination().startItem()} - {messages.pagination().endItem()} von {messages.pagination().totalElements()} Meldungen
+            </div>
+
+            <nav aria-label="Messages Pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {#if ! messages.pagination().hasPrevious()}disabled{/if}">
+                        <button class="page-link"
+                                {#if messages.pagination().hasPrevious()}
+                                    hx-get="{cp}/history/details/messages?page=0&size={messages.pagination().size()}"
+                                    hx-target="#batch-messages"
+                                    hx-swap="outerHTML"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Erste Seite">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </button>
+                    </li>
+                    <li class="page-item {#if ! messages.pagination().hasPrevious()}disabled{/if}">
+                        <button class="page-link"
+                                {#if messages.pagination().hasPrevious()}
+                                    hx-get="{cp}/history/details/messages?page={messages.pagination().previousPage()}&size={messages.pagination().size()}"
+                                    hx-target="#batch-messages"
+                                    hx-swap="outerHTML"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Vorherige Seite">
+                            <span aria-hidden="true">&laquo;</span>
+                        </button>
+                    </li>
+
+                    {#for pageItem in messages.pageRange()}
+                        <li class="page-item {#if pageItem.index() == messages.pagination().page()}active{/if}">
+                            <button class="page-link"
+                                    hx-get="{cp}/history/details/messages?page={pageItem.index()}&size={messages.pagination().size()}"
+                                    hx-target="#batch-messages"
+                                    hx-swap="outerHTML"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']">
+                                {pageItem.label()}
+                            </button>
+                        </li>
+                    {/for}
+
+                    <li class="page-item {#if ! messages.pagination().hasNext()}disabled{/if}">
+                        <button class="page-link"
+                                {#if messages.pagination().hasNext()}
+                                    hx-get="{cp}/history/details/messages?page={messages.pagination().nextPage()}&size={messages.pagination().size()}"
+                                    hx-target="#batch-messages"
+                                    hx-swap="outerHTML"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Nächste Seite">
+                            <span aria-hidden="true">&raquo;</span>
+                        </button>
+                    </li>
+                    <li class="page-item {#if ! messages.pagination().hasNext()}disabled{/if}">
+                        <button class="page-link"
+                                {#if messages.pagination().hasNext()}
+                                    hx-get="{cp}/history/details/messages?page={messages.pagination().lastPage()}&size={messages.pagination().size()}"
+                                    hx-target="#batch-messages"
+                                    hx-swap="outerHTML"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                {#else}
+                                    disabled
+                                {/if}
+                                aria-label="Letzte Seite">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+            <div>
+                <select class="form-select form-select-sm"
+                        style="width: auto;"
+                        onchange="jrcSetPageSize('messages', this.value)"
+                        hx-get="{cp}/history/details/messages"
+                        hx-trigger="change"
+                        hx-vals='js:&#123;"page": 0, "size": event.target.value&#125;'
+                        hx-target="#batch-messages"
+                        hx-swap="outerHTML"
+                        hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                        name="pageSize">
+                    <option value="5" {#if messages.pagination().size() eq 5}selected{/if}>5 pro Seite</option>
+                    <option value="10" {#if messages.pagination().size() eq 10}selected{/if}>10 pro Seite</option>
+                    <option value="25" {#if messages.pagination().size() eq 25}selected{/if}>25 pro Seite</option>
+                    <option value="50" {#if messages.pagination().size() eq 50}selected{/if}>50 pro Seite</option>
+                </select>
+            </div>
+        </div>
+    {/if}
+</div>
+
+<style>
+    .message-item {
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0.25rem;
+        border-left: 4px solid;
+    }
+
+    .message-info {
+        background-color: #e7f3ff;
+        border-left-color: #0d6efd;
+    }
+    .message-error {
+        background-color: #ffe7e7;
+        border-left-color: #dc3545;
+    }
+    .message-exception {
+        background-color: #dfc7c7;
+        border-left-color: #bc1525;
+    }
+    .message-warning {
+        background-color: #fff7e6;
+        border-left-color: #ffc107;
+    }
+
+    .message-item p {
+        color: #333;
+        margin: 0;
+    }
+
+    .job-id-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        padding: 0.05rem 0.35rem;
+        border-radius: 0.25rem;
+        background-color: rgba(220, 53, 69, 0.12);
+        color: #9f1c2b;
+    }
+
+    .job-id-chip code {
+        color: inherit;
+        background-color: transparent;
+        padding: 0;
+    }
+
+    .stacktrace-preview,
+    .stacktrace-full {
+        font-family: var(--bs-font-monospace);
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: rgba(0, 0, 0, 0.03);
+        border-radius: 0.25rem;
+        padding: 0.5rem;
+    }
+
+    .stacktrace-details summary {
+        list-style: none;
+        cursor: pointer;
+    }
+
+    .stacktrace-details summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .stacktrace-toggle-summary::before {
+        content: "▸";
+        display: inline-block;
+        margin-right: 0.35rem;
+        transition: transform 0.15s ease;
+    }
+
+    .stacktrace-details[open] .stacktrace-toggle-summary::before {
+        transform: rotate(90deg);
+    }
+
+    .stacktrace-details .stacktrace-full {
+        display: none;
+    }
+
+    .stacktrace-details + .stacktrace-preview {
+        display: block;
+    }
+
+    .stacktrace-details[open] + .stacktrace-preview {
+        display: none;
+    }
+
+    .stacktrace-details[open] .stacktrace-full {
+        display: block;
+    }
+
+    .message-item small {
+        display: block;
+        color: #666;
+        margin-bottom: 0.25rem;
+    }
+</style>

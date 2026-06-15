@@ -1,9 +1,6 @@
 package ch.css.jobrunr.control.testutils;
 
-import ch.css.jobrunr.control.domain.JobDefinition;
-import ch.css.jobrunr.control.domain.JobParameter;
-import ch.css.jobrunr.control.domain.JobParameterSection;
-import ch.css.jobrunr.control.domain.JobSettings;
+import ch.css.jobrunr.control.domain.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +20,8 @@ public class JobDefinitionBuilder {
     private JobSettings settings = createDefaultSettings();
     private boolean usesExternalParameters = false;
     private String parameterSetId = null;
+    private List<JobRecapParameter> recapParameters = List.of();
+    private JobDetailPage jobDetailPage = null;
 
     public JobDefinitionBuilder withJobType(String jobType) {
         this.jobType = jobType;
@@ -46,6 +45,11 @@ public class JobDefinitionBuilder {
 
     public JobDefinitionBuilder withParameters(List<JobParameter> parameters) {
         this.parameters = new ArrayList<>(parameters);
+        return this;
+    }
+
+    public JobDefinitionBuilder withRecapParameters(List<JobRecapParameter> recapParameters) {
+        this.recapParameters = new ArrayList<>(recapParameters);
         return this;
     }
 
@@ -84,6 +88,11 @@ public class JobDefinitionBuilder {
         return this;
     }
 
+    public JobDefinitionBuilder withSettings(JobDetailPage jobDetailPage) {
+        this.jobDetailPage = jobDetailPage;
+        return this;
+    }
+
     public JobDefinition build() {
         return new JobDefinition(
                 jobType,
@@ -94,7 +103,9 @@ public class JobDefinitionBuilder {
                 parameterSections,
                 settings,
                 usesExternalParameters,
-                parameterSetId
+                parameterSetId,
+                recapParameters,
+                jobDetailPage
         );
     }
 

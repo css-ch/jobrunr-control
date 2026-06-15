@@ -14,3 +14,23 @@ CREATE INDEX idx_param_set_job_type ON jobrunr_control_parameter_sets(job_type);
 CREATE INDEX idx_param_set_created ON jobrunr_control_parameter_sets(created_at);
 CREATE INDEX idx_param_set_updated ON jobrunr_control_parameter_sets(updated_at);
 
+CREATE TABLE IF NOT EXISTS jobrunr_control_batch_recap (
+    batch_job_id VARCHAR(36) NOT NULL,
+    child_job_id VARCHAR(36) NOT NULL,
+    counter_name VARCHAR(255) NOT NULL,
+    counter_value BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (batch_job_id, child_job_id, counter_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recap counters per child job in a batch';
+CREATE INDEX idx_batch_recap_agg ON jobrunr_control_batch_recap(batch_job_id, counter_name, counter_value);
+
+CREATE TABLE IF NOT EXISTS jobrunr_control_batch_messages (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    batch_job_id VARCHAR(36) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    level VARCHAR(20) NOT NULL,
+    message LONGTEXT,
+    stack_trace LONGTEXT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Batch job log and exception messages';
+
+CREATE INDEX idx_batch_msg_created ON jobrunr_control_batch_messages(batch_job_id, created_at);
+CREATE INDEX idx_batch_msg_filter ON jobrunr_control_batch_messages(batch_job_id, level, created_at);

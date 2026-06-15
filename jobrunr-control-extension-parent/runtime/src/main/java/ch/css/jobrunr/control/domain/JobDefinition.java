@@ -15,6 +15,8 @@ import java.util.List;
  * @param jobSettings            Job execution settings from @ConfigurableJob
  * @param usesExternalParameters Whether this job uses external parameter storage (@JobParameterSet)
  * @param externalParametersClassName  Name of the class used for external parameter storage (if usesExternalParameters is true)
+ * @param recapParameters        List of parameters to display in the job recap after execution
+ * @param jobDetailPage          Optional detail page configuration for this job type
  */
 public record JobDefinition(String jobType,
                             boolean isBatchJob,
@@ -24,7 +26,9 @@ public record JobDefinition(String jobType,
                             List<JobParameterSection> parameterSections,
                             JobSettings jobSettings,
                             boolean usesExternalParameters,
-                            String externalParametersClassName) {
+                            String externalParametersClassName,
+                            List<JobRecapParameter> recapParameters,
+                            JobDetailPage jobDetailPage) {
 
     @SuppressWarnings("unused") // Used in type-safe qute templates
     public List<String> getParameterNames() {

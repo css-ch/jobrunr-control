@@ -190,4 +190,68 @@
     border-width: 0.15em;
 }
 
+/* ── Inline Parameter Expand/Collapse ───────────────────────────────────── */
+
+.param-preview {
+    word-break: break-all;
+    font-family: 'Courier New', monospace;
+}
+
+.param-toggle-btn {
+    flex-shrink: 0;
+    color: #0d6efd;
+    line-height: 1;
+}
+
+.param-toggle-btn:hover {
+    color: #0a58ca;
+}
+
+.param-toggle-btn i {
+    transition: transform 0.2s ease;
+}
+
+.param-full-value {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0.4rem 0 0 0;
+    padding: 0.6rem 0.75rem;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    color: #212529;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.param-full-value::-webkit-scrollbar {
+    width: 6px;
+}
+
+.param-full-value::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.param-full-value::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 3px;
+}
+
+.param-full-value::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
+
+@media (max-width: 768px) {
+    .param-preview {
+        font-size: 0.75rem;
+    }
+
+    .param-full-value {
+        font-size: 0.75rem;
+        max-height: 250px;
+    }
+}
 

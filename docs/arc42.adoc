@@ -289,18 +289,21 @@ Separating UI and API roles allows organizations to:
 The `admin` role is shared across both surfaces.
 ====
 
-Security is enforced using Quarkus Security annotations:
+Security is enforced differently for the two surfaces:
 
 [source,java]
 ----
-// Web UI example
-@GET
-@RolesAllowed({"viewer", "configurator", "admin"})
-public TemplateInstance getScheduledJobsView() { ... }
+// Web UI example (Vert.x route handler)
+public void handleIndex(RoutingContext ctx) {
+    if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
+        return;
+    }
+    ...
+}
 
 // REST API example
 @POST
-@Path("jobs/{jobId}/start")
+@Path("jobs/{jobRef}/start")
 @RolesAllowed({"api-executor", "admin"})
 public Response startJob(...) { ... }
 ----
@@ -532,22 +535,32 @@ public record MyJobRequest(
 ==== @JobParameterSet
 
 Marks a JobRequest record type for external parameter storage.
-Parameters are defined in the annotation and stored in a separate database table.
+The annotation points to a dedicated parameter-set record whose components define the parameter schema.
+Resolved values are stored in a separate database table.
 The job handler retrieves external parameters using the job's own UUID via `ThreadLocalJobContext.getJobContext().getJobId()`:
 
 [source,java]
 ----
-@JobParameterSet({
-    @JobParameterDefinition(name = "description", required = false, type = "MULTILINE", defaultValue = ""),
-    @JobParameterDefinition(name = "batchSize", required = false, type = "java.lang.Integer", defaultValue = "1000"),
-    @JobParameterDefinition(name = "mode", required = false, type = "com.example.Mode", defaultValue = "STANDARD")
-})
+public record LargeJobParameters(
+    @JobParameterDefinition(name = "description", required = false, type = "MULTILINE", defaultValue = "")
+    String description,
+
+    @JobParameterDefinition(name = "batchSize", required = false, defaultValue = "1000")
+    Integer batchSize,
+
+    @JobParameterDefinition(name = "mode", required = false, defaultValue = "STANDARD")
+    Mode mode
+) {
+}
+
+@JobParameterSet(parameterSetClass = LargeJobParameters.class)
 public record LargeJobRequest() implements JobRequest { ... }
 ----
 
 [IMPORTANT]
 ====
-External storage requires Hibernate ORM to be enabled in the Quarkus application.
+External storage requires a configured datasource/Agroal connection and the
+`jobrunr_control_parameter_sets` table to exist.
 ====
 
 === Lifecycle Interfaces
@@ -570,14 +583,14 @@ public record MyBatchJobRequest(...)
 }
 ----
 
-==== JobRequestOnFailureFeactory
+==== JobRequestOnFailureFactory
 
 Implement this interface on your JobRequest to chain a failure callback job:
 
 [source,java]
 ----
 public record MyBatchJobRequest(...)
-    implements JobRequest, JobRequestOnFailureFeactory {
+    implements JobRequest, JobRequestOnFailureFactory {
 
     @Override
     public JobRequest createOnFailureJobRequest(
@@ -819,9 +832,9 @@ loop recursively find leaf jobs
     storage --> evaluator: child continuation jobs
 end
 
-evaluator -> evaluator: determine relevant leaf jobs\n(based on parent status:\nsuccess → continueWith jobs,\nfailure → onFailure jobs)
+evaluator -> evaluator: traverse continuation leaves\n(conservative evaluation because\nJobRunr does not expose the\ncontinuation trigger type)
 
-evaluator -> evaluator: check if all relevant\nleaf jobs are terminal\n(SUCCEEDED, FAILED, DELETED)
+evaluator -> evaluator: check if all considered\nleaf jobs are terminal\n(SUCCEEDED, FAILED, DELETED)
 
 alt all leaf jobs complete
     evaluator -> evaluator: any leaf job failed?\nYes → FAILED\nNo → SUCCEEDED
@@ -836,12 +849,14 @@ usecase --> ui: display to user
 
 note right of evaluator
   Evaluation Rules:
-  - Only "relevant" leaf jobs matter
-    (continueWith if parent succeeded,
-     onFailure if parent failed)
+  - The evaluator traverses all
+    continuation leaves recursively
+  - Because JobRunr does not expose
+    continuation trigger metadata,
+    visibility is conservative
   - Chain complete when all
-    relevant leaves are terminal
-  - Chain failed if any relevant
+    considered leaves are terminal
+  - Chain failed if any considered
     leaf failed
 end note
 
@@ -852,6 +867,13 @@ end note
 
 The `JobChainStatusEvaluator` component implements the following logic:
 
+[NOTE]
+====
+JobRunr's public `AwaitingState` API does not expose whether a continuation was created via
+`continueWith()` or `onFailure()`. The current implementation therefore evaluates chains
+conservatively and may temporarily consider both continuation types as potentially relevant.
+====
+
 .Chain Status Determination
 [cols="1,3"]
 |===
@@ -860,31 +882,29 @@ The `JobChainStatusEvaluator` component implements the following logic:
 |No continuation jobs
 |Chain status equals parent job status
 
-|All relevant leaf jobs succeeded
+|All terminal leaf jobs considered by the evaluator succeeded
 |Chain status = `SUCCEEDED`, isComplete = `true`
 
-|Any relevant leaf job failed
+|Any terminal leaf job considered by the evaluator failed
 |Chain status = `FAILED`, isComplete = `true`
 
-|Any relevant leaf job still running (ENQUEUED, PROCESSING, PROCESSED)
+|Any considered leaf job still running (ENQUEUED, PROCESSING, PROCESSED)
 |Chain status = `PROCESSING`, isComplete = `false`
 |===
 
-.Relevant Leaf Jobs
-The evaluator determines which jobs are "relevant" based on the parent's status:
-
-* If parent **SUCCEEDED**: Only `continueWith()` jobs are relevant
-* If parent **FAILED**: Only `onFailure()` jobs are relevant
-
-This ensures accurate status reporting for conditional continuation chains.
+.Continuation Handling
+The evaluator traverses all continuation leaves recursively. Because the public JobRunr API does
+not expose the continuation trigger type, the current implementation cannot perfectly distinguish
+between `continueWith()` and `onFailure()` leaves and therefore prefers conservative visibility
+over under-reporting incomplete chains.
 
 == Cross-Cutting Concerns
 
 === Security
 
 * Authentication is handled by Quarkus Security (configurable via application.properties)
-* Authorization uses `@RolesAllowed` annotations with roles: `viewer`, `configurator`, `admin`
-* REST API endpoints use `@PermitAll` to allow external system access (secure via network/API gateway)
+* Authorization for the Web UI uses programmatic role checks in Vert.x handlers (`UiRoutingSupport.requireAnyRole(...)`)
+* REST API endpoints use `@RolesAllowed` with roles `api-reader`, `api-executor`, and `admin`
 
 === Logging
 

@@ -1,0 +1,98 @@
+{!
+    Dashboard Parameters Component
+    Displays job execution parameters as key-value pairs
+
+    Parameters:
+    - jobId: String - Unique job ID
+    - jobType: String - Job type name
+    - parameters: Map<String, Object> - Job execution parameters
+!}
+
+{#if parameter.parameters.empty}
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle"></i> Keine Parameter für diesen Job vorhanden
+    </div>
+{#else}
+    <div class="table-responsive">
+        <table class="table table-sm table-striped">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 30%;">Parameter</th>
+                    <th>Wert</th>
+                </tr>
+            </thead>
+            <tbody>
+                {#for section in parameter.parameterSections}
+                    {#for paramDef in parameter.parameterDefinitions}
+                        {#if paramDef.sectionId == section.id}
+                            {#if parameter.parameters.containsKey(paramDef.name)}
+                                <tr>
+                                    <td><code>{paramDef.displayName}</code></td>
+                                    <td>
+                                        {#if parameter.parameters.get(paramDef.name) == null}
+                                            <span class="text-muted">-</span>
+                                        {#else if parameter.parameters.get(paramDef.name).toString().length() > 100}
+                                            <div class="param-expandable">
+                                                <div class="d-flex align-items-start gap-2">
+                                                    <small class="text-monospace param-preview">{parameter.parameters.get(paramDef.name).toString().substring(0, 97)}...</small>
+                                                    <button class="btn btn-sm btn-link p-0 param-toggle-btn"
+                                                            type="button"
+                                                            onclick="toggleParam(this)"
+                                                            title="Aufklappen">
+                                                        <i class="bi bi-chevron-down"></i>
+                                                    </button>
+                                                </div>
+                                                <pre class="param-full-value d-none">{parameter.parameters.get(paramDef.name)}</pre>
+                                            </div>
+                                        {#else}
+                                            {#if paramDef.type.name() == 'ENUM'}
+                                                {#for enum in paramDef.enumValues}
+                                                    {#if enum.value == parameter.parameters.get(paramDef.name)}
+                                                        <strong>{enum.label}</strong>
+                                                    {/if}
+                                                {/for}
+                                            {#else}
+                                                <strong>{parameter.parameters.get(paramDef.name)}</strong>
+                                            {/if}
+                                        {/if}
+                                    </td>
+                                </tr>
+                            {#else}
+                                {#if parameter.showEmptyParameters}
+                                    <tr>
+                                        <td><code>{paramDef.displayName}</code></td>
+                                        <td>
+                                             <span class="text-muted">-</span>
+                                        </td>
+                                    </tr>
+                                {/if}
+                            {/if}
+                        {/if}
+                    {/for}
+                {/for}
+            </tbody>
+        </table>
+    </div>
+{/if}
+
+<script>
+    function toggleParam(btn) {
+        const wrapper  = btn.closest('.param-expandable');
+        const preview  = wrapper.querySelector('.param-preview');
+        const fullVal  = wrapper.querySelector('.param-full-value');
+        const icon     = btn.querySelector('i');
+        const expanded = !fullVal.classList.contains('d-none');
+
+        if (expanded) {
+            fullVal.classList.add('d-none');
+            preview.classList.remove('d-none');
+            icon.classList.replace('bi-chevron-up', 'bi-chevron-down');
+            btn.title = 'Aufklappen';
+        } else {
+            fullVal.classList.remove('d-none');
+            preview.classList.add('d-none');
+            icon.classList.replace('bi-chevron-down', 'bi-chevron-up');
+            btn.title = 'Zuklappen';
+        }
+    }
+</script>

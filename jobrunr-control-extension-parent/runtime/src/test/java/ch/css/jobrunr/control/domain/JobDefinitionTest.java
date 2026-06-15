@@ -30,6 +30,8 @@ class JobDefinitionTest {
                 List.of(),
                 settings,
                 false,
+                null,
+                List.of(),
                 null
         );
 

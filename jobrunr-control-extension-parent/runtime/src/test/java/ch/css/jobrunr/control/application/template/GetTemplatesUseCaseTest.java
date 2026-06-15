@@ -69,7 +69,9 @@ class GetTemplatesUseCaseTest {
                 "TestJob", false, "TestJobRequest", "TestJobHandler",
                 List.of(), List.of(),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
-                false, null
+                false, null,
+                List.of(),
+                null
         );
         return new ScheduledJobInfo(
                 UUID.randomUUID(),
