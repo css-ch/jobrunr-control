@@ -38,6 +38,7 @@ public record ComplexParameterDemoJobRequest(
                 sectionId = "filter",
                 order = 4,
                 maxlength = 200,
+                required = false,
                 description = "Filtert die Druckaufträge nach den angegebenen Policen-Nr(s). Es können mehrere Policen-Nr(s) als Zeilenumbruch- oder kommaseparierte Liste eingegeben werden. Es werden nur Druckaufträge berücksichtigt, die eine der angegebenen Policen-Nr(s) enthalten.")
         @Pattern(regexp = "[0-9]*",
                 message = "Ungültiges Format für PoliceNrs-Einschluss")
