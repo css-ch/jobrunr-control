@@ -7,7 +7,7 @@
 
     <groupId>ch.css.quarkus</groupId>
     <artifactId>quarkus-jobrunr-control-parent</artifactId>
-    <version>2.1.2-SNAPSHOT</version>
+    <version>2.2.0</version>
     <packaging>pom</packaging>
 
     <name>Quarkus - JobRunr Control - Parent</name>
