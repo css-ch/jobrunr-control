@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.infrastructure.jobrunr;
 import ch.css.jobrunr.control.domain.JobResultPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 import org.jobrunr.server.runner.ThreadLocalJobContext;
 import org.jobrunr.storage.StorageProvider;
@@ -43,6 +44,11 @@ public class JobResultAdapter implements JobResultPort {
      */
     public static final String RESULT_CODE_METADATA_KEY = "jobrunr-control-result-code";
 
+    /**
+     * Metadata key used to store the result status override in the JobRunr job.
+     */
+    public static final String RESULT_STATUS_OVERRIDE_METADATA_KEY = "jobrunr-control-result-status-override";
+
     private static final Logger LOG = Logger.getLogger(JobResultAdapter.class);
 
     private final StorageProvider storageProvider;
@@ -55,7 +61,7 @@ public class JobResultAdapter implements JobResultPort {
     @Override
     public void storeResult(int resultCode, String result) {
         try {
-            UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJob();
+            UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
             if (parentJobId != null) {
                 // Running in a continuation job - store in parent
                 storeResultInJob(parentJobId, resultCode, result);
@@ -69,6 +75,53 @@ public class JobResultAdapter implements JobResultPort {
         } catch (Exception e) {
             LOG.warnf(e, "Failed to store job result – not running inside a JobRunr job context?");
         }
+    }
+
+    @Override
+    public void overrideBatchStatus(String overrideBatchStatus) {
+            try {
+                UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
+                if (parentJobId != null) {
+                    // Running in a continuation job - store in parent
+                    var job = storageProvider.getJobById(parentJobId);
+                    job.getMetadata().put(RESULT_STATUS_OVERRIDE_METADATA_KEY, overrideBatchStatus);
+                    storageProvider.save(job);
+                    LOG.debugf("Stored override batch status in parent job %s: %s", parentJobId, overrideBatchStatus);
+                } else {
+                    // Regular job - store in current job
+                    ThreadLocalJobContext.getJobContext().saveMetadata(RESULT_STATUS_OVERRIDE_METADATA_KEY, overrideBatchStatus);
+                    LOG.debugf("Stored override batch status in current job: %s", overrideBatchStatus);
+                }
+            } catch (Exception e) {
+                LOG.warnf(e, "Failed to store override batch status – not running inside a JobRunr job context?");
+            }
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    @Override
+    public void overrideBatchStatusTxNew(String overrideBatchStatus) {
+        overrideBatchStatus(overrideBatchStatus);
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void resetBatchStatus() {
+            try {
+                UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
+                if (parentJobId != null) {
+                    // Running in a continuation job - reset in parent
+                    var job = storageProvider.getJobById(parentJobId);
+                    job.getMetadata().remove(RESULT_STATUS_OVERRIDE_METADATA_KEY);
+                    storageProvider.save(job);
+                    LOG.debugf("Reset override batch status in parent job %s", parentJobId);
+                } else {
+                    // Regular job - reset in current job
+                    ThreadLocalJobContext.getJobContext().saveMetadata(RESULT_STATUS_OVERRIDE_METADATA_KEY, null);
+                    LOG.debugf("Reset override batch status in current job");
+                }
+            } catch (Exception e) {
+                LOG.warnf(e, "Failed to reset override batch status – not running inside a JobRunr job context?");
+            }
     }
 
     /**

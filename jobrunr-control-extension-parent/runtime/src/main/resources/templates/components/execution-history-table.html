@@ -132,6 +132,7 @@
                                     </a>
                                 {/if}
                             {/if}
+                            {/set}
                         </td>
                         {#if showUuid}
                         <td style="white-space: nowrap;">
@@ -140,9 +141,21 @@
                         {/if}
                         <td><code class="text-muted small">{execution.jobType}</code></td>
                         <td>
-                                <span class="status-badge status-{execution.status.name().toLowerCase()}">
-                                    {execution.status}
-                                </span>
+                            <div class="d-flex flex-column align-items-start">
+                                {#if execution.statusOverride != null}
+                                    <span class="status-badge status-{execution.statusOverride.toLowerCase()}"
+                                          style="cursor: help;"
+                                          title="Exit-Code: {#if execution.resultCode != null}{execution.resultCode}{#else}-{/if}&#10;Result: {#if execution.result != null}{execution.result}{#else}-{/if}">
+                                        {execution.statusOverride}
+                                    </span>
+                                {#else}
+                                    <span class="status-badge status-{execution.status.name().toLowerCase()}"
+                                          style="cursor: help;"
+                                          title="Exit-Code: {#if execution.resultCode != null}{execution.resultCode}{#else}-{/if}&#10;Result: {#if execution.result != null}{execution.result}{#else}-{/if}">
+                                        {execution.status}
+                                    </span>
+                                {/if}
+                            </div>
                         </td>
                         <td>
                             {#if execution.startedAt}

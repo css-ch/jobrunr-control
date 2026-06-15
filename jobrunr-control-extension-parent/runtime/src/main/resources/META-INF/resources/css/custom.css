@@ -25,6 +25,16 @@
     color: white;
 }
 
+.status-postprocessing {
+    background-color: #6f42c1;
+    color: white;
+}
+
+.status-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
 .status-enqueued {
     background-color: #6c757d;
     color: white;

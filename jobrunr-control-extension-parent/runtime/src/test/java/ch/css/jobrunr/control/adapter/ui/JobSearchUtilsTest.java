@@ -129,7 +129,7 @@ class JobSearchUtilsTest {
                         null,
                         Map.of("env", "prod"),
                         Map.of("priority", "high"),
-                        null, null
+                        null, null, null
                 ),
                 new JobExecutionInfo(
                         UUID.randomUUID(),
@@ -141,7 +141,7 @@ class JobSearchUtilsTest {
                         null,
                         Map.of("region", "EU"),
                         Map.of("priority", "medium"),
-                        null, null
+                        null, null, null
                 )
         );
     }

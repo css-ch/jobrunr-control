@@ -8,6 +8,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.BatchJob;
+import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.states.*;
 import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
@@ -121,6 +122,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
 
         String result = extractResult(job);
         Integer resultCode = extractResultCode(job);
+        String resultStatusOverride = extractResultStatusOverride(job);
 
         return new JobExecutionInfo(
                 job.getId(),
@@ -133,7 +135,8 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                 parameters,
                 metadata,
                 result,
-                resultCode
+                resultCode,
+                resultStatusOverride
         );
     }
 
@@ -171,6 +174,11 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
             }
         }
         return null;
+    }
+
+    private String extractResultStatusOverride(Job job) {
+        Object value = job.getMetadata().get(JobResultAdapter.RESULT_STATUS_OVERRIDE_METADATA_KEY);
+        return value != null && !value.toString().isBlank() ? value.toString() : null;
     }
 
     /**
