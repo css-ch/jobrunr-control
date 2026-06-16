@@ -83,6 +83,7 @@ class DefaultJobDetailsProviderTest {
                 Map.of(),
                 Map.of(),
                 null,
+                null,
                 null
         );
         when(jobExecutionPort.getJobExecutionById(batchId)).thenReturn(Optional.of(executionInfo));
@@ -133,6 +134,7 @@ class DefaultJobDetailsProviderTest {
                 null,
                 Map.of(),
                 Map.of(),
+                null,
                 null,
                 null
         );

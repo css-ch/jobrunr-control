@@ -76,6 +76,7 @@ class GetJobDetailsRecapUseCaseTest {
                 Map.of(),
                 Map.of(),
                 null,
+                null,
                 null
         );
         JobDefinition jobDefinition = new JobDefinition(
@@ -132,6 +133,7 @@ class GetJobDetailsRecapUseCaseTest {
                 null,
                 Map.of(),
                 Map.of(),
+                null,
                 null,
                 null
         );

@@ -141,11 +141,28 @@
                         {/if}
                         <td><code class="text-muted small">{execution.jobType}</code></td>
                         <td>
-                            <div class="d-flex flex-column align-items-start">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                {#if execution.status.name() == 'SUCCEEDED'}
+                                    <i class="bi bi-check-circle text-success"></i>
+                                {#else if execution.status.name() == 'FAILED'}
+                                    <i class="bi bi-x-circle text-danger"></i>
+                                {#else if execution.status.name() == 'PROCESSING'}
+                                    <i class="bi bi-play-circle text-primary"></i>
+                                {#else if execution.status.name() == 'PROCESSED'}
+                                    <i class="bi bi-check2-square" style="color: #009dca;"></i>
+                                {#else if execution.status.name() == 'ENQUEUED'}
+                                    <i class="bi bi-hourglass text-secondary"></i>
+                                {#else if execution.status.name() == 'NOT_APPLICABLE'}
+                                    <i class="bi bi-dash-circle text-muted"></i>
+                                {#else if execution.status.name() == 'DELETED'}
+                                    <i class="bi bi-trash text-muted"></i>
+                                {#else}
+                                    <i class="bi bi-question-circle text-muted"></i>
+                                {/if}
                                 {#if execution.statusOverride != null}
                                     <span class="status-badge status-{execution.statusOverride.toLowerCase()}"
                                           style="cursor: help;"
-                                          title="Exit-Code: {#if execution.resultCode != null}{execution.resultCode}{#else}-{/if}&#10;Result: {#if execution.result != null}{execution.result}{#else}-{/if}">
+                                          title="JobRunr-Status: {execution.status}&#10;Exit-Code: {#if execution.resultCode != null}{execution.resultCode}{#else}-{/if}&#10;Result: {#if execution.result != null}{execution.result}{#else}-{/if}">
                                         {execution.statusOverride}
                                     </span>
                                 {#else}

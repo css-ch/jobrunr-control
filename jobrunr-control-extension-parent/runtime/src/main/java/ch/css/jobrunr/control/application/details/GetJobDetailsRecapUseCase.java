@@ -70,6 +70,9 @@ public class GetJobDetailsRecapUseCase {
     private JobStatusAndTimestamp evaluateJobStatusAndTimestamp(JobExecutionInfo jobExecutionInfo) {
         return new JobStatusAndTimestamp(
                 jobExecutionInfo.getStatus(),
+                jobExecutionInfo.statusOverride(),
+                jobExecutionInfo.resultCode(),
+                jobExecutionInfo.result(),
                 jobExecutionInfo.startedAt(),
                 getFinishedAt(jobExecutionInfo)
         );
@@ -220,6 +223,9 @@ public class GetJobDetailsRecapUseCase {
 
     public record JobStatusAndTimestamp(
             JobStatus jobStatus,
+            String jobStatusOverride,
+            Integer resultCode,
+            String result,
             Instant startedAt,
             Instant finishedAt) {
 

@@ -20,8 +20,14 @@
                                 <i class="bi bi-x-circle text-danger"></i>
                             {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'PROCESSING'}
                                 <i class="bi bi-play-circle text-primary"></i>
+                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'PROCESSED'}
+                                <i class="bi bi-check2-square" style="color: #009dca;"></i>
                             {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'ENQUEUED'}
                                 <i class="bi bi-hourglass text-secondary"></i>
+                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'NOT_APPLICABLE'}
+                                <i class="bi bi-dash-circle text-muted"></i>
+                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'DELETED'}
+                                <i class="bi bi-trash text-muted"></i>
                             {#else}
                                 <i class="bi bi-question-circle text-muted"></i>
                             {/if}
@@ -30,9 +36,19 @@
                     <div class="col">
                         <div class="text-muted small font-weight-bold">Batch Status & Zeitraum</div>
                         <div class="mb-2">
-                            <span class="badge {#if recap.jobStatusAndTimestamp.jobStatus.name() == 'SUCCEEDED'}bg-success{#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'FAILED'}bg-danger{#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'PROCESSING'}bg-primary{#else}bg-secondary{/if}">
-                                {recap.jobStatusAndTimestamp.jobStatus}
-                            </span>
+                            {#if recap.jobStatusAndTimestamp.jobStatusOverride != null}
+                                <span class="badge status-{recap.jobStatusAndTimestamp.jobStatusOverride.toLowerCase()}"
+                                      style="cursor: help;"
+                                      title="JobRunr-Status: {recap.jobStatusAndTimestamp.jobStatus}&#10;Exit-Code: {#if recap.jobStatusAndTimestamp.resultCode != null}{recap.jobStatusAndTimestamp.resultCode}{#else}-{/if}&#10;Result: {#if recap.jobStatusAndTimestamp.result != null}{recap.jobStatusAndTimestamp.result}{#else}-{/if}">
+                                        {recap.jobStatusAndTimestamp.jobStatusOverride}
+                                </span>
+                            {#else}
+                                <span class="badge status-{recap.jobStatusAndTimestamp.jobStatus.name().toLowerCase()}"
+                                      style="cursor: help;"
+                                      title="Exit-Code: {#if recap.jobStatusAndTimestamp.resultCode != null}{recap.jobStatusAndTimestamp.resultCode}{#else}-{/if}&#10;Result: {#if recap.jobStatusAndTimestamp.result != null}{recap.jobStatusAndTimestamp.result}{#else}-{/if}">
+                                        {recap.jobStatusAndTimestamp.jobStatus}
+                                </span>
+                            {/if}
                         </div>
                         <small class="text-muted d-block">
                             Start: <strong>{recap.jobStatusAndTimestamp.getStartedAtFormatted()}</strong>
