@@ -122,7 +122,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
 
         String result = extractResult(job);
         Integer resultCode = extractResultCode(job);
-        String resultStatusOverride = extractResultStatusOverride(job);
+        BusinessStatus resultStatusOverride = extractBusinessStatus(job);
 
         return new JobExecutionInfo(
                 job.getId(),
@@ -176,9 +176,9 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         return null;
     }
 
-    private String extractResultStatusOverride(Job job) {
-        Object value = job.getMetadata().get(JobResultAdapter.RESULT_STATUS_OVERRIDE_METADATA_KEY);
-        return value != null && !value.toString().isBlank() ? value.toString() : null;
+    private BusinessStatus extractBusinessStatus(Job job) {
+        Object value = job.getMetadata().get(JobResultAdapter.RESULT_BUSINESS_STATUS_METADATA_KEY);
+        return value != null && !value.toString().isBlank() ? BusinessStatus.valueOf(value.toString()) : BusinessStatus.NONE;
     }
 
     /**

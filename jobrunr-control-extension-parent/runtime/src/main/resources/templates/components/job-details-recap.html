@@ -9,24 +9,25 @@
 <div class="row g-2">
     <!-- Status Card (with start and finish times) -->
     <div class="col-md-6">
-        <div class="card border-left-info">
+        <div class="card"
+             style="border-left: 4px solid {#if recap.jobStatusInfo.jobStatus.name() == 'SUCCEEDED'}#198754{#else if recap.jobStatusInfo.jobStatus.name() == 'FAILED'}#dc3545{#else if recap.jobStatusInfo.jobStatus.name() == 'PROCESSING'}#0d6efd{#else if recap.jobStatusInfo.jobStatus.name() == 'PROCESSED'}#009dca{#else}#6c757d{/if} !important;">
             <div class="card-body">
                 <div class="row">
                     <div class="col-auto">
                         <div class="display-6">
-                            {#if recap.jobStatusAndTimestamp.jobStatus.name() == 'SUCCEEDED'}
+                            {#if recap.jobStatusInfo.jobStatus.name() == 'SUCCEEDED'}
                                 <i class="bi bi-check-circle text-success"></i>
-                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'FAILED'}
+                            {#else if recap.jobStatusInfo.jobStatus.name() == 'FAILED'}
                                 <i class="bi bi-x-circle text-danger"></i>
-                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'PROCESSING'}
+                            {#else if recap.jobStatusInfo.jobStatus.name() == 'PROCESSING'}
                                 <i class="bi bi-play-circle text-primary"></i>
-                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'PROCESSED'}
+                            {#else if recap.jobStatusInfo.jobStatus.name() == 'PROCESSED'}
                                 <i class="bi bi-check2-square" style="color: #009dca;"></i>
-                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'ENQUEUED'}
+                            {#else if recap.jobStatusInfo.jobStatus.name() == 'ENQUEUED'}
                                 <i class="bi bi-hourglass text-secondary"></i>
-                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'NOT_APPLICABLE'}
+                            {#else if recap.jobStatusInfo.jobStatus.name() == 'NOT_APPLICABLE'}
                                 <i class="bi bi-dash-circle text-muted"></i>
-                            {#else if recap.jobStatusAndTimestamp.jobStatus.name() == 'DELETED'}
+                            {#else if recap.jobStatusInfo.jobStatus.name() == 'DELETED'}
                                 <i class="bi bi-trash text-muted"></i>
                             {#else}
                                 <i class="bi bi-question-circle text-muted"></i>
@@ -34,34 +35,38 @@
                         </div>
                     </div>
                     <div class="col">
-                        <div class="text-muted small font-weight-bold">Batch Status & Zeitraum</div>
-                        <div class="mb-2">
-                            {#if recap.jobStatusAndTimestamp.jobStatusOverride != null}
-                                <span class="badge status-{recap.jobStatusAndTimestamp.jobStatusOverride.toLowerCase()}"
-                                      style="cursor: help;"
-                                      title="JobRunr-Status: {recap.jobStatusAndTimestamp.jobStatus}&#10;Exit-Code: {#if recap.jobStatusAndTimestamp.resultCode != null}{recap.jobStatusAndTimestamp.resultCode}{#else}-{/if}&#10;Result: {#if recap.jobStatusAndTimestamp.result != null}{recap.jobStatusAndTimestamp.result}{#else}-{/if}">
-                                        {recap.jobStatusAndTimestamp.jobStatusOverride}
-                                </span>
-                            {#else}
-                                <span class="badge status-{recap.jobStatusAndTimestamp.jobStatus.name().toLowerCase()}"
-                                      style="cursor: help;"
-                                      title="Exit-Code: {#if recap.jobStatusAndTimestamp.resultCode != null}{recap.jobStatusAndTimestamp.resultCode}{#else}-{/if}&#10;Result: {#if recap.jobStatusAndTimestamp.result != null}{recap.jobStatusAndTimestamp.result}{#else}-{/if}">
-                                        {recap.jobStatusAndTimestamp.jobStatus}
-                                </span>
+                        <div class="text-muted small font-weight-bold mb-2">{#if showBusinessStatus}techn. {/if}Status{#if showBusinessStatus} / fachl. Status{/if}</div>
+                        <div class="mb-2 d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge status-pill status-{recap.jobStatusInfo.jobStatus.name().toLowerCase()}"
+                                  style="cursor: help;"
+                                  title="Exit-Code: {#if recap.jobStatusInfo.resultCode != null}{recap.jobStatusInfo.resultCode}{#else}-{/if}&#10;Result: {#if recap.jobStatusInfo.result != null}{recap.jobStatusInfo.result}{#else}-{/if}">
+                                {recap.jobStatusInfo.jobStatus}
+                            </span>
+                            {#if showBusinessStatus}
+                                {#if recap.jobStatusInfo.businessStatus.name() == 'SUCCESS'}
+                                    <span class="status-badge status-pill status-succeeded business-status-badge business-status-success"
+                                          style="cursor: help;"
+                                          title="Exit-Code: {#if recap.jobStatusInfo.resultCode != null}{recap.jobStatusInfo.resultCode}{#else}-{/if}&#10;Result: {#if recap.jobStatusInfo.result != null}{recap.jobStatusInfo.result}{#else}-{/if}">
+                                        <i class="bi bi-check-circle-fill business-status-icon" aria-hidden="true"></i>
+                                        <span>Erfolgreich</span>
+                                    </span>
+                                {#else if recap.jobStatusInfo.businessStatus.name() == 'WARNING'}
+                                    <span class="status-badge status-pill status-warning business-status-badge business-status-warning"
+                                          style="cursor: help;"
+                                          title="Exit-Code: {#if recap.jobStatusInfo.resultCode != null}{recap.jobStatusInfo.resultCode}{#else}-{/if}&#10;Result: {#if recap.jobStatusInfo.result != null}{recap.jobStatusInfo.result}{#else}-{/if}">
+                                        <i class="bi bi-exclamation-triangle-fill business-status-icon" aria-hidden="true"></i>
+                                        <span>Warnung</span>
+                                    </span>
+                                {#else}
+                                    <span class="status-badge status-pill status-enqueued business-status-badge business-status-none"
+                                          style="cursor: help;"
+                                          title="Exit-Code: {#if recap.jobStatusInfo.resultCode != null}{recap.jobStatusInfo.resultCode}{#else}-{/if}&#10;Result: {#if recap.jobStatusInfo.result != null}{recap.jobStatusInfo.result}{#else}-{/if}">
+                                        <i class="bi bi-question-circle business-status-icon" aria-hidden="true"></i>
+                                        <span>Kein Status</span>
+                                    </span>
+                                {/if}
                             {/if}
                         </div>
-                        <small class="text-muted d-block">
-                            Start: <strong>{recap.jobStatusAndTimestamp.getStartedAtFormatted()}</strong>
-                        </small>
-                        {#if recap.jobStatusAndTimestamp.finishedAt}
-                            <small class="text-muted d-block">
-                                Ende: <strong>{recap.jobStatusAndTimestamp.getFinishedAtFormatted()}</strong>
-                            </small>
-                        {#else}
-                            <small class="text-warning d-block">
-                                <i class="bi bi-clock"></i> Läuft noch...
-                            </small>
-                        {/if}
                     </div>
                 </div>
             </div>
@@ -82,6 +87,18 @@
                         <div class="text-muted small font-weight-bold">Durchschn. Laufzeit / totale Laufzeit</div>
                         <div class="h3 mb-0"><strong>{recap.jobDurations.averageChildDuration}</strong> <small class="text-muted" style="font-size: 0.7em;">{recap.jobDurations.averageChildDurationUnit}</small> / <strong>{recap.jobDurations.totalJobDuration}</strong> <small class="text-muted" style="font-size: 0.7em;">{recap.jobDurations.totalJobDurationUnit}</small></div>
                     </div>
+                    <small class="text-muted d-block mt-2">
+                        Start: <strong>{recap.jobDurations.getStartedAtFormatted()}</strong>
+                    </small>
+                    {#if recap.jobDurations.finishedAt}
+                        <small class="text-muted d-block mt-1">
+                            Ende: <strong>{recap.jobDurations.getFinishedAtFormatted()}</strong>
+                        </small>
+                    {#else}
+                        <small class="text-warning d-block mt-1">
+                            <i class="bi bi-clock"></i> Läuft noch...
+                        </small>
+                    {/if}
                 </div>
             </div>
         </div>
@@ -205,14 +222,23 @@
 {/if}
 
 <style>
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.9rem;
+        padding: 0.35rem 0.65rem;
+        line-height: 1;
+    }
+
+    .business-status-badge {
+        gap: 0.3rem;
+    }
+
     .border-left-primary {
         border-left: 4px solid #0d6efd !important;
     }
     .border-left-warning {
         border-left: 4px solid #ffc107 !important;
-    }
-    .border-left-info {
-        border-left: 4px solid #0dcaf0 !important;
     }
     .border-left-orange {
         border-left: 4px solid #fd7e14 !important;

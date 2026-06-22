@@ -18,4 +18,11 @@ public interface JobRunrControlUiConfig {
      */
     @WithDefault("false")
     boolean showJobUuid();
+
+    /**
+     * Whether to display the business Status in den Execution-History Table.
+     * The business Status must be set by the application.
+     */
+    @WithDefault("false")
+    boolean showBusinessStatus();
 }
