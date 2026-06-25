@@ -180,7 +180,8 @@ class JobControlResourceTest {
                 Map.of(),          // parameters
                 Map.of(),          // metadata
                 null,              // result
-                null               // resultCode
+                null,              // resultCode
+                null               // resultStatusOverride
         );
 
         when(getJobExecutionByIdUseCase.execute(jobId)).thenReturn(executionInfo);
@@ -236,7 +237,8 @@ class JobControlResourceTest {
                 Map.of(),          // parameters
                 Map.of(),          // metadata
                 null,              // result
-                null               // resultCode
+                null,              // resultCode
+                null               // resultStatusOverride
         );
 
         when(getJobExecutionByIdUseCase.execute(jobId)).thenReturn(executionInfo);

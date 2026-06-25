@@ -1,6 +1,7 @@
 package ch.css.jobrunr.control.jobs.batch;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
+import ch.css.jobrunr.control.annotations.JobDetailPage;
 import ch.css.jobrunr.control.domain.exceptions.JobProcessingException;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
@@ -33,6 +34,7 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
      * @throws JobProcessingException if the batch preparation is interrupted or fails
      */
     @ConfigurableJob(isBatch = true, labels = {"Example", "Batch"})
+    @JobDetailPage
     @Override
     public void run(ExampleBatchJobRequest request) {
         ThreadLocalJobContext.getJobContext().logger().info(String.format("Preparing batch job with numberOfChunks: %d, chunkSize: %d, simulateErrors: %b",

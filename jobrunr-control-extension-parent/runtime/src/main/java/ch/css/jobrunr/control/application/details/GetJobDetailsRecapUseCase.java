@@ -52,14 +52,14 @@ public class GetJobDetailsRecapUseCase {
                 });
         JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobExecutionInfo.getJobType());
 
-        JobStatusAndTimestamp jobStatusAndTimestamp = evaluateJobStatusAndTimestamp(jobExecutionInfo);
+        JobStatusInfo jobStatusInfo = evaluateJobStatusAndTimestamp(jobExecutionInfo);
         MessageCount messageCount = evaluateMessageCount(jobId, jobDefinition);
         ChildJobCounters childJobCounters = evaluateChildJobCounters(jobId);
         JobDurations jobDurations = evaluateJobDurations(jobExecutionInfo, childJobCounters.succeededChildJobCount);
         RecapView recapView = evaluateRecapView(jobId, jobDefinition);
 
         return new Result(
-                jobStatusAndTimestamp,
+                jobStatusInfo,
                 messageCount,
                 jobDurations,
                 childJobCounters,
@@ -67,11 +67,12 @@ public class GetJobDetailsRecapUseCase {
         );
     }
 
-    private JobStatusAndTimestamp evaluateJobStatusAndTimestamp(JobExecutionInfo jobExecutionInfo) {
-        return new JobStatusAndTimestamp(
+    private JobStatusInfo evaluateJobStatusAndTimestamp(JobExecutionInfo jobExecutionInfo) {
+        return new JobStatusInfo(
                 jobExecutionInfo.getStatus(),
-                jobExecutionInfo.startedAt(),
-                getFinishedAt(jobExecutionInfo)
+                jobExecutionInfo.businessStatus(),
+                jobExecutionInfo.resultCode(),
+                jobExecutionInfo.result()
         );
     }
 
@@ -124,7 +125,7 @@ public class GetJobDetailsRecapUseCase {
         Instant startedAt = jobExecutionInfo.startedAt();
         Instant finishedAt = getFinishedAt(jobExecutionInfo);
         if (startedAt == null || succeededChildJobCount <= 0) {
-            return new JobDurations("--", "Minuten", "--", "Minuten");
+            return new JobDurations("--", "Minuten", "--", "Minuten", startedAt, finishedAt);
         }
         if(finishedAt == null) {
             finishedAt = Instant.now();
@@ -135,7 +136,7 @@ public class GetJobDetailsRecapUseCase {
         long averageDurationMillis = totalDurationMillis / succeededChildJobCount;
         String[] totalDurationRep = determineDurationRepresentation(totalDurationMillis);
         String[] averageDurationRep = determineDurationRepresentation(averageDurationMillis);
-        return new JobDurations(totalDurationRep[0], totalDurationRep[1], averageDurationRep[0], averageDurationRep[1]);
+        return new JobDurations(totalDurationRep[0], totalDurationRep[1], averageDurationRep[0], averageDurationRep[1], startedAt, finishedAt);
     }
 
     private String[] determineDurationRepresentation(long durationMillis) {
@@ -218,11 +219,28 @@ public class GetJobDetailsRecapUseCase {
         }
     }
 
-    public record JobStatusAndTimestamp(
+    public record JobStatusInfo(
             JobStatus jobStatus,
+            BusinessStatus businessStatus,
+            Integer resultCode,
+            String result) {
+    }
+
+    public record MessageCount(
+            long totalMessages,
+            long infoMessages,
+            long warningMessages,
+            long errorMessages,
+            long exceptionMessages) {
+    }
+
+    public record JobDurations(
+            String totalJobDuration,
+            String totalJobDurationUnit,
+            String averageChildDuration,
+            String averageChildDurationUnit,
             Instant startedAt,
             Instant finishedAt) {
-
         @SuppressWarnings("unused")
         public String getStartedAtFormatted() {
             if (startedAt == null) {
@@ -238,21 +256,6 @@ public class GetJobDetailsRecapUseCase {
             }
             return DATE_TIME_FORMATTER.format(finishedAt.atZone(ZoneId.systemDefault()));
         }
-    }
-
-    public record MessageCount(
-            long totalMessages,
-            long infoMessages,
-            long warningMessages,
-            long errorMessages,
-            long exceptionMessages) {
-    }
-
-    public record JobDurations(
-            String totalJobDuration,
-            String totalJobDurationUnit,
-            String averageChildDuration,
-            String averageChildDurationUnit) {
     }
 
     public record ChildJobCounters(
@@ -280,7 +283,7 @@ public class GetJobDetailsRecapUseCase {
     }
 
     public record Result(
-            JobStatusAndTimestamp jobStatusAndTimestamp,
+            JobStatusInfo jobStatusInfo,
             MessageCount messageCount,
             JobDurations jobDurations,
             ChildJobCounters childJobCounters,

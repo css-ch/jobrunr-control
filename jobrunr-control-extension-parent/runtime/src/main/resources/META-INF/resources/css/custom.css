@@ -35,6 +35,43 @@
     color: white;
 }
 
+.status-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+/* Business Status Badges */
+.business-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid transparent;
+    font-weight: 600;
+}
+
+.business-status-icon {
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.business-status-none {
+    background-color: #f1f3f5;
+    border-color: #d0d7de;
+    color: #495057;
+}
+
+.business-status-success {
+    background-color: #d1e7dd;
+    border-color: #a3cfbb;
+    color: #0f5132;
+}
+
+.business-status-warning {
+    background-color: #fff3cd;
+    border-color: #ffe69c;
+    color: #664d03;
+}
+
 /* External Trigger Badge */
 .external-trigger {
     background-color: #fd7e14;

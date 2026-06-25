@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr;
 
+import ch.css.jobrunr.control.domain.BusinessStatus;
 import ch.css.jobrunr.control.domain.JobResultPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -43,6 +44,11 @@ public class JobResultAdapter implements JobResultPort {
      */
     public static final String RESULT_CODE_METADATA_KEY = "jobrunr-control-result-code";
 
+    /**
+     * Metadata key used to store the business status in the JobRunr job.
+     */
+    public static final String RESULT_BUSINESS_STATUS_METADATA_KEY = "jobrunr-control-result-business-status";
+
     private static final Logger LOG = Logger.getLogger(JobResultAdapter.class);
 
     private final StorageProvider storageProvider;
@@ -55,7 +61,7 @@ public class JobResultAdapter implements JobResultPort {
     @Override
     public void storeResult(int resultCode, String result) {
         try {
-            UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJob();
+            UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
             if (parentJobId != null) {
                 // Running in a continuation job - store in parent
                 storeResultInJob(parentJobId, resultCode, result);
@@ -68,6 +74,26 @@ public class JobResultAdapter implements JobResultPort {
             }
         } catch (Exception e) {
             LOG.warnf(e, "Failed to store job result – not running inside a JobRunr job context?");
+        }
+    }
+
+    @Override
+    public void setBusinessStatus(BusinessStatus status) {
+        try {
+            UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
+            if (parentJobId != null) {
+                // Running in a continuation job - store in parent
+                var job = storageProvider.getJobById(parentJobId);
+                job.getMetadata().put(RESULT_BUSINESS_STATUS_METADATA_KEY, status);
+                storageProvider.save(job);
+                LOG.debugf("Stored business status in parent job %s: %s", parentJobId, status);
+            } else {
+                // Regular job - store in current job
+                ThreadLocalJobContext.getJobContext().saveMetadata(RESULT_BUSINESS_STATUS_METADATA_KEY, status);
+                LOG.debugf("Stored business status in current job: %s", status);
+            }
+        } catch (Exception e) {
+            LOG.warnf(e, "Failed to store business status – not running inside a JobRunr job context?");
         }
     }
 

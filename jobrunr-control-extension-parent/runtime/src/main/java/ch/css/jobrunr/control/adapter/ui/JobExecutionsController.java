@@ -2,7 +2,6 @@ package ch.css.jobrunr.control.adapter.ui;
 
 import ch.css.jobrunr.control.application.monitoring.GetBatchProgressUseCase;
 import ch.css.jobrunr.control.application.monitoring.GetJobExecutionHistoryUseCase;
-import ch.css.jobrunr.control.application.parameters.ResolveParametersUseCase;
 import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
 import ch.css.jobrunr.control.domain.JobStatus;
@@ -50,13 +49,12 @@ public class JobExecutionsController {
                                                                     List<TemplateExtensions.PageItem> pageRange,
                                                                     String search, String statusFilter,
                                                                     String sortBy, String sortOrder,
-                                                                    boolean showUuid, String host, String port);
+                                                                    boolean showUuid, boolean showBusinessStatus, String host, String port);
 
         public static native TemplateInstance batchProgress(BatchProgress progress);
     }
 
     private final GetJobExecutionHistoryUseCase getHistoryUseCase;
-    private final ResolveParametersUseCase resolveParametersUseCase;
     private final GetBatchProgressUseCase getBatchProgressUseCase;
     private final JobRunrControlUiConfig uiConfig;
     private final JobSearchUtils searchUtils;
@@ -64,11 +62,9 @@ public class JobExecutionsController {
     @Inject
     public JobExecutionsController(
             GetJobExecutionHistoryUseCase getHistoryUseCase,
-            ResolveParametersUseCase resolveParametersUseCase,
             GetBatchProgressUseCase getBatchProgressUseCase,
             JobRunrControlUiConfig uiConfig, JobSearchUtils searchUtils) {
         this.getHistoryUseCase = getHistoryUseCase;
-        this.resolveParametersUseCase = resolveParametersUseCase;
         this.getBatchProgressUseCase = getBatchProgressUseCase;
         this.uiConfig = uiConfig;
         this.searchUtils = searchUtils;
@@ -131,6 +127,7 @@ public class JobExecutionsController {
                 sortBy,
                 sortOrder,
                 uiConfig.showJobUuid(),
+                uiConfig.showBusinessStatus(),
                 host,
                 port
         ));
@@ -155,6 +152,7 @@ public class JobExecutionsController {
             case "jobName" -> Comparator.comparing(JobExecutionInfo::getJobName, String.CASE_INSENSITIVE_ORDER);
             case "jobType" -> Comparator.comparing(JobExecutionInfo::getJobType, String.CASE_INSENSITIVE_ORDER);
             case "status" -> Comparator.comparing(e -> e.getStatus().name());
+            case "businessStatus" -> Comparator.comparing(e -> e.businessStatus().name());
             case "finishedAt" -> Comparator.comparing(e -> e.getFinishedAt().orElse(null),
                     Comparator.nullsLast(Comparator.naturalOrder()));
             default -> Comparator.comparing(JobExecutionInfo::getStartedAt,

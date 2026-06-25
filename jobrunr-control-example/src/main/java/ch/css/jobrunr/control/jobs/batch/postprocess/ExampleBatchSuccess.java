@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.jobs.batch.postprocess;
 
+import ch.css.jobrunr.control.domain.BusinessStatus;
 import ch.css.jobrunr.control.domain.JobResultPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -28,13 +29,19 @@ public class ExampleBatchSuccess implements JobRequestHandler<ExampleBatchSucces
     @Job(name = "Example Batch Success Post-Processing Job", retries = 0)
     @Override
     public void run(ExampleBatchSuccessRequest jobRequest) {
-        UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJob();
+        UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
         LOG.infof("Starting example batch success job. Parent job id: %s", parentJobId);
 
         // Get parent job metadata for detailed result message
         var parentJob = storageProvider.getJobById(parentJobId);
         Integer totalChildren = (Integer) parentJob.getMetadata().get("total_children");
         String enqueuedAt = (String) parentJob.getMetadata().get("enqueued_at");
+
+        try {
+            Thread.sleep(5_000L);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
         // Build detailed success message
         String resultMessage = String.format(
@@ -45,6 +52,7 @@ public class ExampleBatchSuccess implements JobRequestHandler<ExampleBatchSucces
 
         // Store result - automatically goes to parent job since we're in a continuation job
         jobResultPort.storeResult(0, resultMessage);
+        jobResultPort.setBusinessStatus(BusinessStatus.SUCCESS);
 
         LOG.infof("Batch success result stored: %s", resultMessage);
     }

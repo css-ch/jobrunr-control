@@ -41,6 +41,7 @@ public class JobRunrControlProcessor {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClasses(
                         JobDetailsController.class,
+                        DashboardController.class,
                         ScheduledJobsController.class,
                         TemplatesController.class,
                         JobExecutionsController.class,

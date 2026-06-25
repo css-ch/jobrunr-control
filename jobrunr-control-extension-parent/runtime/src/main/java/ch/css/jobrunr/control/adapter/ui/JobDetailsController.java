@@ -30,16 +30,19 @@ public class JobDetailsController {
     private final GetJobDetailsRecapUseCase getJobDetailsRecapUseCase;
     private final GetJobDetailsMessageUseCase getJobDetailsMessageUseCase;
     private final GetJobDetailsMessagesAsCsvUseCase getJobDetailsMessagesAsCsvUseCase;
+    private final JobRunrControlUiConfig uiConfig;
 
     @Inject
     public JobDetailsController(GetJobDetailsParametersUseCase getJobDetailsParametersUseCase,
                                 GetJobDetailsRecapUseCase getJobDetailsRecapUseCase,
                                 GetJobDetailsMessageUseCase getJobDetailsMessageUseCase,
-                                GetJobDetailsMessagesAsCsvUseCase getJobDetailsMessagesAsCsvUseCase) {
+                                GetJobDetailsMessagesAsCsvUseCase getJobDetailsMessagesAsCsvUseCase,
+                                JobRunrControlUiConfig uiConfig) {
         this.getJobDetailsParametersUseCase = getJobDetailsParametersUseCase;
         this.getJobDetailsRecapUseCase = getJobDetailsRecapUseCase;
         this.getJobDetailsMessageUseCase = getJobDetailsMessageUseCase;
         this.getJobDetailsMessagesAsCsvUseCase = getJobDetailsMessagesAsCsvUseCase;
+        this.uiConfig = uiConfig;
     }
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -57,7 +60,7 @@ public class JobDetailsController {
             // Utility class
         }
 
-        public static native TemplateInstance jobDetailsRecap(GetJobDetailsRecapUseCase.Result recap);
+        public static native TemplateInstance jobDetailsRecap(GetJobDetailsRecapUseCase.Result recap, boolean showBusinessStatus);
         public static native TemplateInstance jobDetailsParameter(GetJobDetailsParametersUseCase.Result parameter);
         public static native TemplateInstance jobDetailsMessages(MessagesPaginationResult messages);
     }
@@ -152,7 +155,7 @@ public class JobDetailsController {
 
     private TemplateInstance buildRecapTable(String jobId) {
         GetJobDetailsRecapUseCase.Result recapData = getJobDetailsRecapUseCase.execute(jobIdAsUUID(jobId));
-        return JobDetailsController.Components.jobDetailsRecap(recapData);
+        return JobDetailsController.Components.jobDetailsRecap(recapData, uiConfig.showBusinessStatus());
     }
 
     private TemplateInstance buildParameterTable(String jobId) {

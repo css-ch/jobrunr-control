@@ -18,7 +18,8 @@ public record JobExecutionInfo(
         Map<String, Object> parameters,
         Map<String, Object> metadata,
         String result,
-        Integer resultCode
+        Integer resultCode,
+        BusinessStatus businessStatus
 ) {
 
     public JobExecutionInfo {
@@ -28,6 +29,7 @@ public record JobExecutionInfo(
         Objects.requireNonNull(status, "Status must not be null");
         parameters = parameters != null ? new HashMap<>(parameters) : new HashMap<>();
         metadata = metadata != null ? new HashMap<>(metadata) : new HashMap<>();
+        businessStatus = businessStatus == null ? BusinessStatus.NONE : businessStatus;
     }
 
     // JavaBean-style getters for backward compatibility
@@ -82,21 +84,21 @@ public record JobExecutionInfo(
     public JobExecutionInfo withStatus(JobStatus newStatus) {
         return new JobExecutionInfo(
                 jobId, jobName, jobType, newStatus,
-                startedAt, finishedAt, batchProgress, parameters, metadata, result, resultCode
+                startedAt, finishedAt, batchProgress, parameters, metadata, result, resultCode, businessStatus
         );
     }
 
     public JobExecutionInfo withResult(String newResult) {
         return new JobExecutionInfo(
                 jobId, jobName, jobType, status,
-                startedAt, finishedAt, batchProgress, parameters, metadata, newResult, resultCode
+                startedAt, finishedAt, batchProgress, parameters, metadata, newResult, resultCode, businessStatus
         );
     }
 
     public JobExecutionInfo withResult(String newResult, Integer newResultCode) {
         return new JobExecutionInfo(
                 jobId, jobName, jobType, status,
-                startedAt, finishedAt, batchProgress, parameters, metadata, newResult, newResultCode
+                startedAt, finishedAt, batchProgress, parameters, metadata, newResult, newResultCode, businessStatus
         );
     }
 }

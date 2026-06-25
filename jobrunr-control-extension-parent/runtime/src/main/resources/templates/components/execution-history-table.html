@@ -47,7 +47,7 @@
                         hx-get="{cp}/history/table?sortBy=status&sortOrder={#if sortBy == 'status'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
                         hx-target="#history-table"
                         hx-swap="outerHTML">
-                        Status
+                        {#if showBusinessStatus}techn. {/if}Status
                         {#if sortBy == 'status'}
                             {#if sortOrder == 'asc'}
                                 <i class="bi bi-sort-alpha-down"></i>
@@ -58,6 +58,24 @@
                             <i class="bi bi-arrow-down-up text-muted"></i>
                         {/if}
                     </th>
+                    {#if showBusinessStatus}
+                        <th class="sortable"
+                            style="cursor: pointer;"
+                            hx-get="{cp}/history/table?sortBy=businessStatus&sortOrder={#if sortBy == 'businessStatus'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
+                            hx-target="#history-table"
+                            hx-swap="outerHTML">
+                            fachl. Status
+                            {#if sortBy == 'businessStatus'}
+                                {#if sortOrder == 'asc'}
+                                    <i class="bi bi-sort-alpha-down"></i>
+                                {#else}
+                                    <i class="bi bi-sort-alpha-up-alt"></i>
+                                {/if}
+                            {#else}
+                                <i class="bi bi-arrow-down-up text-muted"></i>
+                            {/if}
+                        </th>
+                    {/if}
                     <th class="sortable"
                         style="cursor: pointer;"
                         hx-get="{cp}/history/table?sortBy=startedAt&sortOrder={#if sortBy == 'startedAt'}{#if sortOrder == 'asc'}desc{#else}asc{/if}{#else}asc{/if}&page={pagination.page}&size={pagination.size}&search={search}&status-filter={statusFilter}"
@@ -132,6 +150,7 @@
                                     </a>
                                 {/if}
                             {/if}
+                            {/set}
                         </td>
                         {#if showUuid}
                         <td style="white-space: nowrap;">
@@ -140,10 +159,38 @@
                         {/if}
                         <td><code class="text-muted small">{execution.jobType}</code></td>
                         <td>
-                                <span class="status-badge status-{execution.status.name().toLowerCase()}">
-                                    {execution.status}
-                                </span>
+                            <span class="status-badge status-{execution.status.name().toLowerCase()}">
+                                {execution.status}
+                            </span>
                         </td>
+                        {#if showBusinessStatus}
+                        <td>
+                            <div class="d-inline-flex align-items-center flex-wrap">
+                                {#if execution.businessStatus.name() == 'SUCCESS'}
+                                    <span class="status-badge status-succeeded business-status-badge business-status-success"
+                                          style="cursor: help;"
+                                          title="Exit-Code: {#if execution.resultCode != null}{execution.resultCode}{#else}-{/if}&#10;Result: {#if execution.result != null}{execution.result}{#else}-{/if}">
+                                        <i class="bi bi-check-circle-fill business-status-icon" aria-hidden="true"></i>
+                                        Erfolgreich
+                                    </span>
+                                {#else if execution.businessStatus.name() == 'WARNING'}
+                                    <span class="status-badge status-warning business-status-badge business-status-warning"
+                                          style="cursor: help;"
+                                          title="Exit-Code: {#if execution.resultCode != null}{execution.resultCode}{#else}-{/if}&#10;Result: {#if execution.result != null}{execution.result}{#else}-{/if}">
+                                        <i class="bi bi-exclamation-triangle-fill business-status-icon" aria-hidden="true"></i>
+                                        Warnung
+                                    </span>
+                                {#else}
+                                    <span class="status-badge status-enqueued business-status-badge business-status-none"
+                                          style="cursor: help;"
+                                          title="Exit-Code: {#if execution.resultCode != null}{execution.resultCode}{#else}-{/if}&#10;Result: {#if execution.result != null}{execution.result}{#else}-{/if}">
+                                        <i class="bi bi-question-circle business-status-icon" aria-hidden="true"></i>
+                                        Kein Status
+                                    </span>
+                                {/if}
+                            </div>
+                        </td>
+                        {/if}
                         <td>
                             {#if execution.startedAt}
                                 <small class="text-muted">{execution.startedAt.format('dd.MM.yyyy HH:mm')}</small>

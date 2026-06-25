@@ -23,5 +23,15 @@ public interface JobResultPort {
      * @param result     the result message
      */
     void storeResult(int resultCode, String result);
-}
 
+    /**
+     * In addition to the technical status managed by JobRunr, a business status can be maintained.
+     * It indicates whether business errors occurred during batch execution
+     * that need to be reviewed and resolved by an application owner.
+     * <p>
+     * The business status can be set to indicate whether the job completed successfully, encountered warnings, or failed due to business logic issues.
+     * </p>
+     * @param status the business status
+     */
+    void setBusinessStatus(BusinessStatus status);
+}
