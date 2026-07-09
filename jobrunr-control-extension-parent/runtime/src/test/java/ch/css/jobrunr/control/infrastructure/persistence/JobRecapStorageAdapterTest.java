@@ -83,7 +83,7 @@ class JobRecapStorageAdapterTest {
         adapter.writeRecap(batchId, childId, Map.of());
 
         verify(deleteStatement).executeUpdate();
-        verify(connection, never()).prepareStatement(contains("INSERT INTO jobrunr_control_batch_recap"));
+        verify(connection, never()).prepareStatement(contains("INSERT INTO \"JOBRUNR_CONTROL_BATCH_RECAP\""));
     }
 
     @Test
@@ -94,7 +94,7 @@ class JobRecapStorageAdapterTest {
         when(connection.prepareStatement(anyString())).thenReturn(readStatement);
         when(readStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true, true, false);
-        when(resultSet.getString("counter_name")).thenReturn("processed", "failed");
+        when(resultSet.getString("COUNTER_NAME")).thenReturn("processed", "failed");
         when(resultSet.getLong("total_counter_value")).thenReturn(14L, 2L);
 
         Map<String, Long> recap = adapter.readRecap(batchId);
@@ -112,7 +112,7 @@ class JobRecapStorageAdapterTest {
         when(connection.prepareStatement(anyString())).thenReturn(readStatement);
         when(readStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true, false);
-        when(resultSet.getString("counter_name")).thenReturn("processed");
+        when(resultSet.getString("COUNTER_NAME")).thenReturn("processed");
         when(resultSet.getLong("total_counter_value")).thenReturn(5L);
 
         Map<String, Long> recap = adapter.readRecap(batchId);

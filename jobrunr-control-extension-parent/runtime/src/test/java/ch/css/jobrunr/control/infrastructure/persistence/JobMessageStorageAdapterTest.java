@@ -105,11 +105,11 @@ class JobMessageStorageAdapterTest {
 
         when(searchStatement.executeQuery()).thenReturn(searchResultSet);
         when(searchResultSet.next()).thenReturn(true, false);
-        when(searchResultSet.getTimestamp("created_at")).thenReturn(Timestamp.from(now));
-        when(searchResultSet.getString("child_job_id")).thenReturn(UUID.randomUUID().toString());
-        when(searchResultSet.getString("level")).thenReturn(JobMessageLevel.ERROR.name());
-        when(searchResultSet.getString("message")).thenReturn("failed");
-        when(searchResultSet.getString("stack_trace")).thenReturn("trace");
+        when(searchResultSet.getTimestamp("CREATED_AT")).thenReturn(Timestamp.from(now));
+        when(searchResultSet.getString("CHILD_JOB_ID")).thenReturn(UUID.randomUUID().toString());
+        when(searchResultSet.getString("LEVEL")).thenReturn(JobMessageLevel.ERROR.name());
+        when(searchResultSet.getString("MESSAGE")).thenReturn("failed");
+        when(searchResultSet.getString("STACK_TRACE")).thenReturn("trace");
 
         // When
         JobMessagesPaged result = adapter.searchMessages(
@@ -138,7 +138,7 @@ class JobMessageStorageAdapterTest {
         when(connection.prepareStatement(anyString())).thenReturn(countersStatement);
         when(countersStatement.executeQuery()).thenReturn(countersResultSet);
         when(countersResultSet.next()).thenReturn(true, true, true, false);
-        when(countersResultSet.getString("level")).thenReturn(
+        when(countersResultSet.getString("LEVEL")).thenReturn(
                 JobMessageLevel.INFO.name(),
                 JobMessageLevel.WARNING.name(),
                 JobMessageLevel.EXCEPTION.name()

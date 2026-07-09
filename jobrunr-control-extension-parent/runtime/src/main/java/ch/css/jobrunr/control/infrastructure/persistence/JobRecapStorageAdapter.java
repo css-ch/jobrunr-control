@@ -20,20 +20,20 @@ public class JobRecapStorageAdapter implements JobRecapStoragePort {
     private static final Logger LOG = Logger.getLogger(JobRecapStorageAdapter.class);
 
     private static final String DELETE_RECAP_FOR_CHILD_SQL = """
-            DELETE FROM jobrunr_control_batch_recap
-            WHERE batch_job_id = ? AND child_job_id = ?
+            DELETE FROM "JOBRUNR_CONTROL_BATCH_RECAP"
+            WHERE "BATCH_JOB_ID" = ? AND "CHILD_JOB_ID" = ?
             """;
 
     private static final String INSERT_RECAP_SQL = """
-            INSERT INTO jobrunr_control_batch_recap (batch_job_id, child_job_id, counter_name, counter_value)
+            INSERT INTO "JOBRUNR_CONTROL_BATCH_RECAP" ("BATCH_JOB_ID", "CHILD_JOB_ID", "COUNTER_NAME", "COUNTER_VALUE")
             VALUES (?, ?, ?, ?)
             """;
 
     private static final String SELECT_RECAP_ALL_COUNTERS_SQL = """
-            SELECT counter_name, SUM(counter_value) AS total_counter_value
-            FROM jobrunr_control_batch_recap
-            WHERE batch_job_id = ?
-            GROUP BY counter_name
+            SELECT "COUNTER_NAME", SUM("COUNTER_VALUE") AS total_counter_value
+            FROM "JOBRUNR_CONTROL_BATCH_RECAP"
+            WHERE "BATCH_JOB_ID" = ?
+            GROUP BY "COUNTER_NAME"
             """;
 
     private final AgroalDataSource dataSource;
@@ -83,7 +83,7 @@ public class JobRecapStorageAdapter implements JobRecapStoragePort {
 
             try (ResultSet resultSet = stmt.executeQuery()) {
                 while (resultSet.next()) {
-                    recap.put(resultSet.getString("counter_name"), resultSet.getLong("total_counter_value"));
+                    recap.put(resultSet.getString("COUNTER_NAME"), resultSet.getLong("total_counter_value"));
                 }
             }
             return recap;

@@ -29,25 +29,25 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
     private static final Logger LOG = Logger.getLogger(JobMessageStorageAdapter.class);
 
     private static final String INSERT_SQL = """
-            INSERT INTO jobrunr_control_batch_messages (batch_job_id, child_job_id, created_at, level, message, stack_trace)
+            INSERT INTO "JOBRUNR_CONTROL_BATCH_MESSAGES" ("BATCH_JOB_ID", "CHILD_JOB_ID", "CREATED_AT", "LEVEL", "MESSAGE", "STACK_TRACE")
             VALUES (?, ?, ?, ?, ?, ?)
             """;
 
     private static final String SEARCH_SELECT_PREFIX = """
-            SELECT created_at, child_job_id, level, message, stack_trace
-            FROM jobrunr_control_batch_messages
+            SELECT "CREATED_AT", "CHILD_JOB_ID", "LEVEL", "MESSAGE", "STACK_TRACE"
+            FROM "JOBRUNR_CONTROL_BATCH_MESSAGES"
             """;
 
     private static final String SEARCH_COUNT_PREFIX = """
             SELECT COUNT(*)
-            FROM jobrunr_control_batch_messages
+            FROM "JOBRUNR_CONTROL_BATCH_MESSAGES"
             """;
 
     private static final String COUNTERS_SQL = """
-            SELECT level, COUNT(*) AS level_count
-            FROM jobrunr_control_batch_messages
-            WHERE batch_job_id = ?
-            GROUP BY level
+            SELECT "LEVEL", COUNT(*) AS level_count
+            FROM "JOBRUNR_CONTROL_BATCH_MESSAGES"
+            WHERE "BATCH_JOB_ID" = ?
+            GROUP BY "LEVEL"
             """;
 
     private final AgroalDataSource dataSource;
@@ -92,8 +92,8 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
 
         SearchQueryParts queryParts = buildSearchQueryParts(jobId, effectiveLevelSearch, normalizedTextSearch);
         String orderBy = effectiveSortOrder == JobMessageSortOrder.NEWEST_FIRST
-                ? " ORDER BY created_at DESC, id DESC"
-                : " ORDER BY created_at ASC, id ASC";
+                ? " ORDER BY \"CREATED_AT\" DESC, \"ID\" DESC"
+                : " ORDER BY \"CREATED_AT\" ASC, \"ID\" ASC";
 
         String pagedQuery = SEARCH_SELECT_PREFIX + queryParts.whereClause() + orderBy + paginationClause();
         String countQuery = SEARCH_COUNT_PREFIX + queryParts.whereClause();
@@ -127,7 +127,7 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    String level = rs.getString("level");
+                    String level = rs.getString("LEVEL");
                     long count = rs.getLong("level_count");
                     if (level == null) {
                         continue;
@@ -182,15 +182,15 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
             try (ResultSet rs = stmt.executeQuery()) {
                 List<JobMessage> messages = new ArrayList<>();
                 while (rs.next()) {
-                    Timestamp timestamp = rs.getTimestamp("created_at");
+                    Timestamp timestamp = rs.getTimestamp("CREATED_AT");
                     Instant createdAt = timestamp == null ? Instant.now() : timestamp.toInstant();
-                    String childJobId = rs.getString("child_job_id");
+                    String childJobId = rs.getString("CHILD_JOB_ID");
                     messages.add(new JobMessage(
                             createdAt,
                             childJobId != null ? UUID.fromString(childJobId) : null,
-                            JobMessageLevel.valueOf(rs.getString("level").toUpperCase(Locale.ROOT)),
-                            rs.getString("message"),
-                            rs.getString("stack_trace")
+                            JobMessageLevel.valueOf(rs.getString("LEVEL").toUpperCase(Locale.ROOT)),
+                            rs.getString("MESSAGE"),
+                            rs.getString("STACK_TRACE")
                     ));
                 }
                 return messages;
@@ -201,13 +201,13 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
     private SearchQueryParts buildSearchQueryParts(UUID jobId,
                                                    JobMessageLevelSearch levelSearch,
                                                    String normalizedTextSearch) {
-        StringBuilder where = new StringBuilder(" WHERE batch_job_id = ?");
+        StringBuilder where = new StringBuilder(" WHERE \"BATCH_JOB_ID\" = ?");
         List<Object> parameters = new ArrayList<>();
         parameters.add(jobId.toString());
 
         List<String> levelFilter = resolveLevelFilter(levelSearch);
         if (!levelFilter.isEmpty()) {
-            where.append(" AND level IN (");
+            where.append(" AND \"LEVEL\" IN (");
             for (int i = 0; i < levelFilter.size(); i++) {
                 if (i > 0) {
                     where.append(", ");
@@ -219,7 +219,7 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
         }
 
         if (!normalizedTextSearch.isBlank()) {
-            where.append(" AND (LOWER(message) LIKE ? OR LOWER(stack_trace) LIKE ? OR LOWER(child_job_id) LIKE ?)");
+            where.append(" AND (LOWER(\"MESSAGE\") LIKE ? OR LOWER(\"STACK_TRACE\") LIKE ? OR LOWER(\"CHILD_JOB_ID\") LIKE ?)");
             String searchPattern = "%" + normalizedTextSearch + "%";
             parameters.add(searchPattern);
             parameters.add(searchPattern);

@@ -95,10 +95,10 @@ public class DatabaseTypeHandler {
         // Oracle requires getString() to avoid ORA-18722 error
         // (Connection property oracle.jdbc.jsonDefaultGetObjectType is not set)
         if (databaseType == DatabaseType.ORACLE) {
-            return rs.getString("parameters_json");
+            return rs.getString("PARAMETERS_JSON");
         }
 
-        Object jsonObject = rs.getObject("parameters_json");
+        Object jsonObject = rs.getObject("PARAMETERS_JSON");
 
         // Some databases (H2, MySQL) return String directly
         if (jsonObject instanceof String) {
@@ -106,7 +106,7 @@ public class DatabaseTypeHandler {
         }
 
         // PostgreSQL and others return via getString()
-        return rs.getString("parameters_json");
+        return rs.getString("PARAMETERS_JSON");
     }
 
     /**
