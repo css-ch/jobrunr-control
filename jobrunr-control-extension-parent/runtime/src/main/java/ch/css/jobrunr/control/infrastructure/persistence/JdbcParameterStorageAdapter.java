@@ -27,25 +27,25 @@ public class JdbcParameterStorageAdapter implements ParameterStoragePort {
     private static final Logger LOG = Logger.getLogger(JdbcParameterStorageAdapter.class);
 
     private static final String INSERT_SQL = """
-            INSERT INTO jobrunr_control_parameter_sets (id, job_type, parameters_json, created_at, updated_at, version)
+            INSERT INTO "JOBRUNR_CONTROL_PARAMETER_SETS" ("ID", "JOB_TYPE", "PARAMETERS_JSON", "CREATED_AT", "UPDATED_AT", "VERSION")
             VALUES (?, ?, ?, ?, ?, ?)
             """;
 
     private static final String UPDATE_SQL = """
-            UPDATE jobrunr_control_parameter_sets
-            SET job_type = ?, parameters_json = ?, updated_at = ?, version = version + 1
-            WHERE id = ?
+            UPDATE "JOBRUNR_CONTROL_PARAMETER_SETS"
+            SET "JOB_TYPE" = ?, "PARAMETERS_JSON" = ?, "UPDATED_AT" = ?, "VERSION" = "VERSION" + 1
+            WHERE "ID" = ?
             """;
 
     private static final String SELECT_BY_ID_SQL = """
-            SELECT id, job_type, parameters_json, created_at, updated_at, version
-            FROM jobrunr_control_parameter_sets
-            WHERE id = ?
+            SELECT "ID", "JOB_TYPE", "PARAMETERS_JSON", "CREATED_AT", "UPDATED_AT", "VERSION"
+            FROM "JOBRUNR_CONTROL_PARAMETER_SETS"
+            WHERE "ID" = ?
             """;
 
     private static final String DELETE_BY_ID_SQL = """
-            DELETE FROM jobrunr_control_parameter_sets
-            WHERE id = ?
+            DELETE FROM "JOBRUNR_CONTROL_PARAMETER_SETS"
+            WHERE "ID" = ?
             """;
 
     private final ObjectMapper objectMapper;
@@ -164,11 +164,11 @@ public class JdbcParameterStorageAdapter implements ParameterStoragePort {
             Map<String, Object> parameters = objectMapper.readValue(jsonToDeserialize, Map.class);
 
             return Optional.of(new ParameterSet(
-                    UUID.fromString(rs.getString("id")),
-                    rs.getString("job_type"),
+                    UUID.fromString(rs.getString("ID")),
+                    rs.getString("JOB_TYPE"),
                     parameters,
-                    rs.getTimestamp("created_at").toInstant(),
-                    rs.getTimestamp("updated_at").toInstant()
+                    rs.getTimestamp("CREATED_AT").toInstant(),
+                    rs.getTimestamp("UPDATED_AT").toInstant()
             ));
         } catch (JsonProcessingException e) {
             LOG.errorf(e, "Failed to deserialize parameters for set: %s. JSON content (first 200 chars): %s",

@@ -11,28 +11,28 @@ BEGIN
 
     IF table_exists = 0 THEN
         EXECUTE IMMEDIATE '
-            CREATE TABLE jobrunr_control_parameter_sets (
-                id VARCHAR2(36) PRIMARY KEY NOT NULL,
-                job_type VARCHAR2(500) NOT NULL,
-                parameters_json CLOB NOT NULL,
-                created_at TIMESTAMP NOT NULL,
-                updated_at TIMESTAMP NOT NULL,
-                version NUMBER(19)
+            CREATE TABLE "JOBRUNR_CONTROL_PARAMETER_SETS" (
+                "ID" VARCHAR2(36) PRIMARY KEY NOT NULL,
+                "JOB_TYPE" VARCHAR2(500) NOT NULL,
+                "PARAMETERS_JSON" CLOB NOT NULL,
+                "CREATED_AT" TIMESTAMP NOT NULL,
+                "UPDATED_AT" TIMESTAMP NOT NULL,
+                "VERSION" NUMBER(19)
             )
         ';
-        EXECUTE IMMEDIATE 'CREATE INDEX idx_param_set_job_type ON jobrunr_control_parameter_sets(job_type)';
-        EXECUTE IMMEDIATE 'CREATE INDEX idx_param_set_created ON jobrunr_control_parameter_sets(created_at)';
-        EXECUTE IMMEDIATE 'CREATE INDEX idx_param_set_updated ON jobrunr_control_parameter_sets(updated_at)';
-        EXECUTE IMMEDIATE 'COMMENT ON TABLE jobrunr_control_parameter_sets IS ''Stores job parameter sets for JobRunr Control external parameter storage''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_parameter_sets.id IS ''Unique identifier (UUID)''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_parameter_sets.job_type IS ''Fully qualified job class name''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_parameter_sets.parameters_json IS ''Job parameters stored as JSON''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_parameter_sets.created_at IS ''Timestamp when the parameter set was created''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_parameter_sets.updated_at IS ''Timestamp when the parameter set was last updated''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_parameter_sets.version IS ''Optimistic locking version''';
-        DBMS_OUTPUT.PUT_LINE('Table jobrunr_control_parameter_sets created successfully.');
+        EXECUTE IMMEDIATE 'CREATE INDEX idx_param_set_job_type ON "JOBRUNR_CONTROL_PARAMETER_SETS"("JOB_TYPE")';
+        EXECUTE IMMEDIATE 'CREATE INDEX idx_param_set_created ON "JOBRUNR_CONTROL_PARAMETER_SETS"("CREATED_AT")';
+        EXECUTE IMMEDIATE 'CREATE INDEX idx_param_set_updated ON "JOBRUNR_CONTROL_PARAMETER_SETS"("UPDATED_AT")';
+        EXECUTE IMMEDIATE 'COMMENT ON TABLE "JOBRUNR_CONTROL_PARAMETER_SETS" IS ''Stores job parameter sets for JobRunr Control external parameter storage''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_PARAMETER_SETS"."ID" IS ''Unique identifier (UUID)''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_PARAMETER_SETS"."JOB_TYPE" IS ''Fully qualified job class name''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_PARAMETER_SETS"."PARAMETERS_JSON" IS ''Job parameters stored as JSON''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_PARAMETER_SETS"."CREATED_AT" IS ''Timestamp when the parameter set was created''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_PARAMETER_SETS"."UPDATED_AT" IS ''Timestamp when the parameter set was last updated''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_PARAMETER_SETS"."VERSION" IS ''Optimistic locking version''';
+        DBMS_OUTPUT.PUT_LINE('Table "JOBRUNR_CONTROL_PARAMETER_SETS" created successfully.');
     ELSE
-        DBMS_OUTPUT.PUT_LINE('Table jobrunr_control_parameter_sets already exists, skipping.');
+        DBMS_OUTPUT.PUT_LINE('Table "JOBRUNR_CONTROL_PARAMETER_SETS" already exists, skipping.');
     END IF;
 
     SELECT COUNT(*) INTO table_exists
@@ -41,23 +41,23 @@ BEGIN
 
     IF table_exists = 0 THEN
         EXECUTE IMMEDIATE '
-            CREATE TABLE jobrunr_control_batch_recap (
-                batch_job_id VARCHAR2(36) NOT NULL,
-                child_job_id VARCHAR2(36) NOT NULL,
-                counter_name VARCHAR2(255) NOT NULL,
-                counter_value NUMBER(19) DEFAULT 0 NOT NULL,
-                CONSTRAINT pk_jobrunr_control_batch_recap PRIMARY KEY (batch_job_id, child_job_id, counter_name)
+            CREATE TABLE "JOBRUNR_CONTROL_BATCH_RECAP" (
+                "BATCH_JOB_ID" VARCHAR2(36) NOT NULL,
+                "CHILD_JOB_ID" VARCHAR2(36) NOT NULL,
+                "COUNTER_NAME" VARCHAR2(255) NOT NULL,
+                "COUNTER_VALUE" NUMBER(19) DEFAULT 0 NOT NULL,
+                CONSTRAINT pk_jobrunr_control_batch_recap PRIMARY KEY ("BATCH_JOB_ID", "CHILD_JOB_ID", "COUNTER_NAME")
             )
         ';
-        EXECUTE IMMEDIATE 'COMMENT ON TABLE jobrunr_control_batch_recap IS ''Recap counters per child job in a batch''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_batch_recap.batch_job_id IS ''Batch job identifier (UUID)''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_batch_recap.child_job_id IS ''Child job identifier (UUID)''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_batch_recap.counter_name IS ''Recap counter name''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_batch_recap.counter_value IS ''Counter value for one child job''';
-        EXECUTE IMMEDIATE 'CREATE INDEX idx_batch_recap_agg ON jobrunr_control_batch_recap(batch_job_id, counter_name, counter_value)';
-        DBMS_OUTPUT.PUT_LINE('Table jobrunr_control_batch_recap created successfully.');
+        EXECUTE IMMEDIATE 'COMMENT ON TABLE "JOBRUNR_CONTROL_BATCH_RECAP" IS ''Recap counters per child job in a batch''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_RECAP"."BATCH_JOB_ID" IS ''Batch job identifier (UUID)''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_RECAP"."CHILD_JOB_ID" IS ''Child job identifier (UUID)''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_RECAP"."COUNTER_NAME" IS ''Recap counter name''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_RECAP"."COUNTER_VALUE" IS ''Counter value for one child job''';
+        EXECUTE IMMEDIATE 'CREATE INDEX idx_batch_recap_agg ON "JOBRUNR_CONTROL_BATCH_RECAP"("BATCH_JOB_ID", "COUNTER_NAME", "COUNTER_VALUE")';
+        DBMS_OUTPUT.PUT_LINE('Table "JOBRUNR_CONTROL_BATCH_RECAP" created successfully.');
     ELSE
-        DBMS_OUTPUT.PUT_LINE('Table jobrunr_control_batch_recap already exists, skipping.');
+        DBMS_OUTPUT.PUT_LINE('Table "JOBRUNR_CONTROL_BATCH_RECAP" already exists, skipping.');
     END IF;
 
     SELECT COUNT(*) INTO table_exists
@@ -66,24 +66,24 @@ BEGIN
 
     IF table_exists = 0 THEN
         EXECUTE IMMEDIATE '
-            CREATE TABLE jobrunr_control_batch_messages (
-                id NUMBER(19) GENERATED BY DEFAULT ON NULL AS IDENTITY PRIMARY KEY,
-                batch_job_id VARCHAR2(36) NOT NULL,
-                created_at TIMESTAMP NOT NULL,
-                level VARCHAR2(20) NOT NULL,
-                message CLOB,
-                stack_trace CLOB
+            CREATE TABLE "JOBRUNR_CONTROL_BATCH_MESSAGES" (
+                "ID" NUMBER(19) GENERATED BY DEFAULT ON NULL AS IDENTITY PRIMARY KEY,
+                "BATCH_JOB_ID" VARCHAR2(36) NOT NULL,
+                "CREATED_AT" TIMESTAMP NOT NULL,
+                "LEVEL" VARCHAR2(20) NOT NULL,
+                "MESSAGE" CLOB,
+                "STACK_TRACE" CLOB
             )
         ';
-        EXECUTE IMMEDIATE 'CREATE INDEX idx_batch_msg_created ON jobrunr_control_batch_messages(batch_job_id, created_at)';
-        EXECUTE IMMEDIATE 'CREATE INDEX idx_batch_msg_filter ON jobrunr_control_batch_messages(batch_job_id, level, created_at)';
-        EXECUTE IMMEDIATE 'COMMENT ON TABLE jobrunr_control_batch_messages IS ''Batch job log and exception messages''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_batch_messages.batch_job_id IS ''Batch job identifier (UUID)''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_batch_messages.created_at IS ''Timestamp when the message was created''';
-        EXECUTE IMMEDIATE 'COMMENT ON COLUMN jobrunr_control_batch_messages.level IS ''Message level (INFO, WARNING, ERROR, EXCEPTION)''';
-        DBMS_OUTPUT.PUT_LINE('Table jobrunr_control_batch_messages created successfully.');
+        EXECUTE IMMEDIATE 'CREATE INDEX idx_batch_msg_created ON "JOBRUNR_CONTROL_BATCH_MESSAGES"("BATCH_JOB_ID", "CREATED_AT")';
+        EXECUTE IMMEDIATE 'CREATE INDEX idx_batch_msg_filter ON "JOBRUNR_CONTROL_BATCH_MESSAGES"("BATCH_JOB_ID", "LEVEL", "CREATED_AT")';
+        EXECUTE IMMEDIATE 'COMMENT ON TABLE "JOBRUNR_CONTROL_BATCH_MESSAGES" IS ''Batch job log and exception messages''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_MESSAGES"."BATCH_JOB_ID" IS ''Batch job identifier (UUID)''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_MESSAGES"."CREATED_AT" IS ''Timestamp when the message was created''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_MESSAGES"."LEVEL" IS ''Message level (INFO, WARNING, ERROR, EXCEPTION)''';
+        DBMS_OUTPUT.PUT_LINE('Table "JOBRUNR_CONTROL_BATCH_MESSAGES" created successfully.');
     ELSE
-        DBMS_OUTPUT.PUT_LINE('Table jobrunr_control_batch_messages already exists, skipping.');
+        DBMS_OUTPUT.PUT_LINE('Table "JOBRUNR_CONTROL_BATCH_MESSAGES" already exists, skipping.');
     END IF;
 END;
 /

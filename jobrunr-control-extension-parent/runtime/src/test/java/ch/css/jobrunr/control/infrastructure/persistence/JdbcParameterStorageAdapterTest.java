@@ -67,7 +67,7 @@ class JdbcParameterStorageAdapterTest {
 
         lenient().when(databaseTypeHandler.extractJson(any())).thenAnswer(invocation -> {
             ResultSet rs = invocation.getArgument(0);
-            return rs.getString("parameters_json");
+            return rs.getString("PARAMETERS_JSON");
         });
 
         lenient().when(databaseTypeHandler.processJsonAfterRead(any(), anyString())).thenAnswer(invocation -> {
@@ -108,11 +108,11 @@ class JdbcParameterStorageAdapterTest {
         when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
-        when(resultSet.getString("id")).thenReturn(id.toString());
-        when(resultSet.getString("job_type")).thenReturn("TestJob");
-        when(resultSet.getString("parameters_json")).thenReturn(jsonParams);
-        when(resultSet.getTimestamp("created_at")).thenReturn(Timestamp.from(now));
-        when(resultSet.getTimestamp("updated_at")).thenReturn(Timestamp.from(now));
+        when(resultSet.getString("ID")).thenReturn(id.toString());
+        when(resultSet.getString("JOB_TYPE")).thenReturn("TestJob");
+        when(resultSet.getString("PARAMETERS_JSON")).thenReturn(jsonParams);
+        when(resultSet.getTimestamp("CREATED_AT")).thenReturn(Timestamp.from(now));
+        when(resultSet.getTimestamp("UPDATED_AT")).thenReturn(Timestamp.from(now));
 
         // When
         Optional<ParameterSet> result = adapter.findById(id);
@@ -211,7 +211,7 @@ class JdbcParameterStorageAdapterTest {
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
         // Only stub parameters_json since the JSON parsing fails before reading other columns
-        when(resultSet.getString("parameters_json")).thenReturn(invalidJson);
+        when(resultSet.getString("PARAMETERS_JSON")).thenReturn(invalidJson);
 
         // When
         Optional<ParameterSet> result = adapter.findById(id);

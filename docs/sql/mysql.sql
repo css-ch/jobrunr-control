@@ -1,36 +1,36 @@
 -- MySQL/MariaDB DDL for JobRunr Control parameter sets table
 -- Create this table manually before using external parameter storage
 
-CREATE TABLE IF NOT EXISTS jobrunr_control_parameter_sets (
-    id VARCHAR(36) PRIMARY KEY NOT NULL,
-    job_type VARCHAR(500) NOT NULL,
-    parameters_json JSON NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
-    version BIGINT
+CREATE TABLE IF NOT EXISTS `JOBRUNR_CONTROL_PARAMETER_SETS` (
+    `ID` VARCHAR(36) PRIMARY KEY NOT NULL,
+    `JOB_TYPE` VARCHAR(500) NOT NULL,
+    `PARAMETERS_JSON` JSON NOT NULL,
+    `CREATED_AT` TIMESTAMP NOT NULL,
+    `UPDATED_AT` TIMESTAMP NOT NULL,
+    `VERSION` BIGINT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Stores job parameter sets for JobRunr Control external parameter storage';
 
-CREATE INDEX idx_param_set_job_type ON jobrunr_control_parameter_sets(job_type);
-CREATE INDEX idx_param_set_created ON jobrunr_control_parameter_sets(created_at);
-CREATE INDEX idx_param_set_updated ON jobrunr_control_parameter_sets(updated_at);
+CREATE INDEX idx_param_set_job_type ON `JOBRUNR_CONTROL_PARAMETER_SETS`(`JOB_TYPE`);
+CREATE INDEX idx_param_set_created ON `JOBRUNR_CONTROL_PARAMETER_SETS`(`CREATED_AT`);
+CREATE INDEX idx_param_set_updated ON `JOBRUNR_CONTROL_PARAMETER_SETS`(`UPDATED_AT`);
 
-CREATE TABLE IF NOT EXISTS jobrunr_control_batch_recap (
-    batch_job_id VARCHAR(36) NOT NULL,
-    child_job_id VARCHAR(36) NOT NULL,
-    counter_name VARCHAR(255) NOT NULL,
-    counter_value BIGINT NOT NULL DEFAULT 0,
-    PRIMARY KEY (batch_job_id, child_job_id, counter_name)
+CREATE TABLE IF NOT EXISTS `JOBRUNR_CONTROL_BATCH_RECAP` (
+    `BATCH_JOB_ID` VARCHAR(36) NOT NULL,
+    `CHILD_JOB_ID` VARCHAR(36) NOT NULL,
+    `COUNTER_NAME` VARCHAR(255) NOT NULL,
+    `COUNTER_VALUE` BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (`BATCH_JOB_ID`, `CHILD_JOB_ID`, `COUNTER_NAME`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recap counters per child job in a batch';
-CREATE INDEX idx_batch_recap_agg ON jobrunr_control_batch_recap(batch_job_id, counter_name, counter_value);
+CREATE INDEX idx_batch_recap_agg ON `JOBRUNR_CONTROL_BATCH_RECAP`(`BATCH_JOB_ID`, `COUNTER_NAME`, `COUNTER_VALUE`);
 
-CREATE TABLE IF NOT EXISTS jobrunr_control_batch_messages (
-    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    batch_job_id VARCHAR(36) NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    level VARCHAR(20) NOT NULL,
-    message LONGTEXT,
-    stack_trace LONGTEXT
+CREATE TABLE IF NOT EXISTS `JOBRUNR_CONTROL_BATCH_MESSAGES` (
+    `ID` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `BATCH_JOB_ID` VARCHAR(36) NOT NULL,
+    `CREATED_AT` TIMESTAMP NOT NULL,
+    `LEVEL` VARCHAR(20) NOT NULL,
+    `MESSAGE` LONGTEXT,
+    `STACK_TRACE` LONGTEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Batch job log and exception messages';
 
-CREATE INDEX idx_batch_msg_created ON jobrunr_control_batch_messages(batch_job_id, created_at);
-CREATE INDEX idx_batch_msg_filter ON jobrunr_control_batch_messages(batch_job_id, level, created_at);
+CREATE INDEX idx_batch_msg_created ON `JOBRUNR_CONTROL_BATCH_MESSAGES`(`BATCH_JOB_ID`, `CREATED_AT`);
+CREATE INDEX idx_batch_msg_filter ON `JOBRUNR_CONTROL_BATCH_MESSAGES`(`BATCH_JOB_ID`, `LEVEL`, `CREATED_AT`);
