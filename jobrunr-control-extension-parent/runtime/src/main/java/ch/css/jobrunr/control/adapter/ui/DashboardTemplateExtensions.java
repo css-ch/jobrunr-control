@@ -88,5 +88,9 @@ public class DashboardTemplateExtensions {
         public boolean hasOpenApi() {
             return buildConfigPort.isOpenApiAvailable();
         }
+
+        public String openApiUrl() {
+            return buildConfigPort.getOpenApiUrl();
+        }
     }
 }

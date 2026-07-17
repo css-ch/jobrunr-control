@@ -13,4 +13,11 @@ public interface BuildTimeConfigurationPort {
      * @return true if OpenAPI is available, false otherwise
      */
     boolean isOpenApiAvailable();
+
+    /**
+     * Returns the URL where Swagger runs
+     *
+     * @return the URL of the Swagger UI
+     */
+    String getOpenApiUrl();
 }

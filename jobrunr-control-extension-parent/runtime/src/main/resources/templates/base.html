@@ -111,7 +111,7 @@
                 <small>
                     JobRunr Control v{dashboard.version()} |
                     {#if dashboard.hasOpenApi()}
-                    <a href="/q/swagger-ui">API Documentation</a> |
+                    <a href="{dashboard.openApiUrl()}">API Documentation</a> |
                     {/if}
                     <a href="{dashboard.url()}" target="_blank">JobRunr Dashboard</a>
                 </small>

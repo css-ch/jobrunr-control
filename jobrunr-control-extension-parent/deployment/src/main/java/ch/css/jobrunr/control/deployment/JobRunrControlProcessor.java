@@ -14,10 +14,14 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.LaunchModeBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigurationDefaultBuildItem;
+import io.quarkus.runtime.LaunchMode;
 import io.quarkus.vertx.http.deployment.NonApplicationRootPathBuildItem;
 import io.quarkus.vertx.http.deployment.RouteBuildItem;
 import io.quarkus.vertx.http.runtime.HandlerType;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.util.List;
 
@@ -286,9 +290,46 @@ public class JobRunrControlProcessor {
      */
     @BuildStep
     @Record(ExecutionTime.STATIC_INIT)
-    void detectOpenApi(Capabilities capabilities, JobDefinitionRecorder recorder) {
+    void detectOpenApi(
+            Capabilities capabilities,
+            LaunchModeBuildItem launchMode,
+            JobDefinitionRecorder recorder) {
+        Config config = ConfigProvider.getConfig();
         boolean hasOpenApi = capabilities.isPresent(Capability.SMALLRYE_OPENAPI);
-        recorder.registerOpenApiAvailability(hasOpenApi);
+        boolean alwaysInclude = config
+                .getOptionalValue("quarkus.swagger-ui.always-include", Boolean.class)
+                .orElse(false);
+        boolean swaggerUiActive = hasOpenApi && (launchMode.getLaunchMode() != LaunchMode.NORMAL || alwaysInclude);
+        String openApiUrl = null;
+        if (swaggerUiActive) {
+            String swaggerUiPath = config.getOptionalValue("quarkus.swagger-ui.path", String.class)
+                    .orElse("swagger-ui");
+            String nonApplicationRootPath = config.getOptionalValue("quarkus.http.non-application-root-path", String.class)
+                    .orElse("/q");
+            openApiUrl = buildSwaggerUiUrl(nonApplicationRootPath, swaggerUiPath);
+        }
+        recorder.registerOpenApiAvailability(swaggerUiActive, openApiUrl);
     }
 
+    private static String buildSwaggerUiUrl(
+            String nonApplicationRootPath,
+            String swaggerUiPath) {
+        if(swaggerUiPath.startsWith("/")) {
+            return swaggerUiPath;
+        }
+        String root = removeLeadingAndTrailingSlash(nonApplicationRootPath);
+        String path = removeLeadingAndTrailingSlash(swaggerUiPath);
+        if (path.isEmpty()) {
+            return "/" + root;
+        }
+        return "/" + root + "/" + path;
+    }
+
+    private static String removeLeadingAndTrailingSlash(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String result = value.startsWith("/") ? value.substring(1) : value;
+        return result.endsWith("/") ? result.substring(0, result.length() - 1) : result;
+    }
 }
