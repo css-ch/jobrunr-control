@@ -15,4 +15,9 @@ public class BuildTimeConfigurationAdapter implements BuildTimeConfigurationPort
     public boolean isOpenApiAvailable() {
         return JobDefinitionRecorder.JobDefinitionRegistry.INSTANCE.isOpenApiAvailable();
     }
+
+    @Override
+    public String getOpenApiUrl() {
+        return JobDefinitionRecorder.JobDefinitionRegistry.INSTANCE.getOpenApiUrl();
+    }
 }

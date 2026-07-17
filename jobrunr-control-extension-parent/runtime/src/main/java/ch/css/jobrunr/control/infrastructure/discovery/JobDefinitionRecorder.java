@@ -21,8 +21,9 @@ public class JobDefinitionRecorder {
         JobDefinitionRegistry.INSTANCE.setDefinitions(jobDefinitions);
     }
 
-    public void registerOpenApiAvailability(boolean hasOpenApi) {
+    public void registerOpenApiAvailability(boolean hasOpenApi, String openApiUrl) {
         JobDefinitionRegistry.INSTANCE.setOpenApiAvailable(hasOpenApi);
+        JobDefinitionRegistry.INSTANCE.setOpenApiUrl(openApiUrl);
     }
 
     /**
@@ -33,6 +34,7 @@ public class JobDefinitionRecorder {
 
         private final Map<String, JobDefinition> definitionsByHandlerClass = new HashMap<>();
         private boolean openApiAvailable = false;
+        private String openApiUrl = "/q/swagger-ui";
 
         private JobDefinitionRegistry() {
         }
@@ -48,8 +50,16 @@ public class JobDefinitionRecorder {
             this.openApiAvailable = available;
         }
 
+        void setOpenApiUrl(String url) {
+            this.openApiUrl = url;
+        }
+
         public boolean isOpenApiAvailable() {
             return openApiAvailable;
+        }
+
+        public String getOpenApiUrl() {
+            return openApiUrl;
         }
 
         public JobDefinition getDefinition(String handlerClassName) {
