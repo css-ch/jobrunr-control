@@ -7,6 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.Job;
+import org.jobrunr.jobs.JobDetails;
 import org.jobrunr.jobs.states.StateName;
 import org.jobrunr.storage.JobSearchRequest;
 import org.jobrunr.storage.JobSearchRequestBuilder;
@@ -69,7 +70,7 @@ public class ConfigurableJobSearchAdapter {
         try {
             JobSearchRequest searchRequest = createSearchRequest(state, jobDefinition);
             List<Job> jobList = storageProvider.getJobList(searchRequest, amountRequest);
-            addNonChildJobs(jobList, jobDefinition, results);
+            addOwnTypeJobs(jobList, jobDefinition, results);
         } catch (Exception e) {
             LOG.warnf(e, "Error retrieving jobs in state %s with type %s", state, jobDefinition.jobType());
         }
@@ -83,16 +84,33 @@ public class ConfigurableJobSearchAdapter {
         }
     }
 
-    private void addNonChildJobs(List<Job> jobList, JobDefinition jobDefinition, List<ConfigurableJobSearchResult> results) {
+    private void addOwnTypeJobs(List<Job> jobList, JobDefinition jobDefinition, List<ConfigurableJobSearchResult> results) {
         for (Job job : jobList) {
-            if (!isChildJobOfBatch(job, jobDefinition)) {
+            if (isOwnJobType(job, jobDefinition)) {
                 results.add(new ConfigurableJobSearchResult(jobDefinition, job));
             }
         }
     }
 
-    private boolean isChildJobOfBatch(Job job, JobDefinition jobDefinition) {
-        return jobDefinition.isBatchJob() && !job.isBatchJob();
+    /**
+     * Returns {@code true} only when the job's own handler resolves to this definition.
+     *
+     * <p>Jobs are searched by their {@code jobtype:} label, but JobRunr propagates a batch parent's
+     * labels onto its child jobs. When such a child is itself a configurable batch job, the label
+     * search returns it both under its own type and under the inherited parent type, producing
+     * duplicate history entries. Resolving the authoritative handler class from
+     * {@link Job#getJobDetails()} — rather than trusting the (possibly inherited) label — attributes
+     * each job to exactly one definition. Jobs whose handler is not a discovered
+     * {@code @ConfigurableJob} (e.g. plain leaf child jobs) are excluded.
+     */
+    private boolean isOwnJobType(Job job, JobDefinition jobDefinition) {
+        JobDetails jobDetails = job.getJobDetails();
+        if (jobDetails == null) {
+            return false;
+        }
+        return jobDefinitionDiscoveryService.findJobByHandlerClassName(jobDetails.getClassName())
+                .map(ownDefinition -> ownDefinition.jobType().equals(jobDefinition.jobType()))
+                .orElse(false);
     }
 
     /**
