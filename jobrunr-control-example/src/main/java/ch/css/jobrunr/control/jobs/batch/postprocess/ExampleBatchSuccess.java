@@ -34,7 +34,7 @@ public class ExampleBatchSuccess implements JobRequestHandler<ExampleBatchSucces
 
         // Get parent job metadata for detailed result message
         var parentJob = storageProvider.getJobById(parentJobId);
-        Integer totalChildren = (Integer) parentJob.getMetadata().get("total_children");
+        Integer totalChunks = (Integer) parentJob.getMetadata().get("total_chunks");
         String enqueuedAt = (String) parentJob.getMetadata().get("enqueued_at");
 
         try {
@@ -45,8 +45,8 @@ public class ExampleBatchSuccess implements JobRequestHandler<ExampleBatchSucces
 
         // Build detailed success message
         String resultMessage = String.format(
-                "Batch job completed successfully - all %d child jobs processed. Enqueued at: %s",
-                totalChildren != null ? totalChildren : 0,
+                "Batch job completed successfully - all %d chunk jobs processed. Enqueued at: %s",
+                totalChunks != null ? totalChunks : 0,
                 enqueuedAt != null ? enqueuedAt : "unknown"
         );
 

@@ -35,7 +35,7 @@ public class ExampleBatchFailure implements JobRequestHandler<ExampleBatchFailur
 
         // Get parent job metadata for detailed result message
         var parentJob = storageProvider.getJobById(parentJobId);
-        Integer totalChildren = (Integer) parentJob.getMetadata().get("total_children");
+        Integer totalChunks = (Integer) parentJob.getMetadata().get("total_chunks");
         String enqueuedAt = (String) parentJob.getMetadata().get("enqueued_at");
 
         try {
@@ -46,8 +46,8 @@ public class ExampleBatchFailure implements JobRequestHandler<ExampleBatchFailur
 
         // Build detailed failure message
         String resultMessage = String.format(
-                "Batch job failed - one or more child jobs encountered errors. Total children: %d, Enqueued at: %s",
-                totalChildren != null ? totalChildren : 0,
+                "Batch job failed - one or more chunk jobs encountered errors. Total chunks: %d, Enqueued at: %s",
+                totalChunks != null ? totalChunks : 0,
                 enqueuedAt != null ? enqueuedAt : "unknown"
         );
 
