@@ -308,6 +308,53 @@ public void handleIndex(RoutingContext ctx) {
 public Response startJob(...) { ... }
 ----
 
+=== AD-8: Canonical Batch Workflow Boundary
+
+==== Context
+
+A configurable batch may create nested batches, worker jobs and any number of success or failure
+continuations. JobRunr inherits labels across that graph and may update the outer batch's parent
+relation to its final continuation. Neither labels nor a null parent therefore identify the logical
+execution reliably. Recursively deriving the final status from continuation leaves is also
+ambiguous because the public JobRunr API does not expose every continuation trigger detail.
+
+==== Decision
+
+* The outer configurable `BatchJob` is the canonical logical execution and lifecycle bracket.
+  All work that must delay its terminal state is configured while that bracket is executing, using
+  the JobRunr Pro batch and continuation APIs.
+* Every newly created workflow job receives immutable metadata
+  `jobrunr-control-workflow-root-id`. This metadata does not consume a JobRunr label. Labels remain
+  search attributes and are never mutated after creation to hide inherited jobs.
+* The outer batch's JobRunr state is authoritative. JobRunr keeps it `PROCESSED` until the nested
+  batches and applicable continuations are terminal. The recursive chain evaluator remains only as
+  a compatibility path for executions without the canonical batch bracket.
+* History displays only the job whose UUID equals the stamped workflow-root UUID. Handler and
+  request types provide a best-effort fallback for executions created before root metadata existed.
+* Detail data is associated with the root UUID. The workflow resolver follows both creation-parent
+  and awaiting/dependency edges, protects against cycles and does not assume a fixed number or depth
+  of nested batches or continuations. Messages retain the UUID of the job that emitted them.
+* Final result and business status are stored on the root. Recaps and messages written through the
+  database adapters are indexed by root as well.
+* Failures that can be resolved by repeated execution without manual intervention should, where
+  feasible, be handled by bounded retries and idempotent work instead of failing the complete
+  workflow. Deterministic job IDs and retry-safe creation guards prevent duplicate descendants.
+  Expected business outcomes should be represented as result/business status rather than technical
+  exceptions. An unrecoverable error after retries may fail the bracket.
+
+The exact mapping between every business scenario, technical status, result code and continuation
+path is intentionally not fixed by this decision. It is defined and tested per scenario as that
+policy is agreed.
+
+==== Consequences
+
+* Overview, detail, recap and result refer to the same stable UUID.
+* Multiple sibling continuations and nested batches are supported without topology-specific UI
+  code.
+* Jobs that create additional work only after leaving the batch bracket cannot promise that the
+  outer batch waits for that work; such work must be configured within a bracketed batch topology.
+* Legacy executions remain readable but cannot gain perfect workflow identity retroactively.
+
 == System Scope and Context
 
 === Business Context
@@ -799,104 +846,55 @@ end note
 @enduml
 ----
 
-=== Job Chain Status Evaluation (Runtime)
+=== Canonical Batch Workflow Resolution (Runtime)
 
-When jobs use continuation chains (via `continueWith()` or `onFailure()` callbacks), the extension evaluates the overall status of the entire chain to provide accurate visibility.
+The outer configurable batch provides the terminal lifecycle state. A separate workflow resolver
+collects detail data from its dynamically shaped graph; it does not calculate a replacement status.
 
-[plantuml,job-chain-status,svg]
+[plantuml,batch-workflow-resolution,svg]
 ----
 @startuml
 actor User
-participant "UI Controller" as ui
-participant "GetJobExecutionHistoryUseCase" as usecase
-participant "JobExecutionPort" as port
-participant "JobRunrExecutionAdapter" as adapter
-participant "JobChainStatusEvaluator" as evaluator
+participant "History / Detail UI" as ui
+participant "JobRunrExecutionAdapter" as execution
+participant "DefaultJobDetailsProvider" as details
+participant "JobWorkflowResolver" as resolver
 participant "JobRunr StorageProvider" as storage
 
-User -> ui: View execution history
-ui -> usecase: execute(filters)
-usecase -> port: getJobExecutionHistory()
-port -> adapter: getJobChainExecutionById(jobId)
+User -> ui: Open execution root
+ui -> execution: getJobChainExecutionById(rootId)
+execution -> storage: getJobById(rootId)
+storage --> execution: outer BatchJob
+execution -> execution: use outer JobRunr state\nwhen root metadata matches
+execution --> ui: authoritative lifecycle status/result
 
-adapter -> storage: getJobById(parentJobId)
-storage --> adapter: parent Job
-
-adapter -> evaluator: evaluateChainStatus(parentJobId, parentStatus)
-
-evaluator -> storage: getJobList(withAwaitingOn=parentJobId)
-storage --> evaluator: continuation jobs
-
-loop recursively find leaf jobs
-    evaluator -> storage: getJobList(withAwaitingOn=continuationJobId)
-    storage --> evaluator: child continuation jobs
+ui -> details: messages and recap(rootId)
+details -> resolver: resolveWorkflow(rootId)
+resolver -> storage: get root
+loop batch parent edges, arbitrary depth
+    resolver -> storage: find jobs with parentId
 end
-
-evaluator -> evaluator: traverse continuation leaves\n(conservative evaluation because\nJobRunr does not expose the\ncontinuation trigger type)
-
-evaluator -> evaluator: check if all considered\nleaf jobs are terminal\n(SUCCEEDED, FAILED, DELETED)
-
-alt all leaf jobs complete
-    evaluator -> evaluator: any leaf job failed?\nYes → FAILED\nNo → SUCCEEDED
-else any leaf job in progress
-    evaluator -> evaluator: status = PROCESSING
+loop continuation dependency edges
+    resolver -> storage: find jobs awaiting current job
 end
+resolver -> resolver: de-duplicate UUIDs\nand protect against cycles
+resolver --> details: root + batches + workers + continuations
+details -> details: aggregate dashboard logs,\nfailures, recap values and counters
+details --> ui: complete workflow detail
 
-evaluator --> adapter: JobChainStatus(isComplete, overallStatus)
-adapter --> port: JobExecutionInfo with chain status
-port --> usecase: execution history with chain status
-usecase --> ui: display to user
-
-note right of evaluator
-  Evaluation Rules:
-  - The evaluator traverses all
-    continuation leaves recursively
-  - Because JobRunr does not expose
-    continuation trigger metadata,
-    visibility is conservative
-  - Chain complete when all
-    considered leaves are terminal
-  - Chain failed if any considered
-    leaf failed
+note right of execution
+  Legacy executions without a
+  stamped batch root may still use
+  JobChainStatusEvaluator as a
+  compatibility fallback.
 end note
-
 @enduml
 ----
 
-==== Job Chain Status Logic
-
-The `JobChainStatusEvaluator` component implements the following logic:
-
-[NOTE]
-====
-JobRunr's public `AwaitingState` API does not expose whether a continuation was created via
-`continueWith()` or `onFailure()`. The current implementation therefore evaluates chains
-conservatively and may temporarily consider both continuation types as potentially relevant.
-====
-
-.Chain Status Determination
-[cols="1,3"]
-|===
-|Condition |Result
-
-|No continuation jobs
-|Chain status equals parent job status
-
-|All terminal leaf jobs considered by the evaluator succeeded
-|Chain status = `SUCCEEDED`, isComplete = `true`
-
-|Any terminal leaf job considered by the evaluator failed
-|Chain status = `FAILED`, isComplete = `true`
-
-|Any considered leaf job still running (ENQUEUED, PROCESSING, PROCESSED)
-|Chain status = `PROCESSING`, isComplete = `false`
-|===
-
-.Continuation Handling
-The evaluator traverses all continuation leaves recursively. Because the public JobRunr API does
-not expose the continuation trigger type, the current implementation cannot perfectly distinguish
-between `continueWith()` and `onFailure()` leaves and therefore prefers conservative visibility
-over under-reporting incomplete chains.
+Parent edges express workflow membership; awaiting edges express execution dependencies. Both are
+needed for detail aggregation. The root metadata provides the stable reverse association from any
+executing descendant to its logical execution, including cases where JobRunr later changes batch
+relations while completing the lifecycle bracket.
 
 == Cross-Cutting Concerns
 

@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.infrastructure.jobrunr.ConfigurableJobSearchAdapter;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobResultAdapter;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobTypeLabel;
+import ch.css.jobrunr.control.infrastructure.jobrunr.JobWorkflowResolver;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -81,8 +82,10 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
             String jobType = extractJobType(job);
 
             JobExecutionInfo jobInfo = mapToJobExecutionInfo(jobType, job);
-            JobChainStatusEvaluator.JobChainStatus chainStatus =
-                    jobChainStatusEvaluator.evaluateChainStatus(jobId, jobInfo.status());
+            JobStatus overallStatus = jobInfo.status();
+            if (!isCanonicalBatchWorkflowRoot(job)) {
+                overallStatus = jobChainStatusEvaluator.evaluateChainStatus(jobId, jobInfo.status()).overallStatus();
+            }
 
             String result = jobInfo.result();
             Integer resultCode = jobInfo.resultCode();
@@ -94,8 +97,21 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                 }
             }
 
-            return Optional.of(jobInfo.withStatus(chainStatus.overallStatus()).withResult(result, resultCode));
+            return Optional.of(jobInfo.withStatus(overallStatus).withResult(result, resultCode));
         });
+    }
+
+    /**
+     * A stamped outer batch is the lifecycle bracket for its workflow. JobRunr keeps that batch in
+     * PROCESSED until all nested batches and continuations reach their terminal state, so its own
+     * state is authoritative. The recursive evaluator remains as a compatibility path for legacy
+     * continuation-only executions that have no such bracket.
+     */
+    private boolean isCanonicalBatchWorkflowRoot(Job job) {
+        Object workflowRootId = job.getMetadata().get(JobWorkflowResolver.WORKFLOW_ROOT_ID_METADATA_KEY);
+        return job.isBatchJob()
+                && workflowRootId != null
+                && job.getId().toString().equals(workflowRootId.toString());
     }
 
     private String extractJobType(org.jobrunr.jobs.Job job) {

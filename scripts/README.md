@@ -2,6 +2,35 @@
 
 This directory contains utility scripts for interacting with the JobRunr Control REST API.
 
+## Concise Local/Agent Workflow
+
+For local development without OIDC, `jobrunr-control-local.sh` wraps the UI and REST endpoints used repeatedly during batch debugging. Its output is intentionally concise so shell-based agents can reuse commands without reconstructing browser cURLs.
+
+```bash
+# Check that the local UI is reachable
+./scripts/jobrunr-control-local.sh health
+
+# Create a template; prints the template UUID
+template_id="$(./scripts/jobrunr-control-local.sh create-template \
+  ExampleBatchJob local-success \
+  chunkSize=1 numberOfChunks=2 processScenario=JOB_SUCCESS)"
+
+# Start the template through the REST API; prints the execution UUID
+job_id="$(./scripts/jobrunr-control-local.sh start-template "$template_id")"
+
+# Poll and inspect the canonical job
+./scripts/jobrunr-control-local.sh wait "$job_id" 120
+./scripts/jobrunr-control-local.sh status "$job_id"
+./scripts/jobrunr-control-local.sh raw-job "$job_id"
+
+# Render the same fragments used by the History and Detail pages
+./scripts/jobrunr-control-local.sh history local-success
+./scripts/jobrunr-control-local.sh recap "$job_id"
+./scripts/jobrunr-control-local.sh messages "$job_id" ExampleBatchJob
+```
+
+Run `./scripts/jobrunr-control-local.sh --help` for every command and configurable URL. The script needs only `curl` and, for JSON commands, `jq`. Use `start-and-poll-job.sh` below for Basic Auth/OIDC and production-like execution.
+
 ## Quick Start (Local Development)
 
 ```bash
@@ -475,4 +504,3 @@ Internal CSS Project. Requires a valid JobRunr Pro license.
 ### Support
 
 For issues and questions, contact the JobRunr Control Team.
-

@@ -2,10 +2,11 @@ package ch.css.jobrunr.control.jobs.batch.postprocess;
 
 import ch.css.jobrunr.control.domain.BusinessStatus;
 import ch.css.jobrunr.control.domain.JobResultPort;
+import ch.css.jobrunr.control.domain.exceptions.JobProcessingException;
+import ch.css.jobrunr.control.jobs.batch.ExampleBatchJobProcessScenario;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
-import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.server.runner.ThreadLocalJobContext;
 import org.jobrunr.storage.StorageProvider;
@@ -26,21 +27,28 @@ public class ExampleBatchSuccess implements JobRequestHandler<ExampleBatchSucces
         this.storageProvider = storageProvider;
     }
 
-    @Job(name = "Example Batch Success Post-Processing Job", retries = 0)
     @Override
     public void run(ExampleBatchSuccessRequest jobRequest) {
-        UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
-        LOG.infof("Starting example batch success job. Parent job id: %s", parentJobId);
+        UUID workflowRootJobId = jobRequest.workflowRootJobId();
+        LOG.infof("Starting example batch success job. Workflow root job id: %s", workflowRootJobId);
+        ThreadLocalJobContext.getJobContext().logger().info(
+                String.format("Starting success post-processing for workflow %s", workflowRootJobId));
 
-        // Get parent job metadata for detailed result message
-        var parentJob = storageProvider.getJobById(parentJobId);
-        Integer totalChunks = (Integer) parentJob.getMetadata().get("total_chunks");
-        String enqueuedAt = (String) parentJob.getMetadata().get("enqueued_at");
+        // Get root metadata for the detailed result message.
+        var workflowRootJob = storageProvider.getJobById(workflowRootJobId);
+        Integer totalChunks = (Integer) workflowRootJob.getMetadata().get("total_chunks");
+        String enqueuedAt = (String) workflowRootJob.getMetadata().get("enqueued_at");
 
         try {
             Thread.sleep(5_000L);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            Thread.currentThread().interrupt();
+            throw new JobProcessingException("Example batch post-processing was interrupted", e);
+        }
+
+        if (jobRequest.processScenario() == ExampleBatchJobProcessScenario.POSTJOB_ERROR) {
+            ThreadLocalJobContext.getJobContext().logger().error("Simulated post-processing error");
+            throw new JobProcessingException("Simulated post-processing error");
         }
 
         // Build detailed success message
@@ -50,10 +58,11 @@ public class ExampleBatchSuccess implements JobRequestHandler<ExampleBatchSucces
                 enqueuedAt != null ? enqueuedAt : "unknown"
         );
 
-        // Store result - automatically goes to parent job since we're in a continuation job
+        // Store the logical execution result on the canonical workflow root.
         jobResultPort.storeResult(0, resultMessage);
         jobResultPort.setBusinessStatus(BusinessStatus.SUCCESS);
 
+        ThreadLocalJobContext.getJobContext().logger().info(resultMessage);
         LOG.infof("Batch success result stored: %s", resultMessage);
     }
 }

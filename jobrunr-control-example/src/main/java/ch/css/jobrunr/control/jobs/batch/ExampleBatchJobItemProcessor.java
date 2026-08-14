@@ -3,7 +3,6 @@ package ch.css.jobrunr.control.jobs.batch;
 import ch.css.jobrunr.control.domain.exceptions.JobProcessingException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
-import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.server.runner.ThreadLocalJobContext;
 
@@ -23,7 +22,6 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
      */
     @Override
     @Transactional
-    @Job(name = "Processing example batch chunkId: %0", retries = 0)
     @SuppressWarnings("squid:S4511")
     public void run(ExampleBatchJobItemProcessorRequest request) {
         // Get the parent batch job ID from the request

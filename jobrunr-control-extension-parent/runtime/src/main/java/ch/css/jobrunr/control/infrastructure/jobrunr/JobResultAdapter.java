@@ -52,25 +52,26 @@ public class JobResultAdapter implements JobResultPort {
     private static final Logger LOG = Logger.getLogger(JobResultAdapter.class);
 
     private final StorageProvider storageProvider;
+    private final JobWorkflowResolver jobWorkflowResolver;
 
     @Inject
-    public JobResultAdapter(StorageProvider storageProvider) {
+    public JobResultAdapter(StorageProvider storageProvider, JobWorkflowResolver jobWorkflowResolver) {
         this.storageProvider = storageProvider;
+        this.jobWorkflowResolver = jobWorkflowResolver;
     }
 
     @Override
     public void storeResult(int resultCode, String result) {
         try {
-            UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
-            if (parentJobId != null) {
-                // Running in a continuation job - store in parent
-                storeResultInJob(parentJobId, resultCode, result);
-                LOG.debugf("Stored result in parent job %s: resultCode=%d, result=%s", parentJobId, resultCode, result);
+            UUID currentJobId = ThreadLocalJobContext.getJobContext().getJobId();
+            UUID rootJobId = jobWorkflowResolver.resolveRootIdFromContext();
+            if (!rootJobId.equals(currentJobId)) {
+                storeResultInJob(rootJobId, resultCode, result);
+                LOG.debugf("Stored result in workflow root %s: resultCode=%d, result=%s", rootJobId, resultCode, result);
             } else {
-                // Regular job - store in current job
                 ThreadLocalJobContext.getJobContext().saveMetadata(RESULT_CODE_METADATA_KEY, resultCode);
                 ThreadLocalJobContext.getJobContext().saveMetadata(RESULT_METADATA_KEY, result);
-                LOG.debugf("Stored result in current job: resultCode=%d, result=%s", resultCode, result);
+                LOG.debugf("Stored result in current root job: resultCode=%d, result=%s", resultCode, result);
             }
         } catch (Exception e) {
             LOG.warnf(e, "Failed to store job result – not running inside a JobRunr job context?");
@@ -80,17 +81,16 @@ public class JobResultAdapter implements JobResultPort {
     @Override
     public void setBusinessStatus(BusinessStatus status) {
         try {
-            UUID parentJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
-            if (parentJobId != null) {
-                // Running in a continuation job - store in parent
-                var job = storageProvider.getJobById(parentJobId);
+            UUID currentJobId = ThreadLocalJobContext.getJobContext().getJobId();
+            UUID rootJobId = jobWorkflowResolver.resolveRootIdFromContext();
+            if (!rootJobId.equals(currentJobId)) {
+                var job = storageProvider.getJobById(rootJobId);
                 job.getMetadata().put(RESULT_BUSINESS_STATUS_METADATA_KEY, status);
                 storageProvider.save(job);
-                LOG.debugf("Stored business status in parent job %s: %s", parentJobId, status);
+                LOG.debugf("Stored business status in workflow root %s: %s", rootJobId, status);
             } else {
-                // Regular job - store in current job
                 ThreadLocalJobContext.getJobContext().saveMetadata(RESULT_BUSINESS_STATUS_METADATA_KEY, status);
-                LOG.debugf("Stored business status in current job: %s", status);
+                LOG.debugf("Stored business status in current root job: %s", status);
             }
         } catch (Exception e) {
             LOG.warnf(e, "Failed to store business status – not running inside a JobRunr job context?");
@@ -112,4 +112,3 @@ public class JobResultAdapter implements JobResultPort {
         }
     }
 }
-
