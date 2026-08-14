@@ -27,7 +27,7 @@ public class RecapParameterExtractor {
     /**
      * Analyzes a recap record class and extracts @JobRecapParameter annotations from its record components.
      * 
-     * @param recapParameterClass fully qualified class name (e.g., "ch.css.jobrunr.control.jobs.complex.ComplexParameterDemoJobRecap")
+     * @param recapParameterClass fully qualified class name (e.g., "com.example.jobs.ImportRecap")
      * @return List of JobRecapParameter domain objects extracted from the class
      */
     public List<JobRecapParameter> analyzeRecapParameters(String recapParameterClass) {

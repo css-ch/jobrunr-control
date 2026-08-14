@@ -2027,8 +2027,10 @@ public class InvoiceBatchJob implements JobRequestHandler<InvoiceBatchRequest> {
 
 [TIP]
 ====
-For a complete sample, see the example module classes `jobrunr-control-example/src/main/java/ch/css/jobrunr/control/jobs/complex/ComplexParameterDemoJob.java`,
-`ComplexParameterDemoChildJob.java`, `ComplexParameterDemoJobRecap.java`, `ComplexDemoMessageProvider.java`, and `ComplexDemoRecapProvider.java`.
+For a complete database-backed nested-batch sample, see the example module classes
+`jobrunr-control-example/src/main/java/ch/css/jobrunr/control/jobs/recap/RecapDemoJob.java`,
+`RecapDemoWorker.java`, and `RecapDemoCounters.java`.
+The outer job is the canonical workflow root, while worker recap values are persisted and aggregated under that root.
 ====
 
 == Best Practices
@@ -2122,7 +2124,6 @@ public void run(MyJobRequest request) throws Exception {
 ** Explained why the bearer tenant must be named `bearer` (not `api`) to avoid path-segment collision
 ** Added Security Invariants section for extension developers
 ** Corrected dev-mode instructions: `JobRunrControlRoleAugmentor` handles role granting automatically; no embedded user config needed
-
 
 
 

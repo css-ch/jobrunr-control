@@ -323,9 +323,12 @@ ambiguous because the public JobRunr API does not expose every continuation trig
 * The outer configurable `BatchJob` is the canonical logical execution and lifecycle bracket.
   All work that must delay its terminal state is configured while that bracket is executing, using
   the JobRunr Pro batch and continuation APIs.
-* Every newly created workflow job receives immutable metadata
+* The root and nested jobs created from an active handler receive immutable metadata
   `jobrunr-control-workflow-root-id`. This metadata does not consume a JobRunr label. Labels remain
-  search attributes and are never mutated after creation to hide inherited jobs.
+  search attributes and are never mutated after creation to hide inherited jobs. JobRunr creates
+  batch members outside that client-filter context; the resolver deliberately derives their root
+  through the `AwaitingBatchJobState`/parent relation instead of performing a storage lookup for
+  every worker during creation.
 * The outer batch's JobRunr state is authoritative. JobRunr keeps it `PROCESSED` until the nested
   batches and applicable continuations are terminal. The recursive chain evaluator remains only as
   a compatibility path for executions without the canonical batch bracket.
@@ -334,6 +337,9 @@ ambiguous because the public JobRunr API does not expose every continuation trig
 * Detail data is associated with the root UUID. The workflow resolver follows both creation-parent
   and awaiting/dependency edges, protects against cycles and does not assume a fixed number or depth
   of nested batches or continuations. Messages retain the UUID of the job that emitted them.
+* Batch progress in history/status and the success rate on the detail page count the same processing
+  workers across the resolved workflow. Batch wrappers and ordinary success/failure continuations
+  are lifecycle nodes and do not contribute to those counters.
 * Final result and business status are stored on the root. Recaps and messages written through the
   database adapters are indexed by root as well.
 * Failures that can be resolved by repeated execution without manual intervention should, where
@@ -351,6 +357,8 @@ policy is agreed.
 * Overview, detail, recap and result refer to the same stable UUID.
 * Multiple sibling continuations and nested batches are supported without topology-specific UI
   code.
+* Root resolution is normally constant-time through metadata. Resolving unstamped JobRunr batch
+  members requires bounded graph traversal when their detail data is written or read.
 * Jobs that create additional work only after leaving the batch bracket cannot promise that the
   outer batch waits for that work; such work must be configured within a bracketed batch topology.
 * Legacy executions remain readable but cannot gain perfect workflow identity retroactively.

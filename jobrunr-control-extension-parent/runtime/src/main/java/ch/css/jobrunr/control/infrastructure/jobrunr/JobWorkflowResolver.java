@@ -1,11 +1,15 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr;
 
+import ch.css.jobrunr.control.domain.BatchProgress;
+import ch.css.jobrunr.control.domain.JobWorkflowPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 import org.jobrunr.jobs.Job;
+import org.jobrunr.jobs.states.AwaitingBatchJobState;
 import org.jobrunr.jobs.states.AwaitingState;
 import org.jobrunr.jobs.states.InitialState;
+import org.jobrunr.jobs.states.StateName;
 import org.jobrunr.server.runner.ThreadLocalJobContext;
 import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
@@ -26,7 +30,7 @@ import java.util.UUID;
  * Parent edges represent workflow ownership, while awaiting edges represent execution dependencies.
  */
 @ApplicationScoped
-public class JobWorkflowResolver {
+public class JobWorkflowResolver implements JobWorkflowPort {
 
     public static final String WORKFLOW_ROOT_ID_METADATA_KEY = "jobrunr-control-workflow-root-id";
 
@@ -45,8 +49,9 @@ public class JobWorkflowResolver {
     }
 
     /**
-     * Resolves the canonical root for the currently executing job. New jobs normally carry the
-     * precomputed root metadata; relation traversal is the compatibility fallback.
+     * Resolves the canonical root for the currently executing job. Workflow roots and jobs created
+     * from an active handler normally carry precomputed root metadata. JobRunr-created batch
+     * members and legacy jobs use relation traversal as the fallback.
      */
     public UUID resolveRootIdFromContext() {
         var jobContext = ThreadLocalJobContext.getJobContext();
@@ -128,6 +133,36 @@ public class JobWorkflowResolver {
         return List.copyOf(jobsById.values());
     }
 
+    /**
+     * Returns the jobs that perform the actual batch work. Batch wrappers and ordinary
+     * success/failure continuations are lifecycle nodes and therefore do not contribute to the
+     * worker success rate shown on the detail page.
+     */
+    public List<Job> resolveProcessingJobs(UUID rootJobId) {
+        return resolveWorkflow(rootJobId).stream()
+                .filter(job -> !job.getId().equals(rootJobId))
+                .filter(job -> !job.isBatchJob())
+                .filter(this::isBatchWorker)
+                .toList();
+    }
+
+    @Override
+    public BatchProgress resolveProcessingJobProgress(UUID rootJobId) {
+        Job rootJob = jobLookup.getJobById(rootJobId);
+        if (!rootJob.isBatchJob()) {
+            throw new IllegalStateException("Job with ID " + rootJobId + " is not a batch job");
+        }
+
+        List<Job> processingJobs = resolveProcessingJobs(rootJobId);
+        long succeeded = processingJobs.stream()
+                .filter(job -> job.getState() == StateName.SUCCEEDED)
+                .count();
+        long failed = processingJobs.stream()
+                .filter(job -> job.getState() == StateName.FAILED)
+                .count();
+        return new BatchProgress(processingJobs.size(), succeeded, failed);
+    }
+
     public Optional<UUID> parseRootId(Map<String, Object> metadata) {
         if (metadata == null) {
             return Optional.empty();
@@ -151,6 +186,13 @@ public class JobWorkflowResolver {
                 .filter(InitialState.class::isInstance)
                 .map(InitialState.class::cast)
                 .findFirst();
+    }
+
+    private boolean isBatchWorker(Job job) {
+        return firstInitialState(job)
+                .map(state -> !(state instanceof AwaitingState)
+                        || state instanceof AwaitingBatchJobState)
+                .orElse(true);
     }
 
     private List<Job> findChildren(UUID parentJobId) {

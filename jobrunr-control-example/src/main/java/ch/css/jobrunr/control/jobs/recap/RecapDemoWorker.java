@@ -1,4 +1,4 @@
-package ch.css.jobrunr.control.jobs.complex;
+package ch.css.jobrunr.control.jobs.recap;
 
 import ch.css.jobrunr.control.annotations.DbBasedRecapAndMessages;
 import ch.css.jobrunr.control.domain.details.JobMessageService;
@@ -17,36 +17,36 @@ import static java.lang.String.format;
 
 @DbBasedRecapAndMessages
 @ApplicationScoped
-public class ComplexParameterDemoChildJob implements JobResultRequestHandler<ComplexParameterDemoChildJobRequest> {
+public class RecapDemoWorker implements JobResultRequestHandler<RecapDemoWorkerRequest> {
 
-    private static final Logger LOG = Logger.getLogger(ComplexParameterDemoChildJob.class);
+    private static final Logger LOG = Logger.getLogger(RecapDemoWorker.class);
     private static final Random RANDOM = new Random();
 
     private final JobMessageService messageService;
 
     @Inject
-    public ComplexParameterDemoChildJob(JobMessageService messageService) {
+    public RecapDemoWorker(JobMessageService messageService) {
         this.messageService = messageService;
     }
 
     @Override
     @Transactional
-    public ComplexParameterDemoJobRecap runAndReturn(ComplexParameterDemoChildJobRequest jobRequest) {
+    public RecapDemoCounters runAndReturn(RecapDemoWorkerRequest jobRequest) {
         int policeNr = jobRequest.number();
         if (jobRequest.exception()) {
             messageService.info("Diese Meldung möchte ich aufgrund des Rollbacks nicht sehen.");
             messageService.infoTxNew("Diese Meldung möchte trotz des Rollbacks sehen.");
             throw new RuntimeException("Druckerfehler: Papierstau im Drucker.");
         }
-        ComplexParameterDemoChildJob.PolicenResult policenResult = randomValue(Arrays.asList(ComplexParameterDemoChildJob.PolicenResult.values()));
-        ComplexParameterDemoJobRecap recap;
+        PolicenResult policenResult = randomValue(Arrays.asList(PolicenResult.values()));
+        RecapDemoCounters recap;
         String message;
         switch (policenResult) {
             case FEHLER -> {
                 message = format("[Police %s] Druck mit fachlichem Fehler abgebrochen: %s", policeNr, "Kein Korrespondenzempfänger für Versicherte Person '12550964' zum Tagesdatum gefunden.");
                 ThreadLocalJobContext.getJobContext().logger().error(message);
                 messageService.error(message);
-                recap = ComplexParameterDemoJobRecap.builder()
+                recap = RecapDemoCounters.builder()
                         .policenSelektiert(1)
                         .policenFailed(1)
                         .druckauftraegeVerarbeitet(1)
@@ -56,7 +56,7 @@ public class ComplexParameterDemoChildJob implements JobResultRequestHandler<Com
                 message = format("[Police %s] DruckAuftrag mit erfolgreich gedruckt.", policeNr);
                 ThreadLocalJobContext.getJobContext().logger().info(message);
                 messageService.info(message);
-                recap = ComplexParameterDemoJobRecap.builder()
+                recap = RecapDemoCounters.builder()
                         .policenSelektiert(1)
                         .policenRelevant(1)
                         .druckauftraegeVerarbeitet(1)
@@ -67,7 +67,7 @@ public class ComplexParameterDemoChildJob implements JobResultRequestHandler<Com
                 message = format("[Police %s] Police ist für den Druck gesperrt.", policeNr);
                 ThreadLocalJobContext.getJobContext().logger().warn(message);
                 messageService.warning(message);
-                recap = ComplexParameterDemoJobRecap.builder()
+                recap = RecapDemoCounters.builder()
                         .policenSelektiert(1)
                         .policenSperre(1)
                         .druckauftraegeVerarbeitet(1)
@@ -77,7 +77,7 @@ public class ComplexParameterDemoChildJob implements JobResultRequestHandler<Com
                 message = format("[Police %s] DruckAuftrag mit wurde ausselektiert. Grund: PRAN Druck wird im Tagesgeschäft nicht verarbeitet.", policeNr);
                 ThreadLocalJobContext.getJobContext().logger().warn(message);
                 messageService.warning(message);
-                recap = ComplexParameterDemoJobRecap.builder()
+                recap = RecapDemoCounters.builder()
                         .policenSelektiert(1)
                         .policenHerausgefilter(1)
                         .druckauftraegeVerarbeitet(2)
@@ -87,7 +87,7 @@ public class ComplexParameterDemoChildJob implements JobResultRequestHandler<Com
                 message = format("[Police %s] Police ist nicht vorhanden oder bereits beendet.", policeNr);
                 ThreadLocalJobContext.getJobContext().logger().warn(message);
                 messageService.warning(message);
-                recap = ComplexParameterDemoJobRecap.builder()
+                recap = RecapDemoCounters.builder()
                         .policenSelektiert(1)
                         .policenAnnulliert(1)
                         .druckauftraegeVerarbeitet(1)

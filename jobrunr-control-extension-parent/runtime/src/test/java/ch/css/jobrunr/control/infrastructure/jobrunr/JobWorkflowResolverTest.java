@@ -1,8 +1,10 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr;
 
+import ch.css.jobrunr.control.domain.BatchProgress;
 import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.JobDetails;
+import org.jobrunr.jobs.states.AwaitingBatchJobState;
 import org.jobrunr.jobs.states.AwaitingState;
 import org.jobrunr.jobs.states.EnqueuedState;
 import org.jobrunr.jobs.states.StateName;
@@ -17,6 +19,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class JobWorkflowResolverTest {
 
@@ -68,11 +72,11 @@ class JobWorkflowResolverTest {
     @Test
     void resolvesNestedBatchesWorkersAndSiblingContinuationsWithoutExpandingWorkers() {
         Job root = batchJob(UUID.randomUUID(), new EnqueuedState());
-        Job innerBatch = batchJob(UUID.randomUUID(), new EnqueuedState());
-        Job workerA = job(UUID.randomUUID(), new EnqueuedState());
-        Job workerB = job(UUID.randomUUID(), new EnqueuedState());
-        Job success = job(UUID.randomUUID(), new EnqueuedState());
-        Job failure = job(UUID.randomUUID(), new EnqueuedState());
+        Job innerBatch = batchJob(UUID.randomUUID(), new AwaitingBatchJobState(root.getId()));
+        Job workerA = job(UUID.randomUUID(), new AwaitingBatchJobState(innerBatch.getId()));
+        Job workerB = job(UUID.randomUUID(), new AwaitingBatchJobState(innerBatch.getId()));
+        Job success = job(UUID.randomUUID(), new AwaitingState(innerBatch.getId(), StateName.SUCCEEDED));
+        Job failure = job(UUID.randomUUID(), new AwaitingState(innerBatch.getId(), StateName.FAILED));
         FakeWorkflowJobLookup lookup = new FakeWorkflowJobLookup(root, innerBatch, workerA, workerB, success, failure);
         lookup.children.put(root.getId(), List.of(innerBatch, success, failure));
         lookup.children.put(innerBatch.getId(), List.of(workerA, workerB));
@@ -87,6 +91,9 @@ class JobWorkflowResolverTest {
                         root.getId(), innerBatch.getId(), workerA.getId(), workerB.getId(),
                         success.getId(), failure.getId());
         assertThat(lookup.continuationLookups).doesNotContain(workerA.getId(), workerB.getId());
+        assertThat(resolver.resolveProcessingJobs(root.getId()))
+                .extracting(Job::getId)
+                .containsExactlyInAnyOrder(workerA.getId(), workerB.getId());
     }
 
     @Test
@@ -105,12 +112,36 @@ class JobWorkflowResolverTest {
                 .containsExactly(root.getId(), continuationA.getId(), continuationB.getId());
     }
 
+    @Test
+    void resolvesProcessingJobProgressThroughDomainPort() {
+        Job root = batchJob(UUID.randomUUID(), new EnqueuedState());
+        Job succeededWorker = processingJob(root.getId(), StateName.SUCCEEDED);
+        Job failedWorker = processingJob(root.getId(), StateName.FAILED);
+        Job processingWorker = processingJob(root.getId(), StateName.PROCESSING);
+        FakeWorkflowJobLookup lookup = new FakeWorkflowJobLookup(
+                root, succeededWorker, failedWorker, processingWorker);
+        lookup.children.put(root.getId(), List.of(succeededWorker, failedWorker, processingWorker));
+
+        JobWorkflowResolver resolver = new JobWorkflowResolver(lookup);
+
+        assertThat(resolver.resolveProcessingJobProgress(root.getId()))
+                .isEqualTo(new BatchProgress(3, 1, 1));
+    }
+
     private static Job batchJob(UUID id, org.jobrunr.jobs.states.JobState initialState) {
         return new BatchJob(id, JOB_DETAILS, initialState);
     }
 
     private static Job job(UUID id, org.jobrunr.jobs.states.JobState initialState) {
         return new Job(id, JOB_DETAILS, initialState);
+    }
+
+    private static Job processingJob(UUID batchId, StateName state) {
+        Job job = mock(Job.class);
+        when(job.getId()).thenReturn(UUID.randomUUID());
+        when(job.getJobStates()).thenReturn(List.of(new AwaitingBatchJobState(batchId)));
+        when(job.getState()).thenReturn(state);
+        return job;
     }
 
     private static final class FakeWorkflowJobLookup implements JobWorkflowResolver.WorkflowJobLookup {

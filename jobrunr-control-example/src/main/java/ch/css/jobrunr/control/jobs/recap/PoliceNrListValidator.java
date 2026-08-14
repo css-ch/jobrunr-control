@@ -1,4 +1,4 @@
-package ch.css.jobrunr.control.jobs.complex;
+package ch.css.jobrunr.control.jobs.recap;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

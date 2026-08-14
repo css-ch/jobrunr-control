@@ -31,15 +31,17 @@ public class WorkflowRootJobFilter implements JobClientFilter {
             return;
         }
 
-        // Continuations configured outside an executing job have no creation owner. Leave them
-        // unstamped so JobWorkflowResolver can follow their AwaitingState to the actual root.
-        boolean isUnownedContinuation = job.getJobStates().stream()
+        // Continuations and BatchJob members configured by JobRunr have no creation owner in the
+        // client-filter context. Leave them unstamped so JobWorkflowResolver can follow their
+        // AwaitingState/parent relationship to the actual root without one storage lookup here
+        // for every created worker.
+        boolean isAwaitingJobWithoutCreationOwner = job.getJobStates().stream()
                 .filter(InitialState.class::isInstance)
                 .map(InitialState.class::cast)
                 .findFirst()
                 .filter(AwaitingState.class::isInstance)
                 .isPresent();
-        if (!isUnownedContinuation) {
+        if (!isAwaitingJobWithoutCreationOwner) {
             stamp(job, job.getId());
         }
     }

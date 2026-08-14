@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.ui;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import ch.css.jobrunr.control.jobs.batch.ExampleBatchJobProcessScenario;
 import io.quarkiverse.playwright.InjectPlaywright;
 import io.quarkiverse.playwright.WithPlaywright;
 import io.quarkus.test.common.http.TestHTTPResource;
@@ -250,17 +251,20 @@ abstract class JobTriggerUITestBase {
     /**
      * Fills batch job parameters with custom values.
      */
-    protected void fillBatchJobParameters(int numberOfChunks, int chunkSize, boolean simulateErrors) {
+    protected void fillBatchJobParameters(
+            int numberOfChunks,
+            int chunkSize,
+            ExampleBatchJobProcessScenario processScenario) {
         page.fill("input[name='parameters.numberOfChunks']", String.valueOf(numberOfChunks));
         page.fill("input[name='parameters.chunkSize']", String.valueOf(chunkSize));
-        page.selectOption("select[name='parameters.simulateErrors']", String.valueOf(simulateErrors));
+        page.selectOption("select[name='parameters.processScenario']", processScenario.name());
     }
 
     /**
      * Fills batch job parameters with default test values.
      */
     protected void fillBatchJobParametersWithDefaults() {
-        fillBatchJobParameters(10, 50, false);
+        fillBatchJobParameters(10, 50, ExampleBatchJobProcessScenario.JOB_SUCCESS);
     }
 
     // JobRunr Dashboard verification methods
@@ -298,7 +302,7 @@ abstract class JobTriggerUITestBase {
         boolean containsMethodName = pageText.contains("ExampleBatchJob.run") || pageContent.contains("ExampleBatchJob.run");
         boolean containsParameters = (pageText.contains("numberOfChunks") || pageContent.contains("numberOfChunks")) &&
                 (pageText.contains("chunkSize") || pageContent.contains("chunkSize")) &&
-                (pageText.contains("simulateErrors") || pageContent.contains("simulateErrors"));
+                (pageText.contains("processScenario") || pageContent.contains("processScenario"));
 
         assertTrue(containsMethodName && containsParameters,
                 "JobRunr Dashboard should contain job signature with method name and parameters. " +

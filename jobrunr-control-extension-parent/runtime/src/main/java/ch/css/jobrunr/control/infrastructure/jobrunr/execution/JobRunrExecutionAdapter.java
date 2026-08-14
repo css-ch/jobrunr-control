@@ -8,7 +8,6 @@ import ch.css.jobrunr.control.infrastructure.jobrunr.JobWorkflowResolver;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
-import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.states.*;
 import org.jobrunr.storage.JobSearchRequestBuilder;
@@ -34,6 +33,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
     private final JobChainStatusEvaluator jobChainStatusEvaluator;
     private final JobStateMapper jobStateMapper;
     private final ParameterSetLoaderPort parameterSetLoaderPort;
+    private final JobWorkflowResolver jobWorkflowResolver;
 
     @Inject
     public JobRunrExecutionAdapter(
@@ -42,13 +42,15 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
             ConfigurableJobSearchAdapter configurableJobSearchAdapter,
             JobChainStatusEvaluator jobChainStatusEvaluator,
             JobStateMapper jobStateMapper,
-            ParameterSetLoaderPort parameterSetLoaderPort
+            ParameterSetLoaderPort parameterSetLoaderPort,
+            JobWorkflowResolver jobWorkflowResolver
     ) {
         this.storageProvider = storageProvider;
         this.configurableJobSearchAdapter = configurableJobSearchAdapter;
         this.jobChainStatusEvaluator = jobChainStatusEvaluator;
         this.jobStateMapper = jobStateMapper;
         this.parameterSetLoaderPort = parameterSetLoaderPort;
+        this.jobWorkflowResolver = jobWorkflowResolver;
     }
 
     @Override
@@ -227,22 +229,22 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
         }
     }
 
-    @SuppressWarnings("unused")
     private BatchProgress extractBatchProgress(org.jobrunr.jobs.Job job) {
         try {
             if (job.isBatchJob()) {
-                BatchJob batchJob = (BatchJob) job;
-                BatchJob.BatchJobStats batchJobStats = batchJob.getBatchJobStats();
-                long totalJobs = batchJobStats.getTotalChildJobCount();
-                long succeededJobs = batchJobStats.getSucceededChildJobCount();
-                long failedJobs = batchJobStats.getFailedChildJobCount();
+                List<Job> processingJobs = jobWorkflowResolver.resolveProcessingJobs(job.getId());
+                long totalJobs = processingJobs.size();
+                long succeededJobs = processingJobs.stream()
+                        .filter(processingJob -> processingJob.getState() == StateName.SUCCEEDED)
+                        .count();
+                long failedJobs = processingJobs.stream()
+                        .filter(processingJob -> processingJob.getState() == StateName.FAILED)
+                        .count();
                 return new BatchProgress(totalJobs, succeededJobs, failedJobs);
             }
-        } catch (IllegalStateException e) {
-            // Because batch job stats are only available when the batch job is started
-            // Bug in JobRunr?
+        } catch (RuntimeException e) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug(e.getMessage());
+                LOG.debugf(e, "Could not resolve workflow batch progress for job %s", job.getId());
             }
         }
         return null;

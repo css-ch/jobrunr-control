@@ -1,8 +1,8 @@
-package ch.css.jobrunr.control.jobs.complex;
+package ch.css.jobrunr.control.jobs.recap;
 
 import ch.css.jobrunr.control.annotations.JobRecapParameter;
 
-public record ComplexParameterDemoJobRecap(
+public record RecapDemoCounters(
 
         @JobRecapParameter(
                 displayName = "Policen selektiert",
@@ -73,12 +73,12 @@ public record ComplexParameterDemoJobRecap(
 ) {
 
     /**
-     * Creates a new Builder for fluent construction of ComplexParameterDemoJobRecap.
+     * Creates a new builder for fluent construction of {@link RecapDemoCounters}.
      * All fields default to 0.
      * <p>
      * Example:
      * <pre>
-     * ComplexParameterDemoJobRecap recap = ComplexParameterDemoJobRecap.builder()
+     * RecapDemoCounters recap = RecapDemoCounters.builder()
      *     .policenSelektiert(100)
      *     .policenSperre(5)
      *     .build();
@@ -89,7 +89,7 @@ public record ComplexParameterDemoJobRecap(
     }
 
     /**
-     * Builder for ComplexParameterDemoJobRecap with all fields defaulting to 0.
+     * Builder for {@link RecapDemoCounters} with all fields defaulting to 0.
      */
     public static class Builder {
         private long policenSelektiert = 0;
@@ -142,10 +142,10 @@ public record ComplexParameterDemoJobRecap(
         }
 
         /**
-         * Builds the ComplexParameterDemoJobRecap instance with all configured values.
+         * Builds the {@link RecapDemoCounters} instance with all configured values.
          */
-        public ComplexParameterDemoJobRecap build() {
-            return new ComplexParameterDemoJobRecap(
+        public RecapDemoCounters build() {
+            return new RecapDemoCounters(
                     policenSelektiert,
                     policenRelevant,
                     policenFailed,

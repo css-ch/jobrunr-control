@@ -1,4 +1,4 @@
-package ch.css.jobrunr.control.jobs.complex;
+package ch.css.jobrunr.control.jobs.recap;
 
 import ch.css.jobrunr.control.annotations.JobParameterDefinition;
 import ch.css.jobrunr.control.annotations.JobParameterSection;
@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Pattern;
 
 import java.time.LocalDate;
 
-public record ComplexParameterDemoJobParameter(
+public record RecapDemoJobParameter(
     @JobParameterSection(id = "filter1",
             title = "Filter-Parameter",
             order = 1,

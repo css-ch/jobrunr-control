@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.application.details;
 
+import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobDetailPage;
@@ -8,11 +9,11 @@ import ch.css.jobrunr.control.domain.JobExecutionPort;
 import ch.css.jobrunr.control.domain.JobRecapParameter;
 import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.domain.JobStatus;
+import ch.css.jobrunr.control.domain.JobWorkflowPort;
 import ch.css.jobrunr.control.domain.details.JobDetailsProviderRegistry;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
 import ch.css.jobrunr.control.domain.details.JobMessageProvider;
 import ch.css.jobrunr.control.domain.details.JobRecapProvider;
-import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.storage.StorageProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,13 +50,13 @@ class GetJobDetailsRecapUseCaseTest {
     private JobDetailsProviderRegistry jobDetailsProviderRegistry;
 
     @Mock
+    private JobWorkflowPort jobWorkflowPort;
+
+    @Mock
     private JobMessageProvider jobMessageProvider;
 
     @Mock
     private JobRecapProvider jobRecapProvider;
-
-    @Mock
-    private BatchJob batchJob;
 
     @InjectMocks
     private GetJobDetailsRecapUseCase useCase;
@@ -64,10 +65,10 @@ class GetJobDetailsRecapUseCaseTest {
     @DisplayName("should use configured custom providers for message count and recap counters")
     void execute_CustomProvidersConfigured_UsesProviders() {
         UUID jobId = UUID.randomUUID();
-        String jobType = "ComplexDemoJob";
+        String jobType = "RecapDemoJob";
         JobExecutionInfo jobExecutionInfo = new JobExecutionInfo(
                 jobId,
-                "Complex Demo",
+                "Recap Demo",
                 jobType,
                 JobStatus.SUCCEEDED,
                 Instant.parse("2026-05-26T10:00:00Z"),
@@ -86,20 +87,17 @@ class GetJobDetailsRecapUseCaseTest {
                 "handlerClass",
                 List.of(),
                 List.of(),
-                new JobSettings("Complex Demo Job", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
+                new JobSettings("Recap Demo Job", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
                 false,
                 null,
                 List.of(new JobRecapParameter("processed", "Processed", "", "", "", "Ops", 0)),
-                new JobDetailPage(null, "complex-demo-message-provider", "complex-demo-recap-provider", true, false)
+                new JobDetailPage(null, "recap-demo-message-provider", "recap-demo-recap-provider", true, false)
         );
-
         when(jobExecutionPort.getJobExecutionById(jobId)).thenReturn(Optional.of(jobExecutionInfo));
-        when(storageProvider.getJobById(jobId)).thenReturn(batchJob);
-        when(batchJob.isBatchJob()).thenReturn(true);
-        when(batchJob.getBatchJobStats()).thenReturn(new BatchJob.BatchJobStats(10, 7, 1));
+        when(jobWorkflowPort.resolveProcessingJobProgress(jobId)).thenReturn(new BatchProgress(10, 7, 1));
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
-        when(jobDetailsProviderRegistry.getMessageProvider("complex-demo-message-provider")).thenReturn(jobMessageProvider);
-        when(jobDetailsProviderRegistry.getRecapProvider("complex-demo-recap-provider")).thenReturn(jobRecapProvider);
+        when(jobDetailsProviderRegistry.getMessageProvider("recap-demo-message-provider")).thenReturn(jobMessageProvider);
+        when(jobDetailsProviderRegistry.getRecapProvider("recap-demo-recap-provider")).thenReturn(jobRecapProvider);
         when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageLevelCounters(12, 5, 4, 3));
         when(jobRecapProvider.determineRecap(jobId)).thenReturn(Map.of("processed", 42L));
 
@@ -122,10 +120,10 @@ class GetJobDetailsRecapUseCaseTest {
     @DisplayName("should place grouped sections by first order and keep ungrouped parameters in global order")
     void execute_RecapSectionsFollowFirstOrderAndKeepUngroupedUngrouped() {
         UUID jobId = UUID.randomUUID();
-        String jobType = "ComplexDemoJob";
+        String jobType = "RecapDemoJob";
         JobExecutionInfo jobExecutionInfo = new JobExecutionInfo(
                 jobId,
-                "Complex Demo",
+                "Recap Demo",
                 jobType,
                 JobStatus.SUCCEEDED,
                 Instant.parse("2026-05-26T10:00:00Z"),
@@ -144,7 +142,7 @@ class GetJobDetailsRecapUseCaseTest {
                 "handlerClass",
                 List.of(),
                 List.of(),
-                new JobSettings("Complex Demo Job", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
+                new JobSettings("Recap Demo Job", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
                 false,
                 null,
                 List.of(
@@ -157,16 +155,13 @@ class GetJobDetailsRecapUseCaseTest {
                         new JobRecapParameter("g2", "Uebersprungen", "", "", "", "Verarbeitung", 7),
                         new JobRecapParameter("u4", "Ungrouped D", "", "", "", "", 10)
                 ),
-                new JobDetailPage(null, "complex-demo-message-provider", "complex-demo-recap-provider", true, false)
+                new JobDetailPage(null, "recap-demo-message-provider", "recap-demo-recap-provider", true, false)
         );
-
         when(jobExecutionPort.getJobExecutionById(jobId)).thenReturn(Optional.of(jobExecutionInfo));
-        when(storageProvider.getJobById(jobId)).thenReturn(batchJob);
-        when(batchJob.isBatchJob()).thenReturn(true);
-        when(batchJob.getBatchJobStats()).thenReturn(new BatchJob.BatchJobStats(10, 7, 1));
+        when(jobWorkflowPort.resolveProcessingJobProgress(jobId)).thenReturn(new BatchProgress(10, 7, 1));
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
-        when(jobDetailsProviderRegistry.getMessageProvider("complex-demo-message-provider")).thenReturn(jobMessageProvider);
-        when(jobDetailsProviderRegistry.getRecapProvider("complex-demo-recap-provider")).thenReturn(jobRecapProvider);
+        when(jobDetailsProviderRegistry.getMessageProvider("recap-demo-message-provider")).thenReturn(jobMessageProvider);
+        when(jobDetailsProviderRegistry.getRecapProvider("recap-demo-recap-provider")).thenReturn(jobRecapProvider);
         when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageLevelCounters(2, 1, 1, 0));
         when(jobRecapProvider.determineRecap(jobId)).thenReturn(Map.of(
                 "u1", 5L,
@@ -211,4 +206,5 @@ class GetJobDetailsRecapUseCaseTest {
         assertThat(sections.get(5).hasSection()).isFalse();
         assertThat(sections.get(5).recapEntries().getFirst().recapParameter().name()).isEqualTo("u4");
     }
+
 }

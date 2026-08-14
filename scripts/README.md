@@ -29,6 +29,19 @@ job_id="$(./scripts/jobrunr-control-local.sh start-template "$template_id")"
 ./scripts/jobrunr-control-local.sh messages "$job_id" ExampleBatchJob
 ```
 
+The database-backed nested recap example can be created with a small deterministic worker count:
+
+```bash
+template_id="$(./scripts/jobrunr-control-local.sh create-template \
+  RecapDemoJob local-recap \
+  steuerungPhysischerDruckPortalVersand=false steuerungBeilageNrs=5)"
+
+job_id="$(./scripts/jobrunr-control-local.sh start-template "$template_id")"
+./scripts/jobrunr-control-local.sh wait "$job_id" 120
+./scripts/jobrunr-control-local.sh recap "$job_id"
+./scripts/jobrunr-control-local.sh messages "$job_id" RecapDemoJob
+```
+
 Run `./scripts/jobrunr-control-local.sh --help` for every command and configurable URL. The script needs only `curl` and, for JSON commands, `jq`. Use `start-and-poll-job.sh` below for Basic Auth/OIDC and production-like execution.
 
 ## Quick Start (Local Development)

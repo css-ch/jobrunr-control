@@ -1,4 +1,4 @@
-package ch.css.jobrunr.control.jobs.complex;
+package ch.css.jobrunr.control.jobs.recap;
 
 import io.quarkus.qute.Engine;
 import io.quarkus.qute.Template;
@@ -12,7 +12,7 @@ import jakarta.ws.rs.core.MediaType;
 @Path("/mybatch/result")
 @ApplicationScoped
 @RolesAllowed({"viewer", "configurator", "admin"})
-public class ComplexParameterDemoResultPage {
+public class RecapDemoResultPage {
     
     @Inject
     Engine engine;
