@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.adapter.rest.JobControlResource;
 import ch.css.jobrunr.control.adapter.ui.*;
 import ch.css.jobrunr.control.infrastructure.discovery.JobDefinitionRecorder;
 import ch.css.jobrunr.control.infrastructure.jobrunr.filters.ParameterCleanupJobFilter;
+import ch.css.jobrunr.control.infrastructure.jobrunr.filters.DeleteFilterProducer;
 import ch.css.jobrunr.control.infrastructure.quarkus.BuildTimeConfigurationAdapter;
 import ch.css.jobrunr.control.security.JobRunrControlRoleAugmentor;
 import ch.css.jobrunr.control.security.JobRunrDashboardUserContextFilter;
@@ -262,6 +263,7 @@ public class JobRunrControlProcessor {
                         DashboardTemplateExtensions.class,
                         DashboardPaths.class,
                         BuildTimeConfigurationAdapter.class,
+                        DeleteFilterProducer.class,
                         ParameterCleanupJobFilter.class,
                         JobRunrControlRoleAugmentor.class
                 )
