@@ -66,10 +66,6 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
         var parentBatchJobId = ThreadLocalJobContext.getJobContext().getJobId();
         var parentBatchJobName = ThreadLocalJobContext.getJobContext().getJobName();
 
-        // Load all items to be processed based on request parameters
-        List<ExampleBatchJobItemProcessorRequest> items = IntStream.rangeClosed(1, request.numberOfChunks())
-                .mapToObj(junkId -> new ExampleBatchJobItemProcessorRequest(junkId, request.chunkSize(), request.processScenario(), parentBatchJobId))
-                .toList();
 
         // Simulate preparation delay
         try {
@@ -85,9 +81,9 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
         // The step marker is persisted only after all jobs were configured. If this block is
         // retried after a partial failure, deterministic IDs make already-created jobs no-ops.
         jobContext.runStepOnce(ENQUEUE_WORKFLOW_STEP, () -> {
-            JobProId chunkBatchJobId = enqueueChunkBatchJob(parentBatchJobId, parentBatchJobName, items);
+            JobProId chunkBatchJobId = enqueueChunkBatchJob(parentBatchJobId, parentBatchJobName, request.numberOfChunks(), request.chunkSize(), scenario);
             enqueuePostProcessingJobs(parentBatchJobId, parentBatchJobName, scenario, chunkBatchJobId);
-            markAsEnqueued(items.size());
+            markAsEnqueued(request.numberOfChunks());
         });
     }
 
@@ -103,11 +99,10 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
     }
 
 
-    private JobProId enqueueChunkBatchJob(UUID parentBatchJobId, String batchJobName,
-                                          List<ExampleBatchJobItemProcessorRequest> items) {
+    private JobProId enqueueChunkBatchJob(UUID parentBatchJobId, String batchJobName, int numberOfChunks, int chunkSize, ExampleBatchJobProcessScenario scenario) {
         return BackgroundJob.create(aBatchJob()
             .withId(deterministicJobId(parentBatchJobId, "chunk-batch"))
-            .withJobLambda(() -> enqueueChunkJobs(batchJobName, items))
+            .withJobLambda(() -> enqueueChunkJobs(batchJobName, numberOfChunks, chunkSize, scenario, parentBatchJobId))
             .withAmountOfRetries(0)
             .withName(String.format("%s-ChunkBatch", batchJobName))
         );
@@ -138,7 +133,12 @@ public class ExampleBatchJob implements JobRequestHandler<ExampleBatchJobRequest
      * <p>
      * @param items the batch items to enqueue
      */
-    public void enqueueChunkJobs(String mainBatchJobName, List<ExampleBatchJobItemProcessorRequest> items) {
+    public void enqueueChunkJobs(String mainBatchJobName, int  numberOfChunks, int chunkSize, ExampleBatchJobProcessScenario scenario, UUID parentBatchJobId) {
+        // Load all items to be processed based on request parameters
+        List<ExampleBatchJobItemProcessorRequest> items = IntStream.rangeClosed(1, numberOfChunks)
+                .mapToObj(junkId -> new ExampleBatchJobItemProcessorRequest(junkId, chunkSize, scenario, parentBatchJobId))
+                .toList();
+
         for (var item : items) {
             BackgroundJobRequest.create(aJob()
                 .withId(deterministicJobId(item.parentBatchJobId(), "chunk-" + item.chunkId()))

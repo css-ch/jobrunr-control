@@ -69,20 +69,23 @@ public class RecapDemoJob implements JobRequestHandler<RecapDemoJobRequest> {
                 .findById(workflowRootJobId, RecapDemoJobParameter.class)
                 .orElseThrow(() -> new IllegalStateException("Parameter set not found: " + workflowRootJobId));
 
-        List<RecapDemoWorkerRequest> workers = createWorkerRequests(parameter);
+        int workerCount = resolveWorkerCount(parameter);
+        int configuredWorkerCount = workerCount > 1 ? workerCount - 1 : 0;
         String rootJobName = jobContext.getJobName();
 
         jobContext.runStepOnce(ENQUEUE_WORKFLOW_STEP, () -> {
-            enqueueWorkerBatch(workflowRootJobId, rootJobName, workers);
-            saveEnqueueMetadata(workers.size());
+            enqueueWorkerBatch(workflowRootJobId, rootJobName, workerCount,
+                    parameter.steuerungPhysischerDruckPortalVersand());
+            saveEnqueueMetadata(configuredWorkerCount);
         });
 
         LOG.infof("[Batch %s] Preparing RecapDemoJob finished. %d workers configured",
-                workflowRootJobId, workers.size());
-        messageService.info(String.format("Preparing RecapDemoJob finished. %d workers configured", workers.size()));
+                workflowRootJobId, configuredWorkerCount);
+        messageService.info(String.format(
+                "Preparing RecapDemoJob finished. %d workers configured", configuredWorkerCount));
     }
 
-    private List<RecapDemoWorkerRequest> createWorkerRequests(RecapDemoJobParameter parameter) {
+    private int resolveWorkerCount(RecapDemoJobParameter parameter) {
         int workerCount = 87;
         try {
             workerCount = Integer.parseInt(parameter.steuerungBeilageNrs());
@@ -91,18 +94,15 @@ public class RecapDemoJob implements JobRequestHandler<RecapDemoJobRequest> {
                     + parameter.steuerungBeilageNrs());
         }
 
-        return IntStream.range(1, workerCount)
-                .mapToObj(number -> new RecapDemoWorkerRequest(
-                        number,
-                        number == 13 && parameter.steuerungPhysischerDruckPortalVersand()))
-                .toList();
+        return workerCount;
     }
 
     private void enqueueWorkerBatch(UUID workflowRootJobId, String rootJobName,
-                                    List<RecapDemoWorkerRequest> workers) {
+                                    int workerCount, Boolean forcePhysicalPrintForPortalDelivery) {
         BackgroundJob.create(aBatchJob()
                 .withId(deterministicJobId(workflowRootJobId, "worker-batch"))
-                .withJobLambda(() -> enqueueWorkers(workflowRootJobId, rootJobName, workers))
+                .withJobLambda(() -> enqueueWorkers(workflowRootJobId, rootJobName, workerCount,
+                        forcePhysicalPrintForPortalDelivery))
                 .withAmountOfRetries(0)
                 .withName(rootJobName + "-WorkerBatch"));
     }
@@ -111,7 +111,13 @@ public class RecapDemoJob implements JobRequestHandler<RecapDemoJobRequest> {
      * Public because JobRunr invokes the analyzed lambda target reflectively.
      */
     public void enqueueWorkers(UUID workflowRootJobId, String rootJobName,
-                               List<RecapDemoWorkerRequest> workers) {
+                               int workerCount, Boolean forcePhysicalPrintForPortalDelivery) {
+        List<RecapDemoWorkerRequest> workers = IntStream.range(1, workerCount)
+                .mapToObj(number -> new RecapDemoWorkerRequest(
+                        number,
+                        number == 13 && forcePhysicalPrintForPortalDelivery))
+                .toList();
+
         workers.forEach(worker -> BackgroundJobRequest.create(aJob()
                 .withId(deterministicJobId(workflowRootJobId, "worker-" + worker.number()))
                 .withJobRequest(worker)
