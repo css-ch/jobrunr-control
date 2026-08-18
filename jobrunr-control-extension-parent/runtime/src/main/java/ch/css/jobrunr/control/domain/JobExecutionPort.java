@@ -18,6 +18,16 @@ public interface JobExecutionPort {
     List<JobExecutionInfo> getJobExecutions();
 
     /**
+     * Returns executions for one job type, or all executions when the type is blank.
+     *
+     * @param jobType optional stable job type identifier
+     * @return List of matching job execution information
+     */
+    default List<JobExecutionInfo> getJobExecutions(String jobType) {
+        return getJobExecutions();
+    }
+
+    /**
      * Finds a job execution by ID.
      *
      * @param jobId Job ID
@@ -34,4 +44,3 @@ public interface JobExecutionPort {
     Optional<JobExecutionInfo> getJobChainExecutionById(UUID jobId);
 
 }
-

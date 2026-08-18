@@ -29,5 +29,11 @@ public class GetJobExecutionHistoryUseCase {
     public List<JobExecutionInfo> execute() {
         return jobExecutionPort.getJobExecutions();
     }
-}
 
+    public List<JobExecutionInfo> execute(String jobType) {
+        if (jobType == null || jobType.isBlank() || "all".equals(jobType)) {
+            return execute();
+        }
+        return jobExecutionPort.getJobExecutions(jobType);
+    }
+}

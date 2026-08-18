@@ -42,13 +42,13 @@ public class ConfigurableJobSearchAdapter {
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
     }
 
-    public List<ConfigurableJobSearchResult> getConfigurableJob(List<StateName> statesToQuery) {
+    public List<ConfigurableJobSearchResult> getConfigurableJob(List<StateName> statesToQuery, String jobType) {
         List<ConfigurableJobSearchResult> configurableJob = new ArrayList<>();
         try {
             AmountRequest amountRequest = createAmountRequest();
 
             for (StateName state : statesToQuery) {
-                collectJobsForState(state, amountRequest, configurableJob);
+                collectJobsForState(state, amountRequest, configurableJob, jobType);
             }
             return configurableJob;
         } catch (Exception e) {
@@ -61,8 +61,12 @@ public class ConfigurableJobSearchAdapter {
         return new AmountRequest("updatedAt:DESC", 10000);
     }
 
-    private void collectJobsForState(StateName state, AmountRequest amountRequest, List<ConfigurableJobSearchResult> results) {
+    private void collectJobsForState(StateName state, AmountRequest amountRequest,
+                                     List<ConfigurableJobSearchResult> results, String jobType) {
         for (JobDefinition jobDefinition : jobDefinitionDiscoveryService.getAllJobDefinitions()) {
+            if (jobType != null && !jobType.equals(jobDefinition.jobType())) {
+                continue;
+            }
             collectJobsForDefinition(state, jobDefinition, amountRequest, results);
         }
     }
