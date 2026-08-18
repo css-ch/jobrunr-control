@@ -15,6 +15,7 @@ public interface JobRunrControlUiConfig {
     /**
      * Whether to display the job UUID column in all job tables.
      * Default: false
+     * Attribute: quarkus.jobrunr-control.ui.show-job-uuid
      */
     @WithDefault("false")
     boolean showJobUuid();
@@ -22,6 +23,7 @@ public interface JobRunrControlUiConfig {
     /**
      * Whether to display the business Status in den Execution-History Table.
      * The business Status must be set by the application.
+     * Attribute: quarkus.jobrunr-control.ui.show-business-status
      */
     @WithDefault("false")
     boolean showBusinessStatus();
