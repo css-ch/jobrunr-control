@@ -5,8 +5,6 @@ import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jboss.logging.Logger;
 
 import java.util.Optional;
 

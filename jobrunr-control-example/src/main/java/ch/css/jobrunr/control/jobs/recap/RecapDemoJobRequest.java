@@ -1,13 +1,13 @@
-package ch.css.jobrunr.control.jobs.complex;
+package ch.css.jobrunr.control.jobs.recap;
 
 import ch.css.jobrunr.control.annotations.JobParameterSet;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
-@JobParameterSet(parameterSetClass = ComplexParameterDemoJobParameter.class)
-public record ComplexParameterDemoJobRequest() implements JobRequest {
+@JobParameterSet(parameterSetClass = RecapDemoJobParameter.class)
+public record RecapDemoJobRequest() implements JobRequest {
     @Override
     public Class<? extends JobRequestHandler> getJobRequestHandler() {
-        return ComplexParameterDemoJob.class;
+        return RecapDemoJob.class;
     }
 }

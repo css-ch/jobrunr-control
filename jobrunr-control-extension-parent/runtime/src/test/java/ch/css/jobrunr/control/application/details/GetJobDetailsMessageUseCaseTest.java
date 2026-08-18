@@ -48,7 +48,7 @@ class GetJobDetailsMessageUseCaseTest {
     @DisplayName("should use configured custom message provider when present")
     void execute_CustomProviderConfigured_UsesProvider() {
         UUID jobId = UUID.randomUUID();
-        String jobType = "ComplexDemoJob";
+        String jobType = "RecapDemoJob";
         JobDefinition jobDefinition = new JobDefinition(
                 jobType,
                 true,
@@ -56,18 +56,18 @@ class GetJobDetailsMessageUseCaseTest {
                 "handlerClass",
                 List.of(),
                 List.of(),
-                new JobSettings("Complex Demo Job", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
+                new JobSettings("Recap Demo Job", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
                 false,
                 null,
                 List.of(),
-                new JobDetailPage(null, "complex-demo-message-provider", "", true, true)
+                new JobDetailPage(null, "recap-demo-message-provider", "", true, true)
         );
         JobMessage message = new JobMessage(Instant.parse("2026-05-26T10:15:30Z"), null, JobMessageLevel.INFO, "hello", null);
 
         when(storageProvider.getJobById(jobId)).thenReturn(batchJob);
         when(batchJob.isBatchJob()).thenReturn(true);
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
-        when(jobDetailsProviderRegistry.getMessageProvider("complex-demo-message-provider")).thenReturn(jobMessageProvider);
+        when(jobDetailsProviderRegistry.getMessageProvider("recap-demo-message-provider")).thenReturn(jobMessageProvider);
         when(jobMessageProvider.searchJobMessages(jobId, JobMessageLevelSearch.ALL, "hello", JobMessageSortOrder.NEWEST_FIRST, 0, 10))
                 .thenReturn(new JobMessagesPaged(List.of(message), 1, 0, 10));
 
@@ -87,4 +87,3 @@ class GetJobDetailsMessageUseCaseTest {
         verify(storageProvider, never()).getJobList(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 }
-

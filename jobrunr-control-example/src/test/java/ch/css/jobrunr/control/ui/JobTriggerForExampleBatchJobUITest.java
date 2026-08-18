@@ -60,13 +60,13 @@ class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
         navigateToHistory();
         searchForJob("Test Batch Job - External Trigger");
 
-        // The history table renders execution.parameters (numberOfChunks, chunkSize, simulateErrors)
+        // The history table renders execution.parameters (numberOfChunks, chunkSize, processScenario)
         // extracted from the ExampleBatchJobRequest via JobParameterExtractor
         String pageContent = page.content();
         assertTrue(
                 pageContent.contains("numberOfChunks")
                         && pageContent.contains("chunkSize")
-                        && pageContent.contains("simulateErrors"),
-                "History should show the batch job parameters: numberOfChunks, chunkSize, simulateErrors");
+                        && pageContent.contains("processScenario"),
+                "History should show the batch job parameters: numberOfChunks, chunkSize, processScenario");
     }
 }

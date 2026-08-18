@@ -3,15 +3,13 @@ package ch.css.jobrunr.control.infrastructure.details;
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.details.*;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
+import ch.css.jobrunr.control.infrastructure.jobrunr.JobWorkflowResolver;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.context.JobDashboardLogger;
 import org.jobrunr.jobs.states.FailedState;
-import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
-import org.jobrunr.storage.navigation.AmountRequest;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -29,6 +27,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
     private final RecapValueExtractorRegistry recapValueExtractorRegistry;
+    private final JobWorkflowResolver jobWorkflowResolver;
     private final Clock clock = Clock.systemUTC();
     private final Duration snapshotTtl = SNAPSHOT_TTL;
     private final Map<UUID, SnapshotCacheEntry> snapshotCache = new ConcurrentHashMap<>();
@@ -38,11 +37,13 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     public DefaultJobDetailsProvider(JobExecutionPort jobExecutionPort,
                                      StorageProvider storageProvider,
                                      JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
-                                     RecapValueExtractorRegistry recapValueExtractorRegistry) {
+                                     RecapValueExtractorRegistry recapValueExtractorRegistry,
+                                     JobWorkflowResolver jobWorkflowResolver) {
         this.jobExecutionPort = jobExecutionPort;
         this.storageProvider = storageProvider;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.recapValueExtractorRegistry = recapValueExtractorRegistry;
+        this.jobWorkflowResolver = jobWorkflowResolver;
     }
 
     @Override
@@ -161,8 +162,6 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
         if (!batch.isBatchJob()) {
             return BatchDetailsSnapshot.empty();
         }
-        BatchJob batchJob = (BatchJob) batch;
-
         JobExecutionInfo jobExecutionInfo = jobExecutionPort.getJobExecutionById(jobId)
                 .orElseThrow(() -> new JobNotFoundException("Job execution with ID " + jobId + " not found"));
         JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobExecutionInfo.getJobType());
@@ -175,21 +174,21 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
         AtomicLong exceptionMessages = new AtomicLong(0);
         List<CollectedMessage> messages = new ArrayList<>();
 
-        for (Job childJob : getChildJobs(batchJob)) {
-            updateCounters(recapCounters, recapValueExtractor, childJob.getResult());
-            Optional<FailedState> lastJobState = childJob.getLastJobStateOfType(FailedState.class);
+        for (Job workflowJob : jobWorkflowResolver.resolveWorkflow(jobId)) {
+            updateCounters(recapCounters, recapValueExtractor, workflowJob.getResult());
+            Optional<FailedState> lastJobState = workflowJob.getLastJobStateOfType(FailedState.class);
             lastJobState.ifPresent(failedState -> {
                 messages.add(new CollectedMessage(
                         failedState.getCreatedAt(),
-                        childJob.getId(),
+                        workflowJob.getId(),
                         JobMessageLevel.EXCEPTION,
-                        "[" + childJob.getJobName() + "] " + failedState.getExceptionMessage(),
+                        "[" + workflowJob.getJobName() + "] " + failedState.getExceptionMessage(),
                         failedState.getStackTrace()
                 ));
                 exceptionMessages.incrementAndGet();
             });
 
-            childJob.getMetadata().entrySet().stream()
+            workflowJob.getMetadata().entrySet().stream()
                     .filter(entry -> entry.getKey().startsWith("jobRunrDashboardLog-"))
                     .map(Map.Entry::getValue)
                     .filter(JobDashboardLogger.JobDashboardLogLines.class::isInstance)
@@ -203,7 +202,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                         }
                         messages.add(new CollectedMessage(
                                 logLine.getLogInstant(),
-                                childJob.getId(),
+                                workflowJob.getId(),
                                 toJobMessageLevel(logLine.getLevel()),
                                 logLine.getLogMessage(),
                                 null
@@ -278,12 +277,6 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
             case WARN -> JobMessageLevel.WARNING;
             case ERROR -> JobMessageLevel.ERROR;
         };
-    }
-
-    private List<Job> getChildJobs(BatchJob batchJob) {
-        return storageProvider.getJobList(JobSearchRequestBuilder.aJobSearchRequest()
-                .withParentId(batchJob.getId())
-                .build(), AmountRequest.fromString("limit=1000000"));
     }
 
     private record SnapshotCacheEntry(BatchDetailsSnapshot snapshot, long createdAtMillis) {

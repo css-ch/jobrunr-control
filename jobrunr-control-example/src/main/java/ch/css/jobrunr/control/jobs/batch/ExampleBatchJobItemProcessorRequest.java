@@ -5,7 +5,7 @@ import org.jobrunr.jobs.lambdas.JobRequest;
 import java.util.UUID;
 
 public record ExampleBatchJobItemProcessorRequest(int chunkId, int chunkSize,
-                                                  Boolean simulateErrors,
+                                                  ExampleBatchJobProcessScenario processScenario,
                                                   UUID parentBatchJobId) implements JobRequest {
 
     @Override

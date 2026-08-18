@@ -15,6 +15,8 @@ import org.jobrunr.storage.navigation.AmountRequest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Factory for creating JobRunr JobSearchRequest instances.
@@ -69,7 +71,7 @@ public class ConfigurableJobSearchAdapter {
         try {
             JobSearchRequest searchRequest = createSearchRequest(state, jobDefinition);
             List<Job> jobList = storageProvider.getJobList(searchRequest, amountRequest);
-            addNonChildJobs(jobList, jobDefinition, results);
+            addCanonicalRootJobs(jobList, jobDefinition, results);
         } catch (Exception e) {
             LOG.warnf(e, "Error retrieving jobs in state %s with type %s", state, jobDefinition.jobType());
         }
@@ -83,16 +85,52 @@ public class ConfigurableJobSearchAdapter {
         }
     }
 
-    private void addNonChildJobs(List<Job> jobList, JobDefinition jobDefinition, List<ConfigurableJobSearchResult> results) {
+    private void addCanonicalRootJobs(List<Job> jobList, JobDefinition jobDefinition, List<ConfigurableJobSearchResult> results) {
         for (Job job : jobList) {
-            if (!isChildJobOfBatch(job, jobDefinition)) {
+            if (isCanonicalRootJob(job, jobDefinition)) {
                 results.add(new ConfigurableJobSearchResult(jobDefinition, job));
             }
         }
     }
 
-    private boolean isChildJobOfBatch(Job job, JobDefinition jobDefinition) {
-        return jobDefinition.isBatchJob() && !job.isBatchJob();
+    /**
+     * A configurable execution is represented by the top-level job that JobRunr Control scheduled.
+     * Labels are inherited by nested jobs, and nested jobs can themselves be {@code BatchJob}s, so
+     * neither labels nor the concrete job class are sufficient to identify overview rows.
+     *
+     * JobRunr Pro may update the outer batch's parent relation to its final continuation. Parent
+     * state is therefore unsuitable for identifying the overview row. New executions carry an
+     * immutable root UUID in metadata. Handler and request types are the best-effort fallback for
+     * executions created before that metadata existed.
+     */
+    static boolean isCanonicalRootJob(Job job, JobDefinition jobDefinition) {
+        Optional<UUID> rootId = workflowRootId(job);
+        if (rootId.isPresent()) {
+            return job.getId().equals(rootId.get());
+        }
+
+        var jobDetails = job.getJobDetails();
+        if (!jobDefinition.handlerClassName().equals(jobDetails.getClassName())) {
+            return false;
+        }
+        return jobDetails.getJobParameters().stream()
+                .anyMatch(parameter -> jobDefinition.jobRequestTypeName().equals(parameter.getClassName())
+                        || jobDefinition.jobRequestTypeName().equals(parameter.getActualClassName()));
+    }
+
+    private static Optional<UUID> workflowRootId(Job job) {
+        Object value = job.getMetadata().get(JobWorkflowResolver.WORKFLOW_ROOT_ID_METADATA_KEY);
+        if (value instanceof UUID uuid) {
+            return Optional.of(uuid);
+        }
+        if (value instanceof String stringValue) {
+            try {
+                return Optional.of(UUID.fromString(stringValue));
+            } catch (IllegalArgumentException e) {
+                LOG.warnf("Ignoring invalid workflow root metadata value '%s' on job %s", stringValue, job.getId());
+            }
+        }
+        return Optional.empty();
     }
 
     /**

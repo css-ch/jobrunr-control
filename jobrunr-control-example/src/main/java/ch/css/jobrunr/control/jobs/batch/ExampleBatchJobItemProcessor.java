@@ -3,7 +3,6 @@ package ch.css.jobrunr.control.jobs.batch;
 import ch.css.jobrunr.control.domain.exceptions.JobProcessingException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
-import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.server.runner.ThreadLocalJobContext;
 
@@ -23,7 +22,6 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
      */
     @Override
     @Transactional
-    @Job(name = "Processing example batch chunkId: %0", retries = 0)
     @SuppressWarnings("squid:S4511")
     public void run(ExampleBatchJobItemProcessorRequest request) {
         // Get the parent batch job ID from the request
@@ -36,7 +34,7 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
         // Check if this chunk has been attempted before using metadata
         boolean isFirstAttempt = !ThreadLocalJobContext.getJobContext().getMetadata().containsKey("attempted");
 
-        if (request.simulateErrors() && isFirstAttempt && Math.abs(request.chunkId() % 2) == 1) {
+        if (simulateErrors(request) && isFirstAttempt && Math.abs(request.chunkId() % 2) == 1) {
             // Mark as attempted for next time
             ThreadLocalJobContext.getJobContext().saveMetadata("attempted", true);
             ThreadLocalJobContext.getJobContext().logger().error("Simulated transient error for chunk ID: " + request.chunkId() + " (will succeed when batch is re-run from dashboard)");
@@ -56,5 +54,11 @@ public class ExampleBatchJobItemProcessor implements JobRequestHandler<ExampleBa
             }
         }
         ThreadLocalJobContext.getJobContext().logger().info("Processing done.");
+    }
+
+    private boolean simulateErrors(ExampleBatchJobItemProcessorRequest request) {
+        return request.processScenario() == ExampleBatchJobProcessScenario.CHUNK_WARNING
+                || request.processScenario() == ExampleBatchJobProcessScenario.CHUNK_BUSINESS_ERROR
+                || request.processScenario() == ExampleBatchJobProcessScenario.CHUNK_TECHNICAL_ERROR;
     }
 }

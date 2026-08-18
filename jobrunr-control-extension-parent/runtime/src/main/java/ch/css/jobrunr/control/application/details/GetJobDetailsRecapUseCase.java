@@ -9,7 +9,6 @@ import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
-import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.storage.StorageProvider;
 
@@ -32,16 +31,19 @@ public class GetJobDetailsRecapUseCase {
     private final StorageProvider storageProvider;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
     private final JobDetailsProviderRegistry jobDetailsProviderRegistry;
+    private final JobWorkflowPort jobWorkflowPort;
 
     @Inject
     public GetJobDetailsRecapUseCase(JobExecutionPort jobExecutionPort,
                                      StorageProvider storageProvider,
                                      JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
-                                     JobDetailsProviderRegistry jobDetailsProviderRegistry) {
+                                     JobDetailsProviderRegistry jobDetailsProviderRegistry,
+                                     JobWorkflowPort jobWorkflowPort) {
         this.jobExecutionPort = jobExecutionPort;
         this.storageProvider = storageProvider;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.jobDetailsProviderRegistry = jobDetailsProviderRegistry;
+        this.jobWorkflowPort = jobWorkflowPort;
     }
 
     public Result execute(UUID jobId) {
@@ -91,34 +93,16 @@ public class GetJobDetailsRecapUseCase {
     }
 
     private ChildJobCounters evaluateChildJobCounters(UUID jobId) {
-        Job job = storageProvider.getJobById(jobId);
-        if (job.isBatchJob()) {
-            BatchJob.BatchJobStats batchJobStats = getBatchJobStats((BatchJob) job);
-            long totalChildJobs = batchJobStats.getTotalChildJobCount();
-            long succeededChildJobCount = batchJobStats.getSucceededChildJobCount();
-            long failedChildJobCount = batchJobStats.getFailedChildJobCount();
-            long inProgressChildJobCount = Math.max(0, totalChildJobs - succeededChildJobCount - failedChildJobCount);
-            long completedPercentage = totalChildJobs <= 0 ? 0 : (succeededChildJobCount * 100) / totalChildJobs;
+        BatchProgress progress = jobWorkflowPort.resolveProcessingJobProgress(jobId);
+        long completedPercentage = progress.total() <= 0 ? 0 : (progress.succeeded() * 100) / progress.total();
 
-            return new ChildJobCounters(
-                    totalChildJobs,
-                    succeededChildJobCount,
-                    failedChildJobCount,
-                    inProgressChildJobCount,
-                    completedPercentage
-            );
-        } else {
-            throw new IllegalStateException("Job with ID " + jobId + " is not a batch job");
-        }
-    }
-
-    private BatchJob.BatchJobStats getBatchJobStats(BatchJob batchJob) {
-        try {
-            return batchJob.getBatchJobStats();
-        } catch (IllegalStateException e) {
-            LOG.warn("Batch job stats not found: " + batchJob.getId().toString());
-        }
-        return new BatchJob.BatchJobStats(0, 0, 0);
+        return new ChildJobCounters(
+                progress.total(),
+                progress.succeeded(),
+                progress.failed(),
+                progress.getPending(),
+                completedPercentage
+        );
     }
 
     private JobDurations evaluateJobDurations(JobExecutionInfo jobExecutionInfo, long succeededChildJobCount) {

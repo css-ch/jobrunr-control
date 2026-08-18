@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.domain.details.JobMessage;
 import ch.css.jobrunr.control.domain.details.JobMessageLevel;
 import ch.css.jobrunr.control.domain.details.JobMessageService;
 import ch.css.jobrunr.control.domain.details.JobMessageStoragePort;
+import ch.css.jobrunr.control.infrastructure.jobrunr.JobWorkflowResolver;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -18,10 +19,12 @@ import java.util.UUID;
 public class JobMessageAdapter implements JobMessageService {
 
     private final JobMessageStoragePort jobMessageStorage;
+    private final JobWorkflowResolver jobWorkflowResolver;
 
     @Inject
-    public JobMessageAdapter(JobMessageStoragePort jobMessageStorage) {
+    public JobMessageAdapter(JobMessageStoragePort jobMessageStorage, JobWorkflowResolver jobWorkflowResolver) {
         this.jobMessageStorage = jobMessageStorage;
+        this.jobWorkflowResolver = jobWorkflowResolver;
     }
 
 
@@ -96,12 +99,9 @@ public class JobMessageAdapter implements JobMessageService {
     }
 
     private void writeMessage(JobMessageLevel level, String message, String stackTrace) {
-        UUID batchJobId = ThreadLocalJobContext.getJobContext().getAwaitedJobId();
+        UUID rootJobId = jobWorkflowResolver.resolveRootIdFromContext();
         UUID jobId = ThreadLocalJobContext.getJobContext().getJobId();
-        if(batchJobId == null) {
-            batchJobId = jobId;
-        }
         JobMessage jobMessage = new JobMessage(Instant.now(), jobId, level, message, stackTrace);
-        jobMessageStorage.writeMessage(batchJobId, jobMessage);
+        jobMessageStorage.writeMessage(rootJobId, jobMessage);
     }
 }

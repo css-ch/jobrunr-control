@@ -5,6 +5,7 @@ import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
 import ch.css.jobrunr.control.domain.details.JobMessageSortOrder;
 import ch.css.jobrunr.control.domain.details.JobMessagesPaged;
+import ch.css.jobrunr.control.infrastructure.jobrunr.JobWorkflowResolver;
 import org.jobrunr.jobs.BatchJob;
 import org.jobrunr.jobs.Job;
 import org.jobrunr.storage.StorageProvider;
@@ -45,6 +46,9 @@ class DefaultJobDetailsProviderTest {
     private RecapValueExtractor recapValueExtractor;
 
     @Mock
+    private JobWorkflowResolver jobWorkflowResolver;
+
+    @Mock
     private BatchJob batchJob;
 
     @Mock
@@ -58,12 +62,12 @@ class DefaultJobDetailsProviderTest {
     void usesSharedSnapshotAcrossProviderMethods() {
         UUID batchId = UUID.randomUUID();
         DefaultJobDetailsProvider provider = new DefaultJobDetailsProvider(
-                jobExecutionPort, storageProvider, jobDefinitionDiscoveryService, recapValueExtractorRegistry);
+                jobExecutionPort, storageProvider, jobDefinitionDiscoveryService, recapValueExtractorRegistry,
+                jobWorkflowResolver);
 
         when(storageProvider.getJobById(batchId)).thenReturn(batchJob);
         when(batchJob.isBatchJob()).thenReturn(true);
-        when(batchJob.getId()).thenReturn(batchId);
-        when(storageProvider.getJobList(any(), any())).thenReturn(List.of(childJobA, childJobB));
+        when(jobWorkflowResolver.resolveWorkflow(batchId)).thenReturn(List.of(childJobA, childJobB));
 
         when(childJobA.getResult()).thenReturn(new RecapResult(2L));
         when(childJobB.getResult()).thenReturn(new RecapResult(3L));
@@ -103,7 +107,7 @@ class DefaultJobDetailsProviderTest {
         assertThat(messages.messages()).isEmpty();
         assertThat(messages.totalMessages()).isZero();
 
-        verify(storageProvider, times(1)).getJobList(any(), any());
+        verify(jobWorkflowResolver, times(1)).resolveWorkflow(batchId);
         verify(jobExecutionPort, times(1)).getJobExecutionById(batchId);
         verify(jobDefinitionDiscoveryService, times(1)).requireJobByType("DemoJob");
     }
@@ -113,12 +117,12 @@ class DefaultJobDetailsProviderTest {
     void rebuildsSnapshotAfterTtlExpiration() throws InterruptedException {
         UUID batchId = UUID.randomUUID();
         DefaultJobDetailsProvider provider = new DefaultJobDetailsProvider(
-                jobExecutionPort, storageProvider, jobDefinitionDiscoveryService, recapValueExtractorRegistry);
+                jobExecutionPort, storageProvider, jobDefinitionDiscoveryService, recapValueExtractorRegistry,
+                jobWorkflowResolver);
 
         when(storageProvider.getJobById(batchId)).thenReturn(batchJob);
         when(batchJob.isBatchJob()).thenReturn(true);
-        when(batchJob.getId()).thenReturn(batchId);
-        when(storageProvider.getJobList(any(), any())).thenReturn(List.of(childJobA));
+        when(jobWorkflowResolver.resolveWorkflow(batchId)).thenReturn(List.of(childJobA));
 
         when(childJobA.getResult()).thenReturn(new RecapResult(1L));
         when(childJobA.getMetadata()).thenReturn(Map.of());
@@ -151,7 +155,7 @@ class DefaultJobDetailsProviderTest {
         Thread.sleep(2100L);
         provider.determineJobMessageCounter(batchId);
 
-        verify(storageProvider, times(2)).getJobList(any(), any());
+        verify(jobWorkflowResolver, times(2)).resolveWorkflow(batchId);
         verify(jobExecutionPort, times(2)).getJobExecutionById(eq(batchId));
     }
 
@@ -175,4 +179,3 @@ class DefaultJobDetailsProviderTest {
     }
 
 }
-
