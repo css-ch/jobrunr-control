@@ -106,11 +106,11 @@
 
     <!-- Total Jobs -->
     <div class="col-md-6">
-        <div class="card border-left-primary">
+        <div class="card {#if recap.childJobCounters.failedChildJobCount > 0}border-left-danger{#else if recap.childJobCounters.totalChildJobs > 0 && recap.childJobCounters.succeededChildJobCount == recap.childJobCounters.totalChildJobs}border-left-success{#else}border-left-secondary{/if}">
             <div class="card-body">
                 <div class="row">
                     <div class="col-auto">
-                        <div class="display-6 text-primary">
+                        <div class="display-6 {#if recap.childJobCounters.failedChildJobCount > 0}text-danger{#else if recap.childJobCounters.totalChildJobs > 0 && recap.childJobCounters.succeededChildJobCount == recap.childJobCounters.totalChildJobs}text-success{#else}text-secondary{/if}">
                             <i class="bi bi-play-circle"></i>
                         </div>
                     </div>
@@ -143,11 +143,11 @@
 
     <!-- Warnings -->
     <div class="col-md-6">
-        <div class="card border-left-orange">
+        <div class="card {#if recap.messageCount.exceptionMessages > 0}border-left-exception{#else if recap.messageCount.errorMessages > 0}border-left-danger{#else if recap.messageCount.warningMessages > 0}border-left-warning{#else}border-left-info{/if}">
             <div class="card-body">
                 <div class="row">
                     <div class="col-auto">
-                        <div class="display-6 text-orange">
+                        <div class="display-6 {#if recap.messageCount.exceptionMessages > 0}text-exception{#else if recap.messageCount.errorMessages > 0}text-danger{#else if recap.messageCount.warningMessages > 0}text-warning{#else}text-info{/if}">
                             <i class="bi bi-envelope"></i>
                         </div>
                     </div>
@@ -237,14 +237,26 @@
     .border-left-primary {
         border-left: 4px solid #0d6efd !important;
     }
+    .border-left-success {
+        border-left: 4px solid #198754 !important;
+    }
+    .border-left-secondary {
+        border-left: 4px solid #6c757d !important;
+    }
     .border-left-warning {
         border-left: 4px solid #ffc107 !important;
     }
-    .border-left-orange {
-        border-left: 4px solid #fd7e14 !important;
+    .border-left-info {
+        border-left: 4px solid #0dcaf0 !important;
     }
-    .text-orange {
-        color: #fd7e14 !important;
+    .border-left-danger {
+        border-left: 4px solid #dc3545 !important;
+    }
+    .border-left-exception {
+        border-left: 4px solid #8b0000 !important;
+    }
+    .text-exception {
+        color: #8b0000 !important;
     }
     .recap-section-header {
         background-color: #f8f9fa;
@@ -266,4 +278,3 @@
         padding-bottom: 0.25rem;
     }
 </style>
-
