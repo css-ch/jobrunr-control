@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -71,7 +71,7 @@ class JobRunrExecutionAdapterTest {
                 processingJob(StateName.PROCESSING)
         );
 
-        when(configurableJobSearchAdapter.getConfigurableJob(anyList())).thenReturn(List.of(
+        when(configurableJobSearchAdapter.getConfigurableJob(anyList(), any())).thenReturn(List.of(
                 new ConfigurableJobSearchAdapter.ConfigurableJobSearchResult(jobDefinition, rootJob)));
         when(jobDefinition.jobType()).thenReturn("RecapDemoJob");
         when(rootJob.getId()).thenReturn(rootJobId);
