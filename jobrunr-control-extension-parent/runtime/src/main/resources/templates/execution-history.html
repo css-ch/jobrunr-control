@@ -6,7 +6,7 @@
             <div class="card">
                 <div class="card-body">
                     <div class="row g-2">
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <input type="search"
                                    class="form-control"
                                    name="search"
@@ -18,15 +18,15 @@
                                    hx-trigger="keyup changed delay:300ms"
                                    hx-target="#history-table"
                                    hx-vals='js:&#123;"size": jrcPageSize("history")&#125;'
-                                   hx-include="[name='status-filter']">
+                                   hx-include="[name='status-filter'],[name='jobType']">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <select name="status-filter"
                                     class="form-select"
                                     hx-get="{cp}/history/table"
                                     hx-target="#history-table"
                                     hx-vals='js:&#123;"size": jrcPageSize("history")&#125;'
-                                    hx-include="[name='search']">
+                                    hx-include="[name='search'],[name='jobType']">
                                 <option value="all">Alle Status</option>
                                 <option value="SUCCEEDED">Erfolgreich</option>
                                 <option value="FAILED">Fehlgeschlagen</option>
@@ -34,15 +34,29 @@
                                 <option value="ENQUEUED">Wartend</option>
                             </select>
                         </div>
-                        <div class="col-md-3 text-end">
+                        <div class="col-md-3">
+                            <label for="jobTypeFilter" class="visually-hidden">Job-Typ Filter</label>
+                            <select id="jobTypeFilter"
+                                    name="jobType"
+                                    class="form-select"
+                                    hx-get="{cp}/history/table"
+                                    hx-target="#history-table"
+                                    hx-vals='js:&#123;"size": jrcPageSize("history")&#125;'
+                                    hx-include="[name='search'],[name='status-filter']">
+                                <option value="all">Alle Job-Typen</option>
+                                {#for jobDef in availableJobTypes}
+                                    <option value="{jobDef.jobType()}">{jobDef.displayName()}</option>
+                                {/for}
+                            </select>
+                        </div>
+                        <div class="col-md-2 text-end">
                             <button class="btn btn-secondary"
                                     id="refresh-btn"
                                     hx-get="{cp}/history/table"
                                     hx-target="#history-table"
                                     hx-vals='js:&#123;"size": jrcPageSize("history")&#125;'
-                                    hx-include="[name='search'],[name='status-filter']"
+                                    hx-include="[name='search'],[name='status-filter'],[name='jobType']"
                                     hx-disabled-elt="this">
-                                <span class="htmx-indicator spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                                 <i class="bi bi-arrow-clockwise"></i> Aktualisieren
                             </button>
                         </div>
@@ -55,7 +69,7 @@
     <div id="history-table"
          hx-get="{cp}/history/table"
          hx-trigger="load"
-         hx-vals='js:&#123;"size": jrcPageSize("history")&#125;'
+         hx-vals='js:&#123;"size": jrcPageSize("history"), "jobType": document.querySelector("[name=jobType]")?.value || "all", "status-filter": document.querySelector("[name=status-filter]")?.value || "all", "search": document.querySelector("[name=search]")?.value || ""&#125;'
          hx-swap="innerHTML">
         <div class="text-center py-5">
             <div class="spinner-border text-primary" role="status">
@@ -72,4 +86,3 @@
         }, 5000);
     </script>
 {/content}
-

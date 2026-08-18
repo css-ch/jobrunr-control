@@ -37,7 +37,6 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
     @Inject
     public JobRunrExecutionAdapter(
             StorageProvider storageProvider,
-            JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
             ConfigurableJobSearchAdapter configurableJobSearchAdapter,
             JobChainStatusEvaluator jobChainStatusEvaluator,
             JobStateMapper jobStateMapper,
@@ -52,6 +51,11 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
 
     @Override
     public List<JobExecutionInfo> getJobExecutions() {
+        return getJobExecutions(null);
+    }
+
+    @Override
+    public List<JobExecutionInfo> getJobExecutions(String jobType) {
         List<StateName> relevantStates = List.of(
                 StateName.ENQUEUED,
                 StateName.AWAITING,
@@ -60,7 +64,7 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
                 StateName.SUCCEEDED,
                 StateName.FAILED
         );
-        return configurableJobSearchAdapter.getConfigurableJob(relevantStates)
+        return configurableJobSearchAdapter.getConfigurableJob(relevantStates, jobType)
                 .stream().map(j -> mapToJobExecutionInfo(j.jobDefinition().jobType(), j.job()))
                 .toList();
     }

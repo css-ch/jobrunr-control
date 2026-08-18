@@ -2,9 +2,8 @@ package ch.css.jobrunr.control.adapter.ui;
 
 import ch.css.jobrunr.control.application.monitoring.GetBatchProgressUseCase;
 import ch.css.jobrunr.control.application.monitoring.GetJobExecutionHistoryUseCase;
-import ch.css.jobrunr.control.domain.BatchProgress;
-import ch.css.jobrunr.control.domain.JobExecutionInfo;
-import ch.css.jobrunr.control.domain.JobStatus;
+import ch.css.jobrunr.control.application.discovery.DiscoverJobsUseCase;
+import ch.css.jobrunr.control.domain.*;
 
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
@@ -34,7 +33,7 @@ public class JobExecutionsController {
             // Utility class
         }
 
-        public static native TemplateInstance executionHistory();
+        public static native TemplateInstance executionHistory(List<JobDefinition> availableJobTypes);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -47,7 +46,7 @@ public class JobExecutionsController {
         public static native TemplateInstance executionHistoryTable(List<JobExecutionInfo> executions,
                                                                     PaginationHelper.PaginationMetadata pagination,
                                                                     List<TemplateExtensions.PageItem> pageRange,
-                                                                    String search, String statusFilter,
+                                                                    String search, String statusFilter, String jobType,
                                                                     String sortBy, String sortOrder,
                                                                     boolean showUuid, boolean showBusinessStatus, String host, String port);
 
@@ -56,6 +55,7 @@ public class JobExecutionsController {
 
     private final GetJobExecutionHistoryUseCase getHistoryUseCase;
     private final GetBatchProgressUseCase getBatchProgressUseCase;
+    private final DiscoverJobsUseCase discoverJobsUseCase;
     private final JobRunrControlUiConfig uiConfig;
     private final JobSearchUtils searchUtils;
 
@@ -63,9 +63,11 @@ public class JobExecutionsController {
     public JobExecutionsController(
             GetJobExecutionHistoryUseCase getHistoryUseCase,
             GetBatchProgressUseCase getBatchProgressUseCase,
+            DiscoverJobsUseCase discoverJobsUseCase,
             JobRunrControlUiConfig uiConfig, JobSearchUtils searchUtils) {
         this.getHistoryUseCase = getHistoryUseCase;
         this.getBatchProgressUseCase = getBatchProgressUseCase;
+        this.discoverJobsUseCase = discoverJobsUseCase;
         this.uiConfig = uiConfig;
         this.searchUtils = searchUtils;
     }
@@ -74,7 +76,7 @@ public class JobExecutionsController {
         if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
             return;
         }
-        UiRoutingSupport.renderHtml(ctx, Templates.executionHistory());
+        UiRoutingSupport.renderHtml(ctx, Templates.executionHistory(getAvailableJobDefinitions(discoverJobsUseCase)));
     }
 
     public void handleTable(RoutingContext ctx) {
@@ -84,18 +86,19 @@ public class JobExecutionsController {
 
         String search = UiRoutingSupport.queryParam(ctx, "search");
         String statusFilter = UiRoutingSupport.queryParam(ctx, "status-filter", "all");
+        String jobType = UiRoutingSupport.queryParam(ctx, "jobType", "all");
         int page = UiRoutingSupport.intQueryParam(ctx, "page", 0);
         int size = UiRoutingSupport.intQueryParam(ctx, "size", 10);
         String sortBy = UiRoutingSupport.queryParam(ctx, "sortBy", "startedAt");
         String sortOrder = UiRoutingSupport.queryParam(ctx, "sortOrder", "desc");
 
-        LOG.infof("handleTable page=%d, size=%d, sortBy=%s, sortOrder=%s, search=%s, statusFilter=%s",
-                page, size, sortBy, sortOrder, search, statusFilter);
+        LOG.infof("handleTable page=%d, size=%d, sortBy=%s, sortOrder=%s, search=%s, statusFilter=%s, jobType=%s",
+                page, size, sortBy, sortOrder, search, statusFilter, jobType);
 
         String host = ctx.request().authority() != null ? ctx.request().authority().host() : "";
         String port = ctx.request().authority() != null ? String.valueOf(ctx.request().authority().port()) : "";
 
-        List<JobExecutionInfo> executions = getHistoryUseCase.execute();
+        List<JobExecutionInfo> executions = getHistoryUseCase.execute(jobType);
 
         if (statusFilter != null && !"all".equals(statusFilter)) {
             final JobStatus filterStatus = JobStatus.valueOf(statusFilter);
@@ -124,6 +127,7 @@ public class JobExecutionsController {
                 paginationResult.pageRange(),
                 search != null ? search : "",
                 statusFilter,
+                jobType,
                 sortBy,
                 sortOrder,
                 uiConfig.showJobUuid(),
@@ -158,5 +162,11 @@ public class JobExecutionsController {
             default -> Comparator.comparing(JobExecutionInfo::getStartedAt,
                     Comparator.nullsLast(Comparator.naturalOrder()));
         };
+    }
+
+    private List<JobDefinition> getAvailableJobDefinitions(DiscoverJobsUseCase discoverJobsUseCase) {
+        return discoverJobsUseCase.execute().stream()
+                .sorted(Comparator.comparing(JobDefinition::displayName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 }
