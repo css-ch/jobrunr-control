@@ -4,6 +4,8 @@ import ch.css.jobrunr.control.application.details.GetJobDetailsMessagesAsCsvUseC
 import ch.css.jobrunr.control.application.details.GetJobDetailsMessageUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
+import ch.css.jobrunr.control.domain.JobDefinition;
+import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.details.JobMessage;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
 import ch.css.jobrunr.control.domain.details.JobMessageSortOrder;
@@ -17,6 +19,7 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -31,18 +34,21 @@ public class JobDetailsController {
     private final GetJobDetailsMessageUseCase getJobDetailsMessageUseCase;
     private final GetJobDetailsMessagesAsCsvUseCase getJobDetailsMessagesAsCsvUseCase;
     private final JobRunrControlUiConfig uiConfig;
+    private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
 
     @Inject
     public JobDetailsController(GetJobDetailsParametersUseCase getJobDetailsParametersUseCase,
                                 GetJobDetailsRecapUseCase getJobDetailsRecapUseCase,
                                 GetJobDetailsMessageUseCase getJobDetailsMessageUseCase,
                                 GetJobDetailsMessagesAsCsvUseCase getJobDetailsMessagesAsCsvUseCase,
-                                JobRunrControlUiConfig uiConfig) {
+                                JobRunrControlUiConfig uiConfig,
+                                JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
         this.getJobDetailsParametersUseCase = getJobDetailsParametersUseCase;
         this.getJobDetailsRecapUseCase = getJobDetailsRecapUseCase;
         this.getJobDetailsMessageUseCase = getJobDetailsMessageUseCase;
         this.getJobDetailsMessagesAsCsvUseCase = getJobDetailsMessagesAsCsvUseCase;
         this.uiConfig = uiConfig;
+        this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
     }
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -51,7 +57,8 @@ public class JobDetailsController {
             // Utility class
         }
 
-        public static native TemplateInstance jobDetails(String jobId, String jobType, String jobName);
+        public static native TemplateInstance jobDetails(String jobId, String jobType, String jobName,
+                                                        boolean showExtendedDetails);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -60,7 +67,9 @@ public class JobDetailsController {
             // Utility class
         }
 
-        public static native TemplateInstance jobDetailsRecap(GetJobDetailsRecapUseCase.Result recap, boolean showBusinessStatus);
+        public static native TemplateInstance jobDetailsRecap(GetJobDetailsRecapUseCase.Result recap,
+                                                              boolean showBusinessStatus,
+                                                              boolean showExtendedDetails);
         public static native TemplateInstance jobDetailsParameter(GetJobDetailsParametersUseCase.Result parameter);
         public static native TemplateInstance jobDetailsMessages(MessagesPaginationResult messages);
     }
@@ -75,7 +84,8 @@ public class JobDetailsController {
         String jobName = UiRoutingSupport.queryParam(ctx, "jobName");
 
         // Construct title and subtitle on Java side (no template interpolation needed)
-        UiRoutingSupport.renderHtml(ctx, JobDetailsController.Templates.jobDetails(jobId, jobType, jobName));
+        UiRoutingSupport.renderHtml(ctx, JobDetailsController.Templates.jobDetails(
+                jobId, jobType, jobName, hasDetailPage(jobType)));
         plog.log();
     }
 
@@ -85,7 +95,8 @@ public class JobDetailsController {
             return;
         }
         UiRoutingSupport.renderHtml(ctx, buildRecapTable(
-                UiRoutingSupport.queryParam(ctx, "jobId")
+                UiRoutingSupport.queryParam(ctx, "jobId"),
+                UiRoutingSupport.queryParam(ctx, "jobType")
         ));
         plog.log();
     }
@@ -153,9 +164,18 @@ public class JobDetailsController {
                 .end(csvContent);
     }
 
-    private TemplateInstance buildRecapTable(String jobId) {
+    private TemplateInstance buildRecapTable(String jobId, String jobType) {
         GetJobDetailsRecapUseCase.Result recapData = getJobDetailsRecapUseCase.execute(jobIdAsUUID(jobId));
-        return JobDetailsController.Components.jobDetailsRecap(recapData, uiConfig.showBusinessStatus());
+        return JobDetailsController.Components.jobDetailsRecap(
+                recapData,
+                uiConfig.showBusinessStatus(),
+                hasDetailPage(jobType)
+        );
+    }
+
+    private boolean hasDetailPage(String jobType) {
+        Optional<JobDefinition> jobDefinition = jobDefinitionDiscoveryService.findJobByType(jobType);
+        return jobDefinition.isPresent() && jobDefinition.get().jobDetailPage() != null;
     }
 
     private TemplateInstance buildParameterTable(String jobId) {
@@ -238,4 +258,3 @@ public class JobDetailsController {
     ) {
     }
 }
-

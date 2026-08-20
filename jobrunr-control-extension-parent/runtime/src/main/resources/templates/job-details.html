@@ -38,7 +38,7 @@
                      hx-get="{cp}/history/details/recap"
                      hx-trigger="load"
                      hx-swap="innerHTML"
-                     hx-include="[name='jobId']">
+                     hx-include="[name='jobId'],[name='jobType']">
                     <div class="text-center py-4">
                         <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
                         <p class="mt-2">Lade Batch Recap...</p>
@@ -77,6 +77,7 @@
         </div>
     </div>
 
+    {#if showExtendedDetails}
     <!-- Bottom Row: Batch Messages -->
     <div class="row">
         <div class="col-md-12">
@@ -167,6 +168,7 @@
             </div>
         </div>
     </div>
+    {/if}
 
     <script>
         (function() {
@@ -226,10 +228,11 @@
             htmx.trigger('#batch-parameters', 'load');
         }, 30000);
 
+        {#if showExtendedDetails}
         // Auto-refresh Batch Messages every 5 seconds
         setInterval(() => {
             htmx.trigger('#batch-messages', 'load');
         }, 5000);
+        {/if}
     </script>
 {/content}
-
