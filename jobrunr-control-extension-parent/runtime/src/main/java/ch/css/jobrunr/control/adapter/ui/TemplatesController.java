@@ -62,6 +62,7 @@ public class TemplatesController extends BaseController {
 
         public static native TemplateInstance templateForm(List<JobDefinition> jobDefinitions,
                                                            boolean isEdit,
+                                                           boolean readOnly,
                                                            ScheduledJobInfo job,
                                                            List<JobParameter> parameters,
                                                            List<JobParameterSection> parameterSections);
@@ -133,11 +134,11 @@ public class TemplatesController extends BaseController {
             return;
         }
         List<JobDefinition> jobDefinitions = getSortedJobDefinitions(discoverJobsUseCase);
-        UiRoutingSupport.renderHtml(ctx, Modals.templateForm(jobDefinitions, false, null, null, null));
+        UiRoutingSupport.renderHtml(ctx, Modals.templateForm(jobDefinitions, false, false, null, null, null));
     }
 
     public void handleEditModal(RoutingContext ctx) {
-        if (!UiRoutingSupport.requireAnyRole(ctx, "configurator", "admin")) {
+        if (!UiRoutingSupport.requireAnyRole(ctx, "viewer", "configurator", "admin")) {
             return;
         }
         UUID jobId = UiRoutingSupport.pathUuid(ctx, "id");
@@ -157,6 +158,7 @@ public class TemplatesController extends BaseController {
         );
 
         UiRoutingSupport.renderHtml(ctx, Modals.templateForm(jobDefinitions, true,
+                !UiRoutingSupport.hasAnyRole(ctx, "configurator", "admin"),
                 resolvedData.jobInfoWithResolvedParams, resolvedData.parameters, resolvedData.parameterSections));
     }
 
