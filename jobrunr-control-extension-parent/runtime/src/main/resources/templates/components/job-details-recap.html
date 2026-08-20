@@ -141,6 +141,7 @@
         </div>
     </div>
 
+    {#if showExtendedDetails}
     <!-- Warnings -->
     <div class="col-md-6">
         <div class="card {#if recap.messageCount.exceptionMessages > 0}border-left-exception{#else if recap.messageCount.errorMessages > 0}border-left-danger{#else if recap.messageCount.warningMessages > 0}border-left-warning{#else}border-left-info{/if}">
@@ -181,8 +182,10 @@
             </div>
         </div>
     </div>
+    {/if}
 </div>
 
+{#if showExtendedDetails}
 {#if recap.recapView != null && recap.recapView.recapSections != null && recap.recapView.recapSections.size() > 0}
 <div class="mt-4">
     <h6 class="text-muted">
@@ -219,6 +222,7 @@
         {/for}
     </table>
 </div>
+{/if}
 {/if}
 
 <style>

@@ -56,7 +56,7 @@ public class GetJobDetailsRecapUseCase {
 
         JobStatusInfo jobStatusInfo = evaluateJobStatusAndTimestamp(jobExecutionInfo);
         MessageCount messageCount = evaluateMessageCount(jobId, jobDefinition);
-        ChildJobCounters childJobCounters = evaluateChildJobCounters(jobId);
+        ChildJobCounters childJobCounters = evaluateChildJobCounters(jobId, jobExecutionInfo);
         JobDurations jobDurations = evaluateJobDurations(jobExecutionInfo, childJobCounters.succeededChildJobCount);
         RecapView recapView = evaluateRecapView(jobId, jobDefinition);
 
@@ -92,7 +92,11 @@ public class GetJobDetailsRecapUseCase {
         return new MessageCount(counter.totalMessages(), counter.infoMessages(), counter.warningMessages(), counter.errorMessages(), counter.exceptionMessages());
     }
 
-    private ChildJobCounters evaluateChildJobCounters(UUID jobId) {
+    private ChildJobCounters evaluateChildJobCounters(UUID jobId, JobExecutionInfo jobExecutionInfo) {
+        if (!jobExecutionInfo.isBatchJob()) {
+            return evaluateWorkerJobCounters(jobExecutionInfo.getStatus());
+        }
+
         BatchProgress progress = jobWorkflowPort.resolveProcessingJobProgress(jobId);
         long completedPercentage = progress.total() <= 0 ? 0 : (progress.succeeded() * 100) / progress.total();
 
@@ -102,6 +106,18 @@ public class GetJobDetailsRecapUseCase {
                 progress.failed(),
                 progress.getPending(),
                 completedPercentage
+        );
+    }
+
+    private ChildJobCounters evaluateWorkerJobCounters(JobStatus status) {
+        boolean succeeded = status == JobStatus.SUCCEEDED;
+        boolean failed = status == JobStatus.FAILED;
+        return new ChildJobCounters(
+                1,
+                succeeded ? 1 : 0,
+                failed ? 1 : 0,
+                succeeded || failed ? 0 : 1,
+                succeeded ? 100 : 0
         );
     }
 

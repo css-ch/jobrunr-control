@@ -25,17 +25,6 @@ public class ResultPageUrlTemplateExtensions {
     }
 
     /**
-     * Produces a DetailPage object for use in Qute templates.
-     * Available in templates as {dashboard}.
-     */
-    @TemplateGlobal
-    public static DetailPage hasDetailPage() {
-        DetailPageUtils detailPageUtils = Arc.container().instance(DetailPageUtils.class).get();
-        return new DetailPage(detailPageUtils);
-    }
-
-
-    /**
      * Dashboard helper class that provides URL methods in type-safe templates.
      * Usage:
      * - {dashboard.url()} - Dashboard root URL
@@ -56,20 +45,4 @@ public class ResultPageUrlTemplateExtensions {
         }
     }
 
-    /**
-     * DetailPage helper class that provides if the detail-page is enabled
-     */
-    @TemplateData
-    @SuppressWarnings("unused") // Methods are used in type-safe Qute templates
-    public static class DetailPage {
-        private final DetailPageUtils service;
-
-        public DetailPage(DetailPageUtils service) {
-            this.service = service;
-        }
-
-        public boolean hasDetailPage(String jobType) {
-            return service.hasDetailPage(jobType);
-        }
-    }
 }

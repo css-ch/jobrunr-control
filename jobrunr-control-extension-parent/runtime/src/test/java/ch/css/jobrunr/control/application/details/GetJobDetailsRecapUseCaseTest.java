@@ -14,6 +14,7 @@ import ch.css.jobrunr.control.domain.details.JobDetailsProviderRegistry;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
 import ch.css.jobrunr.control.domain.details.JobMessageProvider;
 import ch.css.jobrunr.control.domain.details.JobRecapProvider;
+import org.jobrunr.jobs.Job;
 import org.jobrunr.storage.StorageProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -73,7 +75,7 @@ class GetJobDetailsRecapUseCaseTest {
                 JobStatus.SUCCEEDED,
                 Instant.parse("2026-05-26T10:00:00Z"),
                 Instant.parse("2026-05-26T10:10:00Z"),
-                null,
+                new BatchProgress(10, 7, 1),
                 Map.of(),
                 Map.of(),
                 null,
@@ -128,7 +130,7 @@ class GetJobDetailsRecapUseCaseTest {
                 JobStatus.SUCCEEDED,
                 Instant.parse("2026-05-26T10:00:00Z"),
                 Instant.parse("2026-05-26T10:10:00Z"),
-                null,
+                new BatchProgress(10, 7, 1),
                 Map.of(),
                 Map.of(),
                 null,
@@ -205,6 +207,117 @@ class GetJobDetailsRecapUseCaseTest {
 
         assertThat(sections.get(5).hasSection()).isFalse();
         assertThat(sections.get(5).recapEntries().getFirst().recapParameter().name()).isEqualTo("u4");
+    }
+
+    @Test
+    @DisplayName("should count a succeeded non-batch job as one completed worker")
+    void execute_SucceededNonBatchJob_ReturnsCompletedWorkerCounters() {
+        UUID jobId = UUID.randomUUID();
+        JobExecutionInfo jobExecutionInfo = createExecutionInfo(jobId, JobStatus.SUCCEEDED);
+        JobDefinition jobDefinition = createJobDefinition();
+        configureDefaultProviders(jobId, jobExecutionInfo, jobDefinition);
+
+        GetJobDetailsRecapUseCase.Result result = useCase.execute(jobId);
+
+        assertThat(result.childJobCounters())
+                .extracting(
+                        GetJobDetailsRecapUseCase.ChildJobCounters::totalChildJobs,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::succeededChildJobCount,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::failedChildJobCount,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::inProgressChildJobCount,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::completedPercentage
+                )
+                .containsExactly(1L, 1L, 0L, 0L, 100L);
+        verify(jobWorkflowPort, never()).resolveProcessingJobProgress(jobId);
+    }
+
+    @Test
+    @DisplayName("should count a failed non-batch job as one failed worker")
+    void execute_FailedNonBatchJob_ReturnsFailedWorkerCounters() {
+        UUID jobId = UUID.randomUUID();
+        JobExecutionInfo jobExecutionInfo = createExecutionInfo(jobId, JobStatus.FAILED);
+        JobDefinition jobDefinition = createJobDefinition();
+        configureDefaultProviders(jobId, jobExecutionInfo, jobDefinition);
+        Job job = mock(Job.class);
+        when(storageProvider.getJobById(jobId)).thenReturn(job);
+        when(job.getUpdatedAt()).thenReturn(Instant.parse("2026-05-26T10:10:00Z"));
+
+        GetJobDetailsRecapUseCase.Result result = useCase.execute(jobId);
+
+        assertThat(result.childJobCounters())
+                .extracting(
+                        GetJobDetailsRecapUseCase.ChildJobCounters::totalChildJobs,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::succeededChildJobCount,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::failedChildJobCount,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::inProgressChildJobCount,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::completedPercentage
+                )
+                .containsExactly(1L, 0L, 1L, 0L, 0L);
+        verify(jobWorkflowPort, never()).resolveProcessingJobProgress(jobId);
+    }
+
+    @Test
+    @DisplayName("should count a processing non-batch job as one pending worker")
+    void execute_ProcessingNonBatchJob_ReturnsPendingWorkerCounters() {
+        UUID jobId = UUID.randomUUID();
+        JobExecutionInfo jobExecutionInfo = createExecutionInfo(jobId, JobStatus.PROCESSING);
+        JobDefinition jobDefinition = createJobDefinition();
+        configureDefaultProviders(jobId, jobExecutionInfo, jobDefinition);
+
+        GetJobDetailsRecapUseCase.Result result = useCase.execute(jobId);
+
+        assertThat(result.childJobCounters())
+                .extracting(
+                        GetJobDetailsRecapUseCase.ChildJobCounters::totalChildJobs,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::succeededChildJobCount,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::failedChildJobCount,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::inProgressChildJobCount,
+                        GetJobDetailsRecapUseCase.ChildJobCounters::completedPercentage
+                )
+                .containsExactly(1L, 0L, 0L, 1L, 0L);
+        verify(jobWorkflowPort, never()).resolveProcessingJobProgress(jobId);
+    }
+
+    private void configureDefaultProviders(UUID jobId, JobExecutionInfo jobExecutionInfo, JobDefinition jobDefinition) {
+        when(jobExecutionPort.getJobExecutionById(jobId)).thenReturn(Optional.of(jobExecutionInfo));
+        when(jobDefinitionDiscoveryService.requireJobByType(jobExecutionInfo.getJobType())).thenReturn(jobDefinition);
+        when(jobDetailsProviderRegistry.getMessageProvider(null)).thenReturn(jobMessageProvider);
+        when(jobDetailsProviderRegistry.getRecapProvider(null)).thenReturn(jobRecapProvider);
+        when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageLevelCounters(0, 0, 0, 0));
+        when(jobRecapProvider.determineRecap(jobId)).thenReturn(Map.of());
+    }
+
+    private static JobExecutionInfo createExecutionInfo(UUID jobId, JobStatus status) {
+        return new JobExecutionInfo(
+                jobId,
+                "Worker",
+                "WorkerJob",
+                status,
+                Instant.parse("2026-05-26T10:00:00Z"),
+                status == JobStatus.SUCCEEDED ? Instant.parse("2026-05-26T10:10:00Z") : null,
+                null,
+                Map.of(),
+                Map.of(),
+                null,
+                null,
+                null
+        );
+    }
+
+    private static JobDefinition createJobDefinition() {
+        return new JobDefinition(
+                "WorkerJob",
+                false,
+                "requestType",
+                "handlerClass",
+                List.of(),
+                List.of(),
+                new JobSettings("Worker Job", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
+                false,
+                null,
+                List.of(),
+                new JobDetailPage(null, null, null, false, false)
+        );
     }
 
 }
