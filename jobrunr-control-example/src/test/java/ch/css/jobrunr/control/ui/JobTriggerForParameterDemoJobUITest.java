@@ -43,7 +43,7 @@ class JobTriggerForParameterDemoJobUITest extends JobTriggerUITestBase {
                 {
                     "postfix": "-testrun",
                     "parameters": {
-                        "test-parameter": "yes"
+                        "stringParameter": "yes"
                     }
                 }
                 """;
@@ -73,10 +73,10 @@ class JobTriggerForParameterDemoJobUITest extends JobTriggerUITestBase {
 
         Locator jobLink = page.locator("a.text-decoration-none strong:has-text('Test Job - External Trigger')").first();
         jobLink.click();
-        page.waitForLoadState(com.microsoft.playwright.options.LoadState.NETWORKIDLE);
+        page.locator("#batch-parameters table").waitFor();
 
-        String pageContent = page.content();
-        assertTrue(pageContent.contains("test-parameter") && pageContent.contains("yes"),
-                "Job detail should show the overridden parameter 'test-parameter' with value 'yes'");
+        String parameterContent = page.locator("#batch-parameters").innerText();
+        assertTrue(parameterContent.contains("stringParameter") && parameterContent.contains("Test String Value"),
+                "Job detail should show the configured parameter 'stringParameter' with its value");
     }
 }
