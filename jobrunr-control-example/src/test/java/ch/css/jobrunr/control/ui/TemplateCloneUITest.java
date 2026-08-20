@@ -126,10 +126,9 @@ class TemplateCloneUITest extends JobTriggerUITestBase {
 
         navigateToTemplatesPage();
 
-        // Open edit dialog for cloned template (use exact match with strong tag)
+        // The template name opens the edit dialog for configurator users.
         Locator clonedRow = page.locator("tr:has(strong a:has-text('" + expectedClonedTemplateName + "'))").first();
-        Locator editButton = clonedRow.locator("button[title='Bearbeiten']");
-        editButton.click();
+        clonedRow.locator("strong a").click();
 
         page.waitForSelector("#jobModal.show", new Page.WaitForSelectorOptions()
                 .setState(com.microsoft.playwright.options.WaitForSelectorState.VISIBLE));

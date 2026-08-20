@@ -50,8 +50,17 @@
                 <tbody>
                 {#for job in jobs}
                     <tr>
-                        <td><strong><a href="{dashboard.jobUrl(job.jobId)}"
-                                       target="_blank">{job.jobName}</a></strong></td>
+                        <td>
+                            <strong>
+                                {#if security:hasOneOfRole('configurator', 'admin')}
+                                    <a href="{dashboard.jobUrl(job.jobId)}" onclick="editJob('{job.jobId}', false); return false;"
+                                       title="Template bearbeiten">{job.jobName}</a>
+                                {#else}
+                                    <a href="{dashboard.jobUrl(job.jobId)}" onclick="editJob('{job.jobId}', true); return false;"
+                                       title="Template anzeigen">{job.jobName}</a>
+                                {/if}
+                            </strong>
+                        </td>
                         {#if showUuid}
                         <td style="white-space: nowrap;">
                             <code class="small user-select-all">{job.jobId}</code>
@@ -79,12 +88,15 @@
                                     <i class="bi bi-play-fill"></i>
                                 </button>
                                 {/if}
+                                <a class="btn btn-outline-secondary"
+                                   href="{dashboard.jobUrl(job.jobId)}"
+                                   target="_blank"
+                                   rel="noopener"
+                                   title="Im JobRunr-Dashboard öffnen"
+                                   aria-label="Im JobRunr-Dashboard öffnen">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
                                 {#if security:hasOneOfRole('configurator', 'admin')}
-                                <button class="btn btn-outline-primary"
-                                        onclick="editJob('{job.jobId}')"
-                                        title="Bearbeiten">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
                                 <button class="btn btn-outline-info"
                                         hx-post="{cp}/templates/{job.jobId}/clone"
                                         hx-confirm="Template '{job.jobName}' wirklich klonen?"
@@ -204,10 +216,10 @@
         </div>
 
         <script>
-            function editJob(jobId) {
+            function editJob(jobId, readOnly) {
                 const modal = new bootstrap.Modal(document.getElementById('jobModal'));
                 const content = document.getElementById('modal-content');
-                document.getElementById('jobModalLabel').textContent = 'Template bearbeiten';
+                document.getElementById('jobModalLabel').textContent = readOnly ? 'Template anzeigen' : 'Template bearbeiten';
                 // Verwende htmx.trigger anstelle von htmx.ajax um Qute-Parser-Konflikte zu vermeiden
                 content.setAttribute('hx-get', '{cp}/templates/modal/' + jobId + '/edit');
                 htmx.process(content);

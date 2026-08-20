@@ -67,15 +67,27 @@ public final class UiRoutingSupport {
             ctx.fail(401);
             return false;
         }
-        for (String role : allowedRoles) {
-            if (identity.hasRole(role)) {
-                return true;
-            }
+        if (hasAnyRole(identity, allowedRoles)) {
+            return true;
         }
         LOG.warnf("Access denied for principal %s: required one of %s",
                 identity.getPrincipal() != null ? identity.getPrincipal().getName() : "?",
                 Set.of(allowedRoles));
         ctx.fail(403);
+        return false;
+    }
+
+    public static boolean hasAnyRole(RoutingContext ctx, String... roles) {
+        SecurityIdentity identity = extractIdentity(ctx);
+        return identity != null && hasAnyRole(identity, roles);
+    }
+
+    private static boolean hasAnyRole(SecurityIdentity identity, String... roles) {
+        for (String role : roles) {
+            if (identity.hasRole(role)) {
+                return true;
+            }
+        }
         return false;
     }
 
