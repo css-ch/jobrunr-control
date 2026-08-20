@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.application.details.GetJobDetailsMessagesAsCsvUseC
 import ch.css.jobrunr.control.application.details.GetJobDetailsMessageUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
+import ch.css.jobrunr.control.application.details.GetExpectedJobDeletionTimeUseCase;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.details.JobMessage;
@@ -21,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Main Dashboard Controller.
@@ -35,6 +38,9 @@ public class JobDetailsController {
     private final GetJobDetailsMessagesAsCsvUseCase getJobDetailsMessagesAsCsvUseCase;
     private final JobRunrControlUiConfig uiConfig;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
+    private final GetExpectedJobDeletionTimeUseCase getExpectedJobDeletionTimeUseCase;
+    private static final DateTimeFormatter DELETION_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss").withZone(ZoneId.systemDefault());
 
     @Inject
     public JobDetailsController(GetJobDetailsParametersUseCase getJobDetailsParametersUseCase,
@@ -42,13 +48,15 @@ public class JobDetailsController {
                                 GetJobDetailsMessageUseCase getJobDetailsMessageUseCase,
                                 GetJobDetailsMessagesAsCsvUseCase getJobDetailsMessagesAsCsvUseCase,
                                 JobRunrControlUiConfig uiConfig,
-                                JobDefinitionDiscoveryService jobDefinitionDiscoveryService) {
+                                JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
+                                GetExpectedJobDeletionTimeUseCase getExpectedJobDeletionTimeUseCase) {
         this.getJobDetailsParametersUseCase = getJobDetailsParametersUseCase;
         this.getJobDetailsRecapUseCase = getJobDetailsRecapUseCase;
         this.getJobDetailsMessageUseCase = getJobDetailsMessageUseCase;
         this.getJobDetailsMessagesAsCsvUseCase = getJobDetailsMessagesAsCsvUseCase;
         this.uiConfig = uiConfig;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
+        this.getExpectedJobDeletionTimeUseCase = getExpectedJobDeletionTimeUseCase;
     }
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -58,7 +66,8 @@ public class JobDetailsController {
         }
 
         public static native TemplateInstance jobDetails(String jobId, String jobType, String jobName,
-                                                        boolean showExtendedDetails);
+                                                        boolean showExtendedDetails,
+                                                        String expectedDeletionTime);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -82,10 +91,13 @@ public class JobDetailsController {
         String jobId = UiRoutingSupport.queryParam(ctx, "jobId");
         String jobType = UiRoutingSupport.queryParam(ctx, "jobType");
         String jobName = UiRoutingSupport.queryParam(ctx, "jobName");
+        String expectedDeletionTime = getExpectedJobDeletionTimeUseCase.execute(jobIdAsUUID(jobId))
+                .map(DELETION_TIME_FORMATTER::format)
+                .orElse(null);
 
         // Construct title and subtitle on Java side (no template interpolation needed)
         UiRoutingSupport.renderHtml(ctx, JobDetailsController.Templates.jobDetails(
-                jobId, jobType, jobName, hasDetailPage(jobType)));
+                jobId, jobType, jobName, hasDetailPage(jobType), expectedDeletionTime));
         plog.log();
     }
 

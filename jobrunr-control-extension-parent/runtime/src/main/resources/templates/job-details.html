@@ -19,6 +19,11 @@
                 <span class="badge text-bg-light border text-dark">
                     <i class="bi bi-hash"></i> <code class="mb-0">{jobId}</code>
                 </span>
+                {#if expectedDeletionTime}
+                    <span class="badge text-bg-light border text-dark" title="Voraussichtlicher Löschzeitpunkt">
+                        <i class="bi bi-trash"></i> Löschung: {expectedDeletionTime}
+                    </span>
+                {/if}
             </div>
         </div>
     </div>
