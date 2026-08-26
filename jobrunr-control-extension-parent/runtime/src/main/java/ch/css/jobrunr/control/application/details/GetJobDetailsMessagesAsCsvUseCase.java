@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.details.JobDetailsProviderRegistry;
 import ch.css.jobrunr.control.domain.details.JobMessage;
+import ch.css.jobrunr.control.domain.details.JobMessageAttemptFilter;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
 import ch.css.jobrunr.control.domain.details.JobMessageProvider;
 import ch.css.jobrunr.control.domain.details.JobMessageSortOrder;
@@ -63,7 +64,8 @@ public class GetJobDetailsMessagesAsCsvUseCase {
                           String jobType,
                           JobMessageLevelSearch levelSearch,
                           String textSearch,
-                          JobMessageSortOrder sortOrder) {
+                          JobMessageSortOrder sortOrder,
+                          JobMessageAttemptFilter attemptFilter) {
         LOG.infof("Generating CSV export for jobId %s, level=%s, textSearch=%s", jobId, levelSearch, textSearch);
 
         Job jobById = storageProvider.getJobById(jobId);
@@ -75,7 +77,8 @@ public class GetJobDetailsMessagesAsCsvUseCase {
         JobMessageProvider provider = jobDetailsProviderRegistry.getMessageProvider(
                 jobDefinition.jobDetailPage() != null ? jobDefinition.jobDetailPage().messageProviderKey() : null);
 
-        JobMessagesPaged result = provider.searchJobMessages(jobId, levelSearch, textSearch, sortOrder, 0, MAX_EXPORT_SIZE);
+        JobMessagesPaged result = provider.searchJobMessages(
+                jobId, levelSearch, textSearch, sortOrder, attemptFilter, 0, MAX_EXPORT_SIZE);
         LOG.infof("Exporting %d of %d messages for jobId %s", result.messages().size(), result.totalMessages(), jobId);
 
         return buildCsv(result.messages());
@@ -113,4 +116,3 @@ public class GetJobDetailsMessagesAsCsvUseCase {
         return value;
     }
 }
-

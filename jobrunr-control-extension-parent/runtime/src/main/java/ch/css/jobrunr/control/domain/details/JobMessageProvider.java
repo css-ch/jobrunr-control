@@ -10,8 +10,10 @@ public interface JobMessageProvider {
                                        JobMessageLevelSearch levelSearch,
                                        String textSearch,
                                        JobMessageSortOrder sortOrder,
+                                       JobMessageAttemptFilter attemptFilter,
                                        int pageNumber,
                                        int pageSize);
 
-    JobMessageLevelCounters determineJobMessageCounter(UUID jobId);
+    JobMessageLevelCounters determineJobMessageCounter(UUID jobId,
+                                                       JobMessageAttemptFilter attemptFilter);
 }

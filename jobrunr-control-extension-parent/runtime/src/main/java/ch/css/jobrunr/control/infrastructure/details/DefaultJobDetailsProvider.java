@@ -63,13 +63,29 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     }
 
     @Override
-    public JobMessageLevelCounters determineJobMessageCounter(UUID jobId) {
+    public JobMessageLevelCounters determineJobMessageCounter(UUID jobId,
+                                                              JobMessageAttemptFilter attemptFilter) {
         Job job = storageProvider.getJobById(jobId);
         if (!job.isBatchJob()) {
             return new JobMessageLevelCounters(0, 0, 0, 0);
         }
         BatchDetailsSnapshot snapshot = getOrBuildSnapshot(jobId);
-        return snapshot.messageCounter();
+        JobMessageAttemptFilter effectiveAttemptFilter = attemptFilter == null
+                ? JobMessageAttemptFilter.LATEST_ONLY : attemptFilter;
+        if (effectiveAttemptFilter != JobMessageAttemptFilter.LATEST_ONLY) {
+            return snapshot.messageCounter();
+        }
+        return countMessages(snapshot.messages().stream()
+                .filter(message -> message.toJobMessage().isLatest())
+                .toList());
+    }
+
+    private JobMessageLevelCounters countMessages(List<CollectedMessage> messages) {
+        long info = messages.stream().filter(message -> message.level() == JobMessageLevel.INFO).count();
+        long warning = messages.stream().filter(message -> message.level() == JobMessageLevel.WARNING).count();
+        long error = messages.stream().filter(message -> message.level() == JobMessageLevel.ERROR).count();
+        long exception = messages.stream().filter(message -> message.level() == JobMessageLevel.EXCEPTION).count();
+        return new JobMessageLevelCounters(info, warning, error, exception);
     }
 
 
@@ -78,6 +94,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                                               JobMessageLevelSearch levelSearch,
                                               String textSearch,
                                               JobMessageSortOrder sortOrder,
+                                              JobMessageAttemptFilter attemptFilter,
                                               int pageNumber,
                                               int pageSize) {
         Job job = storageProvider.getJobById(jobId);
@@ -85,13 +102,14 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
             return new JobMessagesPaged(List.of(), 0, 0, 0);
         }
         BatchDetailsSnapshot snapshot = getOrBuildSnapshot(jobId);
-        return paginateMessages(snapshot.messages(), levelSearch, textSearch, sortOrder, pageNumber, pageSize);
+        return paginateMessages(snapshot.messages(), levelSearch, textSearch, sortOrder, attemptFilter, pageNumber, pageSize);
     }
 
     private JobMessagesPaged paginateMessages(List<CollectedMessage> source,
                                               JobMessageLevelSearch search,
                                               String textSearch,
                                               JobMessageSortOrder sortOrder,
+                                              JobMessageAttemptFilter attemptFilter,
                                               int pageNumber,
                                               int pageSize) {
         int sanitizedPage = Math.max(0, pageNumber);
@@ -102,6 +120,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
         JobMessageSortOrder effectiveSortOrder = sortOrder == null ? JobMessageSortOrder.OLDEST_FIRST : sortOrder;
 
         List<CollectedMessage> filteredMessages = source.stream()
+                .filter(message -> matchesAttemptFilter(message, attemptFilter))
                 .filter(message -> matchesSearch(message.level(), search))
                 .filter(message -> matchesTextSearch(message, textSearch))
                 .sorted(effectiveSortOrder == JobMessageSortOrder.NEWEST_FIRST ? sortByDate.reversed() : sortByDate)
@@ -118,6 +137,12 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                 .toList();
 
         return new JobMessagesPaged(pageItems, totalItems, sanitizedPage, sanitizedPageSize);
+    }
+
+    private boolean matchesAttemptFilter(CollectedMessage message, JobMessageAttemptFilter attemptFilter) {
+        JobMessageAttemptFilter effectiveAttemptFilter = attemptFilter == null
+                ? JobMessageAttemptFilter.LATEST_ONLY : attemptFilter;
+        return effectiveAttemptFilter != JobMessageAttemptFilter.LATEST_ONLY || message.toJobMessage().isLatest();
     }
 
     private boolean matchesTextSearch(CollectedMessage message, String textSearch) {

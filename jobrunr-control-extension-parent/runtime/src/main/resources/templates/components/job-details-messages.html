@@ -68,7 +68,7 @@
                                     hx-get="{cp}/history/details/messages?page=0&size={messages.pagination().size()}"
                                     hx-target="#batch-messages"
                                     hx-swap="outerHTML"
-                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
                                 {#else}
                                     disabled
                                 {/if}
@@ -82,7 +82,7 @@
                                     hx-get="{cp}/history/details/messages?page={messages.pagination().previousPage()}&size={messages.pagination().size()}"
                                     hx-target="#batch-messages"
                                     hx-swap="outerHTML"
-                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
                                 {#else}
                                     disabled
                                 {/if}
@@ -97,7 +97,7 @@
                                     hx-get="{cp}/history/details/messages?page={pageItem.index()}&size={messages.pagination().size()}"
                                     hx-target="#batch-messages"
                                     hx-swap="outerHTML"
-                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']">
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']">
                                 {pageItem.label()}
                             </button>
                         </li>
@@ -109,7 +109,7 @@
                                     hx-get="{cp}/history/details/messages?page={messages.pagination().nextPage()}&size={messages.pagination().size()}"
                                     hx-target="#batch-messages"
                                     hx-swap="outerHTML"
-                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
                                 {#else}
                                     disabled
                                 {/if}
@@ -123,7 +123,7 @@
                                     hx-get="{cp}/history/details/messages?page={messages.pagination().lastPage()}&size={messages.pagination().size()}"
                                     hx-target="#batch-messages"
                                     hx-swap="outerHTML"
-                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
                                 {#else}
                                     disabled
                                 {/if}
@@ -142,7 +142,7 @@
                         hx-vals='js:&#123;"page": 0, "size": event.target.value&#125;'
                         hx-target="#batch-messages"
                         hx-swap="outerHTML"
-                        hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                        hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
                         name="pageSize">
                     <option value="5" {#if messages.pagination().size() eq 5}selected{/if}>5 pro Seite</option>
                     <option value="10" {#if messages.pagination().size() eq 10}selected{/if}>10 pro Seite</option>

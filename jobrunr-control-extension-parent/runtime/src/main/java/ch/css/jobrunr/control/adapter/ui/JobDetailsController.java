@@ -8,6 +8,7 @@ import ch.css.jobrunr.control.application.details.GetExpectedJobDeletionTimeUseC
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.details.JobMessage;
+import ch.css.jobrunr.control.domain.details.JobMessageAttemptFilter;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
 import ch.css.jobrunr.control.domain.details.JobMessageSortOrder;
 import ch.css.jobrunr.control.domain.details.JobMessagesPaged;
@@ -66,8 +67,8 @@ public class JobDetailsController {
         }
 
         public static native TemplateInstance jobDetails(String jobId, String jobType, String jobName,
-                                                        boolean showExtendedDetails,
-                                                        String expectedDeletionTime);
+                                                         boolean showExtendedDetails,
+                                                         String expectedDeletionTime);
     }
 
     @CheckedTemplate(basePath = "components", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -79,7 +80,9 @@ public class JobDetailsController {
         public static native TemplateInstance jobDetailsRecap(GetJobDetailsRecapUseCase.Result recap,
                                                               boolean showBusinessStatus,
                                                               boolean showExtendedDetails);
+
         public static native TemplateInstance jobDetailsParameter(GetJobDetailsParametersUseCase.Result parameter);
+
         public static native TemplateInstance jobDetailsMessages(MessagesPaginationResult messages);
     }
 
@@ -151,6 +154,7 @@ public class JobDetailsController {
                 UiRoutingSupport.queryParam(ctx, "search"),
                 UiRoutingSupport.queryParam(ctx, "textSearch"),
                 UiRoutingSupport.queryParam(ctx, "sortOrder"),
+                UiRoutingSupport.queryParam(ctx, "attemptFilter"),
                 page,
                 size));
         plog.log();
@@ -165,9 +169,10 @@ public class JobDetailsController {
         JobMessageLevelSearch levelSearch = searchMessageLevel(UiRoutingSupport.queryParam(ctx, "search"));
         String textSearch = UiRoutingSupport.queryParam(ctx, "textSearch");
         JobMessageSortOrder sortOrder = parseSortOrder(UiRoutingSupport.queryParam(ctx, "sortOrder"));
+        JobMessageAttemptFilter attemptFilter = parseAttemptFilter(UiRoutingSupport.queryParam(ctx, "attemptFilter"));
 
         String csvContent = getJobDetailsMessagesAsCsvUseCase.execute(
-                jobIdAsUUID(jobId), jobType, levelSearch, textSearch, sortOrder);
+                jobIdAsUUID(jobId), jobType, levelSearch, textSearch, sortOrder, attemptFilter);
 
         String fileName = "messages-" + jobId + ".csv";
         ctx.response()
@@ -206,6 +211,7 @@ public class JobDetailsController {
                                                 String search,
                                                 String textSearch,
                                                 String sortOrder,
+                                                String attemptFilter,
                                                 int page,
                                                 int size) {
         JobMessagesPaged result = getJobDetailsMessageUseCase.execute(
@@ -214,6 +220,7 @@ public class JobDetailsController {
                 searchMessageLevel(search),
                 textSearch,
                 parseSortOrder(sortOrder),
+                parseAttemptFilter(attemptFilter),
                 page,
                 size
         );
@@ -250,6 +257,17 @@ public class JobDetailsController {
             return JobMessageSortOrder.valueOf(sortOrder);
         } catch (IllegalArgumentException e) {
             return JobMessageSortOrder.OLDEST_FIRST;
+        }
+    }
+
+    private JobMessageAttemptFilter parseAttemptFilter(String attemptFilter) {
+        if (attemptFilter == null || attemptFilter.isBlank()) {
+            return JobMessageAttemptFilter.LATEST_ONLY;
+        }
+        try {
+            return JobMessageAttemptFilter.valueOf(attemptFilter);
+        } catch (IllegalArgumentException e) {
+            return JobMessageAttemptFilter.LATEST_ONLY;
         }
     }
 

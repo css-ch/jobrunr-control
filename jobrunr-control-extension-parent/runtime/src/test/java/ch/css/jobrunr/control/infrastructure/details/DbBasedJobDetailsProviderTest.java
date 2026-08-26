@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.infrastructure.details;
 
 import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
+import ch.css.jobrunr.control.domain.details.JobMessageAttemptFilter;
 import ch.css.jobrunr.control.domain.details.JobMessageSortOrder;
 import ch.css.jobrunr.control.domain.details.JobMessageStoragePort;
 import ch.css.jobrunr.control.domain.details.JobMessagesPaged;
@@ -44,10 +45,11 @@ class DbBasedJobDetailsProviderTest {
                 JobMessageLevelSearch.ALL,
                 "needle",
                 JobMessageSortOrder.NEWEST_FIRST,
+                JobMessageAttemptFilter.LATEST_ONLY,
                 2,
                 25
         )).thenReturn(pagedMessages);
-        when(jobMessageStoragePort.determineMessageLevelCounters(batchJobId)).thenReturn(counters);
+        when(jobMessageStoragePort.determineMessageLevelCounters(batchJobId, JobMessageAttemptFilter.LATEST_ONLY)).thenReturn(counters);
         when(jobRecapStoragePort.readRecap(batchJobId)).thenReturn(recap);
 
         assertThat(provider.providerKey()).isEqualTo(DbBasedJobDetailsProvider.PROVIDER_KEY);
@@ -56,10 +58,11 @@ class DbBasedJobDetailsProviderTest {
                 JobMessageLevelSearch.ALL,
                 "needle",
                 JobMessageSortOrder.NEWEST_FIRST,
+                JobMessageAttemptFilter.LATEST_ONLY,
                 2,
                 25
         )).isSameAs(pagedMessages);
-        assertThat(provider.determineJobMessageCounter(batchJobId)).isSameAs(counters);
+        assertThat(provider.determineJobMessageCounter(batchJobId, JobMessageAttemptFilter.LATEST_ONLY)).isSameAs(counters);
         assertThat(provider.determineRecap(batchJobId)).isSameAs(recap);
 
         verify(jobMessageStoragePort).searchMessages(
@@ -67,10 +70,11 @@ class DbBasedJobDetailsProviderTest {
                 JobMessageLevelSearch.ALL,
                 "needle",
                 JobMessageSortOrder.NEWEST_FIRST,
+                JobMessageAttemptFilter.LATEST_ONLY,
                 2,
                 25
         );
-        verify(jobMessageStoragePort).determineMessageLevelCounters(batchJobId);
+        verify(jobMessageStoragePort).determineMessageLevelCounters(batchJobId, JobMessageAttemptFilter.LATEST_ONLY);
         verify(jobRecapStoragePort).readRecap(batchJobId);
     }
 }

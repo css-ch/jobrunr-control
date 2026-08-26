@@ -105,7 +105,7 @@
                                    hx-get="{cp}/history/details/messages"
                                    hx-target="#batch-messages"
                                    hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
-                                   hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                   hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
                                    hx-trigger="keyup changed delay:300ms, search">
 
                             <label for="message-filter" class="visually-hidden">Filter</label>
@@ -116,7 +116,7 @@
                                     hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
                                     hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
-                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
                                     hx-trigger="change">
                                 <option value="ALL">Alle</option>
                                 <option value="WARNINGS_AND_ERRORS_AND_EXCEPTIONS">Warning, Error und Exception</option>
@@ -127,6 +127,20 @@
                                 <option value="EXCEPTION_ONLY">Nur Exception</option>
                             </select>
 
+                            <label for="message-attempt-filter" class="visually-hidden">Retry-Meldungen</label>
+                            <select id="message-attempt-filter"
+                                    name="attemptFilter"
+                                    class="form-select form-select-sm"
+                                    style="width: 170px;"
+                                    hx-get="{cp}/history/details/messages"
+                                    hx-target="#batch-messages"
+                                    hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
+                                    hx-trigger="change">
+                                <option value="LATEST_ONLY" selected>Nur neueste Meldungen</option>
+                                <option value="ALL_ATTEMPTS">Alle Meldungen inkl. Retries</option>
+                            </select>
+
                             <button type="button"
                                     id="message-sort-toggle"
                                     class="btn btn-outline-secondary btn-sm"
@@ -134,7 +148,7 @@
                                     hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
                                     hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
-                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
                                     onclick="jrcToggleMessageSortOrder(this)">
                                 <i class="bi bi-sort-down" data-message-sort-icon aria-hidden="true"></i>
                             </button>
@@ -144,7 +158,7 @@
                                     hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
                                     hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
-                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']"
+                                    hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
                                     hx-disabled-elt="this">
                                 <i class="bi bi-arrow-clockwise"></i> Aktualisieren
                             </button>
@@ -164,7 +178,7 @@
                      hx-trigger="load"
                      hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
                      hx-swap="innerHTML"
-                     hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder']">
+                     hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']">
                     <div class="text-center py-4">
                         <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
                         <p class="mt-2">Lade Batch Meldungen...</p>
@@ -212,10 +226,12 @@
                 const searchEl = document.getElementById('message-filter');
                 const textSearchEl = document.getElementById('message-text-search');
                 const sortOrderEl = document.getElementById('message-sort-order');
+                const attemptFilterEl = document.getElementById('message-attempt-filter');
                 const search = searchEl ? searchEl.value : 'ALL';
                 const textSearch = textSearchEl ? textSearchEl.value : '';
                 const sortOrder = sortOrderEl ? sortOrderEl.value : 'OLDEST_FIRST';
-                const params = new URLSearchParams([['jobId', jobId], ['jobType', jobType], ['search', search], ['textSearch', textSearch], ['sortOrder', sortOrder]]);
+                const attemptFilter = attemptFilterEl ? attemptFilterEl.value : 'LATEST_ONLY';
+                const params = new URLSearchParams([['jobId', jobId], ['jobType', jobType], ['search', search], ['textSearch', textSearch], ['sortOrder', sortOrder], ['attemptFilter', attemptFilter]]);
                 window.location.href = cp + '/history/details/messages/download?' + params.toString();
             };
 

@@ -1,6 +1,7 @@
 package ch.css.jobrunr.control.infrastructure.persistence;
 
 import ch.css.jobrunr.control.domain.details.JobMessage;
+import ch.css.jobrunr.control.domain.details.JobMessageAttemptFilter;
 import ch.css.jobrunr.control.domain.details.JobMessageLevel;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
@@ -106,6 +107,7 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
                                            JobMessageLevelSearch levelSearch,
                                            String textSearch,
                                            JobMessageSortOrder sortOrder,
+                                           JobMessageAttemptFilter attemptFilter,
                                            int pageNr,
                                            int pageSize) {
         int sanitizedPage = Math.max(0, pageNr);
@@ -113,9 +115,12 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
         int offset = sanitizedPage * sanitizedPageSize;
         JobMessageLevelSearch effectiveLevelSearch = levelSearch == null ? JobMessageLevelSearch.ALL : levelSearch;
         JobMessageSortOrder effectiveSortOrder = sortOrder == null ? JobMessageSortOrder.OLDEST_FIRST : sortOrder;
+        JobMessageAttemptFilter effectiveAttemptFilter = attemptFilter == null
+                ? JobMessageAttemptFilter.LATEST_ONLY : attemptFilter;
         String normalizedTextSearch = textSearch == null ? "" : textSearch.trim().toLowerCase(Locale.ROOT);
 
-        SearchQueryParts queryParts = buildSearchQueryParts(jobId, effectiveLevelSearch, normalizedTextSearch);
+        SearchQueryParts queryParts = buildSearchQueryParts(
+                jobId, effectiveLevelSearch, normalizedTextSearch, effectiveAttemptFilter);
         String orderBy = effectiveSortOrder == JobMessageSortOrder.NEWEST_FIRST
                 ? " ORDER BY \"CREATED_AT\" DESC, \"ID\" DESC"
                 : " ORDER BY \"CREATED_AT\" ASC, \"ID\" ASC";
@@ -140,15 +145,24 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
     }
 
     @Override
-    public JobMessageLevelCounters determineMessageLevelCounters(UUID jobId) {
+    public JobMessageLevelCounters determineMessageLevelCounters(UUID jobId,
+                                                                 JobMessageAttemptFilter attemptFilter) {
         long info = 0;
         long warning = 0;
         long error = 0;
         long exception = 0;
+        JobMessageAttemptFilter effectiveAttemptFilter = attemptFilter == null
+                ? JobMessageAttemptFilter.LATEST_ONLY : attemptFilter;
 
+        String countersSql = effectiveAttemptFilter == JobMessageAttemptFilter.LATEST_ONLY
+                ? COUNTERS_SQL.replace("WHERE \"BATCH_JOB_ID\" = ?", "WHERE \"BATCH_JOB_ID\" = ? AND \"IS_LATEST\" = ?")
+                : COUNTERS_SQL;
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(COUNTERS_SQL)) {
+             PreparedStatement stmt = conn.prepareStatement(countersSql)) {
             stmt.setString(1, jobId.toString());
+            if (effectiveAttemptFilter == JobMessageAttemptFilter.LATEST_ONLY) {
+                stmt.setBoolean(2, true);
+            }
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -227,10 +241,16 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
 
     private SearchQueryParts buildSearchQueryParts(UUID jobId,
                                                    JobMessageLevelSearch levelSearch,
-                                                   String normalizedTextSearch) {
+                                                   String normalizedTextSearch,
+                                                   JobMessageAttemptFilter attemptFilter) {
         StringBuilder where = new StringBuilder(" WHERE \"BATCH_JOB_ID\" = ?");
         List<Object> parameters = new ArrayList<>();
         parameters.add(jobId.toString());
+
+        if (attemptFilter == JobMessageAttemptFilter.LATEST_ONLY) {
+            where.append(" AND \"IS_LATEST\" = ?");
+            parameters.add(true);
+        }
 
         List<String> levelFilter = resolveLevelFilter(levelSearch);
         if (!levelFilter.isEmpty()) {

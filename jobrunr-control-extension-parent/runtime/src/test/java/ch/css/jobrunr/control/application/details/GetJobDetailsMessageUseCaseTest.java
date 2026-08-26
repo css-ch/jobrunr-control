@@ -69,7 +69,8 @@ class GetJobDetailsMessageUseCaseTest {
         when(batchJob.isBatchJob()).thenReturn(true);
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
         when(jobDetailsProviderRegistry.getMessageProvider("recap-demo-message-provider")).thenReturn(jobMessageProvider);
-        when(jobMessageProvider.searchJobMessages(jobId, JobMessageLevelSearch.ALL, "hello", JobMessageSortOrder.NEWEST_FIRST, 0, 10))
+        when(jobMessageProvider.searchJobMessages(jobId, JobMessageLevelSearch.ALL, "hello", JobMessageSortOrder.NEWEST_FIRST,
+                JobMessageAttemptFilter.LATEST_ONLY, 0, 10))
                 .thenReturn(new JobMessagesPaged(List.of(message), 1, 0, 10));
 
         JobMessagesPaged result = useCase.execute(
@@ -78,13 +79,15 @@ class GetJobDetailsMessageUseCaseTest {
                 JobMessageLevelSearch.ALL,
                 "hello",
                 JobMessageSortOrder.NEWEST_FIRST,
+                JobMessageAttemptFilter.LATEST_ONLY,
                 0,
                 10
         );
 
         assertThat(result.messages()).containsExactly(message);
         assertThat(result.totalMessages()).isEqualTo(1);
-        verify(jobMessageProvider).searchJobMessages(jobId, JobMessageLevelSearch.ALL, "hello", JobMessageSortOrder.NEWEST_FIRST, 0, 10);
+        verify(jobMessageProvider).searchJobMessages(jobId, JobMessageLevelSearch.ALL, "hello", JobMessageSortOrder.NEWEST_FIRST,
+                JobMessageAttemptFilter.LATEST_ONLY, 0, 10);
         verify(storageProvider, never()).getJobList(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 }
