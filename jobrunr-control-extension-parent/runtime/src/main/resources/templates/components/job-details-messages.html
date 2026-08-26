@@ -32,7 +32,22 @@
                     <div class="col">
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div class="small">
-                                <strong>{level}</strong> - {m.createdAtFormatted()} - <span class="job-id-chip"><i class="bi bi-hash"></i><code class="mb-0">{m.jobId()}</code></span>
+                                <strong>{level}</strong> - {m.createdAtFormatted()} -
+                                <span class="job-id-chip">
+                                    <i class="bi bi-hash"></i>
+                                    <a href="#batch-messages"
+                                       class="text-reset text-decoration-underline"
+                                       title="Meldungen dieses Jobs anzeigen"
+                                       aria-label="Meldungen für Job {m.jobId()} anzeigen"
+                                       hx-get="{cp}/history/details/messages"
+                                       hx-target="#batch-messages"
+                                       hx-swap="innerHTML"
+                                       hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                                       hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
+                                       onclick="jrcFilterMessagesByJobId(event, '{m.jobId()}')">
+                                        <code class="mb-0">{m.jobId()}</code>
+                                    </a>
+                                </span>
                             </div>
                             <span class="badge text-bg-light border {#if m.isLatest()}text-dark{#else}text-secondary{/if} text-nowrap" title="Versuchsnummer">
                                 Versuch {m.attemptNr()}
