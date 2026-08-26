@@ -14,6 +14,7 @@ import java.util.UUID;
 
 @ApplicationScoped
 public class ExampleBatchFailure implements JobRequestHandler<ExampleBatchFailureRequest> {
+    private static final int FAILURE_RESULT_CODE = 1;
     private static final Logger LOG = Logger.getLogger(ExampleBatchFailure.class);
 
     private final JobResultPort jobResultPort;
@@ -28,35 +29,42 @@ public class ExampleBatchFailure implements JobRequestHandler<ExampleBatchFailur
     @Override
     @Transactional
     public void run(ExampleBatchFailureRequest jobRequest) {
-        UUID workflowRootJobId = jobRequest.workflowRootJobId();
-        LOG.infof("Starting example batch failure job. Workflow root job id: %s", workflowRootJobId);
-        ThreadLocalJobContext.getJobContext().logger().info(
-                String.format("Starting failure post-processing for workflow %s", workflowRootJobId));
-
-        // Get root metadata for the detailed result message.
-        var workflowRootJob = storageProvider.getJobById(workflowRootJobId);
-        Integer totalChunks = (Integer) workflowRootJob.getMetadata().get("total_chunks");
-        String enqueuedAt = (String) workflowRootJob.getMetadata().get("enqueued_at");
-
         try {
-            Thread.sleep(5_000L);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Example batch failure post-processing was interrupted", e);
+            UUID workflowRootJobId = jobRequest.workflowRootJobId();
+            LOG.infof("Starting example batch failure job. Workflow root job id: %s", workflowRootJobId);
+            ThreadLocalJobContext.getJobContext().logger().info(
+                    String.format("Starting failure post-processing for workflow %s", workflowRootJobId));
+
+            // Get root metadata for the detailed result message.
+            var workflowRootJob = storageProvider.getJobById(workflowRootJobId);
+            Integer totalChunks = (Integer) workflowRootJob.getMetadata().get("total_chunks");
+            String enqueuedAt = (String) workflowRootJob.getMetadata().get("enqueued_at");
+
+            try {
+                Thread.sleep(5_000L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Example batch failure post-processing was interrupted", e);
+            }
+
+            // Build detailed failure message
+            String resultMessage = String.format(
+                    "Batch job failed - one or more chunk jobs encountered errors. Total chunks: %d, Enqueued at: %s",
+                    totalChunks != null ? totalChunks : 0,
+                    enqueuedAt != null ? enqueuedAt : "unknown"
+            );
+
+            // Store the logical execution result on the canonical workflow root.
+            jobResultPort.storeResult(FAILURE_RESULT_CODE, resultMessage);
+            jobResultPort.setBusinessStatus(BusinessStatus.WARNING);
+
+            ThreadLocalJobContext.getJobContext().logger().error(resultMessage);
+            LOG.errorf("Batch failure result stored: %s", resultMessage);
+        } catch (Exception e) {
+            String resultMessage = "Batch failure post-processing failed: " + e.getMessage();
+            jobResultPort.storeResult(FAILURE_RESULT_CODE, resultMessage);
+            jobResultPort.setBusinessStatus(BusinessStatus.WARNING);
+            throw e;
         }
-
-        // Build detailed failure message
-        String resultMessage = String.format(
-                "Batch job failed - one or more chunk jobs encountered errors. Total chunks: %d, Enqueued at: %s",
-                totalChunks != null ? totalChunks : 0,
-                enqueuedAt != null ? enqueuedAt : "unknown"
-        );
-
-        // Store the logical execution result on the canonical workflow root.
-        jobResultPort.storeResult(1, resultMessage);
-        jobResultPort.setBusinessStatus(BusinessStatus.WARNING);
-
-        ThreadLocalJobContext.getJobContext().logger().error(resultMessage);
-        LOG.errorf("Batch failure result stored: %s", resultMessage);
     }
 }
