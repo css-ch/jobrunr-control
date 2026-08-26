@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.infrastructure.details;
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
+import ch.css.jobrunr.control.domain.details.JobMessageAttemptFilter;
 import ch.css.jobrunr.control.domain.details.JobMessageSortOrder;
 import ch.css.jobrunr.control.domain.details.JobMessagesPaged;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobWorkflowResolver;
@@ -99,8 +100,9 @@ class DefaultJobDetailsProviderTest {
         });
 
         Map<String, Long> recap = provider.determineRecap(batchId);
-        JobMessageLevelCounters messageCounter = provider.determineJobMessageCounter(batchId);
-        JobMessagesPaged messages = provider.searchJobMessages(batchId, JobMessageLevelSearch.ALL, null, JobMessageSortOrder.OLDEST_FIRST, 0, 10);
+        JobMessageLevelCounters messageCounter = provider.determineJobMessageCounter(batchId, JobMessageAttemptFilter.LATEST_ONLY);
+        JobMessagesPaged messages = provider.searchJobMessages(batchId, JobMessageLevelSearch.ALL, null, JobMessageSortOrder.OLDEST_FIRST,
+                JobMessageAttemptFilter.LATEST_ONLY, 0, 10);
 
         assertThat(recap).containsEntry("processed", 5L);
         assertThat(messageCounter.totalMessages()).isZero();
@@ -153,7 +155,7 @@ class DefaultJobDetailsProviderTest {
         provider.determineRecap(batchId);
 
         Thread.sleep(2100L);
-        provider.determineJobMessageCounter(batchId);
+        provider.determineJobMessageCounter(batchId, JobMessageAttemptFilter.LATEST_ONLY);
 
         verify(jobWorkflowResolver, times(2)).resolveWorkflow(batchId);
         verify(jobExecutionPort, times(2)).getJobExecutionById(eq(batchId));

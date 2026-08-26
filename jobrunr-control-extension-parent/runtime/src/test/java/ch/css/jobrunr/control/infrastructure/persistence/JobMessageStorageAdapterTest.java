@@ -1,6 +1,7 @@
 package ch.css.jobrunr.control.infrastructure.persistence;
 
 import ch.css.jobrunr.control.domain.details.JobMessage;
+import ch.css.jobrunr.control.domain.details.JobMessageAttemptFilter;
 import ch.css.jobrunr.control.domain.details.JobMessageLevel;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
@@ -141,6 +142,7 @@ class JobMessageStorageAdapterTest {
                 JobMessageLevelSearch.ALL,
                 "",
                 JobMessageSortOrder.NEWEST_FIRST,
+                JobMessageAttemptFilter.ALL_ATTEMPTS,
                 0,
                 10
         );
@@ -172,13 +174,28 @@ class JobMessageStorageAdapterTest {
         when(countersResultSet.getLong("level_count")).thenReturn(4L, 2L, 1L);
 
         // When
-        JobMessageLevelCounters counters = adapter.determineMessageLevelCounters(batchId);
+        JobMessageLevelCounters counters = adapter.determineMessageLevelCounters(batchId, JobMessageAttemptFilter.LATEST_ONLY);
 
         // Then
         assertThat(counters.infoMessages()).isEqualTo(4L);
         assertThat(counters.warningMessages()).isEqualTo(2L);
         assertThat(counters.errorMessages()).isZero();
         assertThat(counters.exceptionMessages()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("should restrict message counters to latest attempts when requested")
+    void determineMessageLevelCounters_LatestOnly_FiltersByLatestFlag() throws Exception {
+        UUID batchId = UUID.randomUUID();
+        when(connection.prepareStatement(anyString())).thenReturn(countersStatement);
+        when(countersStatement.executeQuery()).thenReturn(countersResultSet);
+        when(countersResultSet.next()).thenReturn(false);
+
+        adapter.determineMessageLevelCounters(batchId, JobMessageAttemptFilter.LATEST_ONLY);
+
+        verify(countersStatement).setString(1, batchId.toString());
+        verify(countersStatement).setBoolean(2, true);
+        verify(countersStatement).executeQuery();
     }
 
     @Test

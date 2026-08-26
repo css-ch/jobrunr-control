@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.infrastructure.details;
 
 import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelSearch;
+import ch.css.jobrunr.control.domain.details.JobMessageAttemptFilter;
 import ch.css.jobrunr.control.domain.details.JobMessageProvider;
 import ch.css.jobrunr.control.domain.details.JobMessageSortOrder;
 import ch.css.jobrunr.control.domain.details.JobMessageStoragePort;
@@ -38,14 +39,17 @@ public class DbBasedJobDetailsProvider implements JobMessageProvider, JobRecapPr
                                               JobMessageLevelSearch levelSearch,
                                               String textSearch,
                                               JobMessageSortOrder sortOrder,
+                                              JobMessageAttemptFilter attemptFilter,
                                               int pageNumber,
                                               int pageSize) {
-        return jobMessageStoragePort.searchMessages(jobId, levelSearch, textSearch, sortOrder, pageNumber, pageSize);
+        return jobMessageStoragePort.searchMessages(
+                jobId, levelSearch, textSearch, sortOrder, attemptFilter, pageNumber, pageSize);
     }
 
     @Override
-    public JobMessageLevelCounters determineJobMessageCounter(UUID jobId) {
-        return jobMessageStoragePort.determineMessageLevelCounters(jobId);
+    public JobMessageLevelCounters determineJobMessageCounter(UUID jobId,
+                                                              JobMessageAttemptFilter attemptFilter) {
+        return jobMessageStoragePort.determineMessageLevelCounters(jobId, attemptFilter);
     }
 
     @Override

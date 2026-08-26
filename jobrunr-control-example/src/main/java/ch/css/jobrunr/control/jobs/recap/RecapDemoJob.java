@@ -121,7 +121,7 @@ public class RecapDemoJob implements JobRequestHandler<RecapDemoJobRequest> {
         workers.forEach(worker -> BackgroundJobRequest.create(aJob()
                 .withId(deterministicJobId(workflowRootJobId, "worker-" + worker.number()))
                 .withJobRequest(worker)
-                .withAmountOfRetries(0)
+                .withAmountOfRetries(3)
                 .withName(String.format("%s-Worker-%d", rootJobName, worker.number()))));
 
         messageService.info(String.format(

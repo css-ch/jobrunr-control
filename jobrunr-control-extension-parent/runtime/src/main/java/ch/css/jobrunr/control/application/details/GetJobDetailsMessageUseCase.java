@@ -31,13 +31,14 @@ public class GetJobDetailsMessageUseCase {
                                             JobMessageLevelSearch search,
                                             String textSearch,
                                             JobMessageSortOrder sortOrder,
+                                            JobMessageAttemptFilter attemptFilter,
                                             int page,
                                             int size) {
         Job jobById = storageProvider.getJobById(jobId);
         if (jobById.isBatchJob()) {
             JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobType);
             JobMessageProvider provider = jobDetailsProviderRegistry.getMessageProvider(jobDefinition.jobDetailPage() != null ? jobDefinition.jobDetailPage().messageProviderKey() : null);
-            return provider.searchJobMessages(jobId, search, textSearch, sortOrder, page, size);
+            return provider.searchJobMessages(jobId, search, textSearch, sortOrder, attemptFilter, page, size);
         } else {
             throw new IllegalStateException("Job with ID " + jobId + " is not a batch job");
         }

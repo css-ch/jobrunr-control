@@ -11,6 +11,7 @@ import ch.css.jobrunr.control.domain.JobSettings;
 import ch.css.jobrunr.control.domain.JobStatus;
 import ch.css.jobrunr.control.domain.JobWorkflowPort;
 import ch.css.jobrunr.control.domain.details.JobDetailsProviderRegistry;
+import ch.css.jobrunr.control.domain.details.JobMessageAttemptFilter;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
 import ch.css.jobrunr.control.domain.details.JobMessageProvider;
 import ch.css.jobrunr.control.domain.details.JobRecapProvider;
@@ -100,7 +101,8 @@ class GetJobDetailsRecapUseCaseTest {
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
         when(jobDetailsProviderRegistry.getMessageProvider("recap-demo-message-provider")).thenReturn(jobMessageProvider);
         when(jobDetailsProviderRegistry.getRecapProvider("recap-demo-recap-provider")).thenReturn(jobRecapProvider);
-        when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageLevelCounters(12, 5, 4, 3));
+        when(jobMessageProvider.determineJobMessageCounter(jobId, JobMessageAttemptFilter.LATEST_ONLY))
+                .thenReturn(new JobMessageLevelCounters(12, 5, 4, 3));
         when(jobRecapProvider.determineRecap(jobId)).thenReturn(Map.of("processed", 42L));
 
         GetJobDetailsRecapUseCase.Result result = useCase.execute(jobId);
@@ -113,7 +115,7 @@ class GetJobDetailsRecapUseCaseTest {
         assertThat(result.childJobCounters().totalChildJobs()).isEqualTo(10);
         assertThat(result.childJobCounters().succeededChildJobCount()).isEqualTo(7);
         assertThat(result.recapView().recapSections()).isNotEmpty();
-        verify(jobMessageProvider).determineJobMessageCounter(jobId);
+        verify(jobMessageProvider).determineJobMessageCounter(jobId, JobMessageAttemptFilter.LATEST_ONLY);
         verify(jobRecapProvider).determineRecap(jobId);
         verify(storageProvider, never()).getJobList(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
@@ -164,7 +166,8 @@ class GetJobDetailsRecapUseCaseTest {
         when(jobDefinitionDiscoveryService.requireJobByType(jobType)).thenReturn(jobDefinition);
         when(jobDetailsProviderRegistry.getMessageProvider("recap-demo-message-provider")).thenReturn(jobMessageProvider);
         when(jobDetailsProviderRegistry.getRecapProvider("recap-demo-recap-provider")).thenReturn(jobRecapProvider);
-        when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageLevelCounters(2, 1, 1, 0));
+        when(jobMessageProvider.determineJobMessageCounter(jobId, JobMessageAttemptFilter.LATEST_ONLY))
+                .thenReturn(new JobMessageLevelCounters(2, 1, 1, 0));
         when(jobRecapProvider.determineRecap(jobId)).thenReturn(Map.of(
                 "u1", 5L,
                 "u2", 3L,
@@ -283,7 +286,8 @@ class GetJobDetailsRecapUseCaseTest {
         when(jobDefinitionDiscoveryService.requireJobByType(jobExecutionInfo.getJobType())).thenReturn(jobDefinition);
         when(jobDetailsProviderRegistry.getMessageProvider(null)).thenReturn(jobMessageProvider);
         when(jobDetailsProviderRegistry.getRecapProvider(null)).thenReturn(jobRecapProvider);
-        when(jobMessageProvider.determineJobMessageCounter(jobId)).thenReturn(new JobMessageLevelCounters(0, 0, 0, 0));
+        when(jobMessageProvider.determineJobMessageCounter(jobId, JobMessageAttemptFilter.LATEST_ONLY))
+                .thenReturn(new JobMessageLevelCounters(0, 0, 0, 0));
         when(jobRecapProvider.determineRecap(jobId)).thenReturn(Map.of());
     }
 

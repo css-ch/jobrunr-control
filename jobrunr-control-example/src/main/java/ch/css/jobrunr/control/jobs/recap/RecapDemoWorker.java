@@ -36,7 +36,9 @@ public class RecapDemoWorker implements JobResultRequestHandler<RecapDemoWorkerR
         if (jobRequest.exception()) {
             messageService.info("Diese Meldung möchte ich aufgrund des Rollbacks nicht sehen.");
             messageService.infoTxNew("Diese Meldung möchte trotz des Rollbacks sehen.");
-            throw new RuntimeException("Druckerfehler: Papierstau im Drucker.");
+            if(ThreadLocalJobContext.getJobContext().currentRetry() < 2) {
+                throw new RuntimeException("Druckerfehler: Papierstau im Drucker.");
+            }
         }
         PolicenResult policenResult = randomValue(Arrays.asList(PolicenResult.values()));
         RecapDemoCounters recap;

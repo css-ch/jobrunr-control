@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.application.details;
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.details.JobDetailsProviderRegistry;
 import ch.css.jobrunr.control.domain.details.JobMessageLevelCounters;
+import ch.css.jobrunr.control.domain.details.JobMessageAttemptFilter;
 import ch.css.jobrunr.control.domain.details.JobMessageProvider;
 import ch.css.jobrunr.control.domain.details.JobRecapProvider;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
@@ -55,7 +56,7 @@ public class GetJobDetailsRecapUseCase {
         JobDefinition jobDefinition = jobDefinitionDiscoveryService.requireJobByType(jobExecutionInfo.getJobType());
 
         JobStatusInfo jobStatusInfo = evaluateJobStatusAndTimestamp(jobExecutionInfo);
-        MessageCount messageCount = evaluateMessageCount(jobId, jobDefinition);
+        MessageCount messageCount = evaluateMessageCount(jobId, jobDefinition, JobMessageAttemptFilter.LATEST_ONLY);
         ChildJobCounters childJobCounters = evaluateChildJobCounters(jobId, jobExecutionInfo);
         JobDurations jobDurations = evaluateJobDurations(jobExecutionInfo, childJobCounters.succeededChildJobCount);
         RecapView recapView = evaluateRecapView(jobId, jobDefinition);
@@ -86,9 +87,11 @@ public class GetJobDetailsRecapUseCase {
         return jobExecutionInfo.getFinishedAt().orElse(null);
     }
 
-    private MessageCount evaluateMessageCount(UUID jobId, JobDefinition jobDefinition) {
+    private MessageCount evaluateMessageCount(UUID jobId,
+                                              JobDefinition jobDefinition,
+                                              JobMessageAttemptFilter attemptFilter) {
         JobMessageProvider jobMessageProvider = jobDetailsProviderRegistry.getMessageProvider(jobDefinition.jobDetailPage() != null ? jobDefinition.jobDetailPage().messageProviderKey() : null);
-        JobMessageLevelCounters counter = jobMessageProvider.determineJobMessageCounter(jobId);
+        JobMessageLevelCounters counter = jobMessageProvider.determineJobMessageCounter(jobId, attemptFilter);
         return new MessageCount(counter.totalMessages(), counter.infoMessages(), counter.warningMessages(), counter.errorMessages(), counter.exceptionMessages());
     }
 
