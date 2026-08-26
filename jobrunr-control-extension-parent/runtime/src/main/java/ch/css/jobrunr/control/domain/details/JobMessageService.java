@@ -2,6 +2,8 @@ package ch.css.jobrunr.control.domain.details;
 
 public interface JobMessageService {
 
+    void invalidatePreviousAttemptMessages();
+
     void info(String message, Object... args);
 
     void infoTxNew(String message, Object... args);

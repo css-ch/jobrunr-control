@@ -43,6 +43,9 @@ class JobMessageStorageAdapterTest {
     private PreparedStatement insertStatement;
 
     @Mock
+    private PreparedStatement invalidateStatement;
+
+    @Mock
     private PreparedStatement countStatement;
 
     @Mock
@@ -91,6 +94,23 @@ class JobMessageStorageAdapterTest {
         verify(insertStatement).setInt(7, 2);
         verify(insertStatement).setBoolean(8, true);
         verify(insertStatement).executeUpdate();
+    }
+
+    @Test
+    @DisplayName("should invalidate messages from previous attempts for a child job")
+    void invalidatePreviousAttemptMessages_PreviousAttempts_MarksMessagesAsNotLatest() throws Exception {
+        UUID rootJobId = UUID.randomUUID();
+        UUID childJobId = UUID.randomUUID();
+        when(connection.prepareStatement(anyString())).thenReturn(invalidateStatement);
+
+        adapter.invalidatePreviousAttemptMessages(rootJobId, childJobId, 2);
+
+        verify(invalidateStatement).setBoolean(1, false);
+        verify(invalidateStatement).setString(2, rootJobId.toString());
+        verify(invalidateStatement).setString(3, childJobId.toString());
+        verify(invalidateStatement).setInt(4, 2);
+        verify(invalidateStatement).setBoolean(5, true);
+        verify(invalidateStatement).executeUpdate();
     }
 
     @Test

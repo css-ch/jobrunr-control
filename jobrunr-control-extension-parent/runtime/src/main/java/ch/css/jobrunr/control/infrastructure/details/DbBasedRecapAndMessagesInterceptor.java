@@ -34,6 +34,7 @@ public class DbBasedRecapAndMessagesInterceptor {
 
     @AroundInvoke
     public Object persistRecapAndExceptions(InvocationContext invocationContext) throws Exception {
+        messageService.invalidatePreviousAttemptMessages();
         try {
             Object resultObject = invocationContext.proceed();
             writeChildRecap(resultObject);

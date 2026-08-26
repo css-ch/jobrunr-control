@@ -29,6 +29,18 @@ public class JobMessageAdapter implements JobMessageService {
 
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void invalidatePreviousAttemptMessages() {
+        UUID rootJobId = jobWorkflowResolver.resolveRootIdFromContext();
+        var jobContext = ThreadLocalJobContext.getJobContext();
+        jobMessageStorage.invalidatePreviousAttemptMessages(
+                rootJobId,
+                jobContext.getJobId(),
+                jobContext.currentRetry()
+        );
+    }
+
+    @Override
     public void info(String message, Object... args) {
         writeMessage(JobMessageLevel.INFO, String.format(message, args), null);
     }

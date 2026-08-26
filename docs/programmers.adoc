@@ -1861,6 +1861,7 @@ The relevant behavior is:
 * If that transaction rolls back, those regular messages are rolled back as well
 * `exception(...)` messages are persisted in a separate transaction and therefore survive rollback
 * `infoTxNew(...)`, `warningTxNew(...)`, and `errorTxNew(...)` also run in a separate transaction and therefore survive rollback
+* Before each intercepted execution, messages from lower retry attempts for the same workflow root and child job are marked as no longer latest in a separate transaction
 
 In practice this means:
 
@@ -2124,7 +2125,6 @@ public void run(MyJobRequest request) throws Exception {
 ** Explained why the bearer tenant must be named `bearer` (not `api`) to avoid path-segment collision
 ** Added Security Invariants section for extension developers
 ** Corrected dev-mode instructions: `JobRunrControlRoleAugmentor` handles role granting automatically; no embedded user config needed
-
 
 
 
