@@ -75,7 +75,7 @@ class JobMessageStorageAdapterTest {
         // Given
         UUID batchId = UUID.randomUUID();
         UUID childId = UUID.randomUUID();
-        JobMessage message = new JobMessage(Instant.now(), childId, JobMessageLevel.WARNING, "Warning text", "stack");
+        JobMessage message = new JobMessage(Instant.now(), childId, JobMessageLevel.WARNING, "Warning text", "stack", 2, true);
 
         when(connection.prepareStatement(anyString())).thenReturn(insertStatement);
         when(insertStatement.executeUpdate()).thenReturn(1);
@@ -88,6 +88,8 @@ class JobMessageStorageAdapterTest {
         verify(insertStatement).setString(4, JobMessageLevel.WARNING.name());
         verify(insertStatement).setString(5, "Warning text");
         verify(insertStatement).setString(6, "stack");
+        verify(insertStatement).setInt(7, 2);
+        verify(insertStatement).setBoolean(8, true);
         verify(insertStatement).executeUpdate();
     }
 
@@ -110,6 +112,8 @@ class JobMessageStorageAdapterTest {
         when(searchResultSet.getString("LEVEL")).thenReturn(JobMessageLevel.ERROR.name());
         when(searchResultSet.getString("MESSAGE")).thenReturn("failed");
         when(searchResultSet.getString("STACK_TRACE")).thenReturn("trace");
+        when(searchResultSet.getInt("ATTEMPT_NR")).thenReturn(3);
+        when(searchResultSet.getBoolean("IS_LATEST")).thenReturn(false);
 
         // When
         JobMessagesPaged result = adapter.searchMessages(
@@ -125,6 +129,8 @@ class JobMessageStorageAdapterTest {
         assertThat(result.totalMessages()).isEqualTo(1L);
         assertThat(result.messages()).hasSize(1);
         assertThat(result.messages().getFirst().messageLevel()).isEqualTo(JobMessageLevel.ERROR);
+        assertThat(result.messages().getFirst().attemptNr()).isEqualTo(3);
+        assertThat(result.messages().getFirst().isLatest()).isFalse();
         verify(searchStatement).setInt(2, 10);
         verify(searchStatement).setInt(3, 0);
     }
@@ -160,7 +166,7 @@ class JobMessageStorageAdapterTest {
     void writeMessage_SqlException_ThrowsIllegalStateException() throws Exception {
         // Given
         UUID batchId = UUID.randomUUID();
-        JobMessage message = new JobMessage(Instant.now(), UUID.randomUUID(), JobMessageLevel.INFO, "ok", null);
+        JobMessage message = new JobMessage(Instant.now(), UUID.randomUUID(), JobMessageLevel.INFO, "ok", null, 0, true);
         when(connection.prepareStatement(anyString())).thenThrow(new java.sql.SQLException("DB error"));
 
         // When / Then
@@ -169,4 +175,3 @@ class JobMessageStorageAdapterTest {
                 .hasMessageContaining("Failed to write job message");
     }
 }
-
