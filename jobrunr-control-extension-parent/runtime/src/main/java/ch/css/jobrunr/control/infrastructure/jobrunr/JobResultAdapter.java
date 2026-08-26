@@ -4,6 +4,8 @@ import ch.css.jobrunr.control.domain.BusinessStatus;
 import ch.css.jobrunr.control.domain.JobResultPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+
 import org.jboss.logging.Logger;
 import org.jobrunr.server.runner.ThreadLocalJobContext;
 import org.jobrunr.storage.StorageProvider;
@@ -61,6 +63,7 @@ public class JobResultAdapter implements JobResultPort {
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void storeResult(int resultCode, String result) {
         try {
             UUID currentJobId = ThreadLocalJobContext.getJobContext().getJobId();
@@ -79,6 +82,7 @@ public class JobResultAdapter implements JobResultPort {
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void setBusinessStatus(BusinessStatus status) {
         try {
             UUID currentJobId = ThreadLocalJobContext.getJobContext().getJobId();
