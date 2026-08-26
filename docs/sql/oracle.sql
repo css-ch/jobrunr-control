@@ -73,7 +73,9 @@ BEGIN
                 "CREATED_AT" TIMESTAMP NOT NULL,
                 "LEVEL" VARCHAR2(20) NOT NULL,
                 "MESSAGE" CLOB,
-                "STACK_TRACE" CLOB
+                "STACK_TRACE" CLOB,
+                "ATTEMPT_NR" NUMBER(10) DEFAULT 0 NOT NULL,
+                "IS_LATEST" NUMBER(1) DEFAULT 1 NOT NULL
             )
         ';
         EXECUTE IMMEDIATE 'CREATE INDEX idx_batch_msg_created ON "JOBRUNR_CONTROL_BATCH_MESSAGES"("BATCH_JOB_ID", "CREATED_AT")';
@@ -83,6 +85,8 @@ BEGIN
         EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_MESSAGES"."CHILD_JOB_ID" IS ''Child job identifier (UUID), if the message is related to a specific child job''';
         EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_MESSAGES"."CREATED_AT" IS ''Timestamp when the message was created''';
         EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_MESSAGES"."LEVEL" IS ''Message level (INFO, WARNING, ERROR, EXCEPTION)''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_MESSAGES"."ATTEMPT_NR" IS ''Zero-based retry attempt number''';
+        EXECUTE IMMEDIATE 'COMMENT ON COLUMN "JOBRUNR_CONTROL_BATCH_MESSAGES"."IS_LATEST" IS ''Whether this is the latest valid message (1=true, 0=false)''';
         DBMS_OUTPUT.PUT_LINE('Table "JOBRUNR_CONTROL_BATCH_MESSAGES" created successfully.');
     ELSE
         DBMS_OUTPUT.PUT_LINE('Table "JOBRUNR_CONTROL_BATCH_MESSAGES" already exists, skipping.');
