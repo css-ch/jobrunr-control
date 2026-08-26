@@ -100,8 +100,10 @@ public class JobMessageAdapter implements JobMessageService {
 
     private void writeMessage(JobMessageLevel level, String message, String stackTrace) {
         UUID rootJobId = jobWorkflowResolver.resolveRootIdFromContext();
-        UUID jobId = ThreadLocalJobContext.getJobContext().getJobId();
-        JobMessage jobMessage = new JobMessage(Instant.now(), jobId, level, message, stackTrace);
+        var jobContext = ThreadLocalJobContext.getJobContext();
+        UUID jobId = jobContext.getJobId();
+        JobMessage jobMessage = new JobMessage(
+                Instant.now(), jobId, level, message, stackTrace, jobContext.currentRetry(), true);
         jobMessageStorage.writeMessage(rootJobId, jobMessage);
     }
 }

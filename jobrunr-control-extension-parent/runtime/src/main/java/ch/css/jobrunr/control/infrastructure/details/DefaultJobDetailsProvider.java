@@ -289,7 +289,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                                     String stackTrace) {
 
         JobMessage toJobMessage() {
-            return new JobMessage(createdAt, jobId, level, message, stackTrace);
+            return new JobMessage(createdAt, jobId, level, message, stackTrace, 0, true);
         }
     }
 

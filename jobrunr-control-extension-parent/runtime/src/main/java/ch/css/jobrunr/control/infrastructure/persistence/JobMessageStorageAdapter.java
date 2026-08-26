@@ -29,12 +29,12 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
     private static final Logger LOG = Logger.getLogger(JobMessageStorageAdapter.class);
 
     private static final String INSERT_SQL = """
-            INSERT INTO "JOBRUNR_CONTROL_BATCH_MESSAGES" ("BATCH_JOB_ID", "CHILD_JOB_ID", "CREATED_AT", "LEVEL", "MESSAGE", "STACK_TRACE")
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO "JOBRUNR_CONTROL_BATCH_MESSAGES" ("BATCH_JOB_ID", "CHILD_JOB_ID", "CREATED_AT", "LEVEL", "MESSAGE", "STACK_TRACE", "ATTEMPT_NR", "IS_LATEST")
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     private static final String SEARCH_SELECT_PREFIX = """
-            SELECT "CREATED_AT", "CHILD_JOB_ID", "LEVEL", "MESSAGE", "STACK_TRACE"
+            SELECT "CREATED_AT", "CHILD_JOB_ID", "LEVEL", "MESSAGE", "STACK_TRACE", "ATTEMPT_NR", "IS_LATEST"
             FROM "JOBRUNR_CONTROL_BATCH_MESSAGES"
             """;
 
@@ -69,6 +69,8 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
             stmt.setString(4, message.messageLevel().name());
             stmt.setString(5, message.message());
             stmt.setString(6, message.stackTrace());
+            stmt.setInt(7, message.attemptNr());
+            stmt.setBoolean(8, message.isLatest());
             stmt.executeUpdate();
         } catch (SQLException e) {
             LOG.errorf(e, "Failed to write job message for jobId %s", jobId);
@@ -190,7 +192,9 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
                             childJobId != null ? UUID.fromString(childJobId) : null,
                             JobMessageLevel.valueOf(rs.getString("LEVEL").toUpperCase(Locale.ROOT)),
                             rs.getString("MESSAGE"),
-                            rs.getString("STACK_TRACE")
+                            rs.getString("STACK_TRACE"),
+                            rs.getInt("ATTEMPT_NR"),
+                            rs.getBoolean("IS_LATEST")
                     ));
                 }
                 return messages;

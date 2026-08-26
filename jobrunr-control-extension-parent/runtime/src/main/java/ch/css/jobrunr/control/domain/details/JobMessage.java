@@ -11,7 +11,9 @@ public record JobMessage(
         UUID jobId,
         JobMessageLevel messageLevel,
         String message,
-        String stackTrace) {
+        String stackTrace,
+        int attemptNr,
+        boolean isLatest) {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
