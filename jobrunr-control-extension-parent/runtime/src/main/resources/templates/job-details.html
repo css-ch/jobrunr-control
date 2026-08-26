@@ -154,9 +154,22 @@
                                 <i class="bi bi-sort-down" data-message-sort-icon aria-hidden="true"></i>
                             </button>
 
+                            <button type="button"
+                                   id="message-filter-reset"
+                                   class="btn btn-outline-secondary btn-sm"
+                                   title="Meldungsfilter zurücksetzen"
+                                   aria-label="Meldungsfilter zurücksetzen"
+                                   hx-get="{cp}/history/details/messages"
+                                   hx-target="#batch-messages"
+                                   hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                                   hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
+                                   onclick="jrcResetMessageFilters(event)">
+                               <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                            </button>
+
                             <button class="btn btn-secondary btn-sm"
-                                    id="refresh-messages-btn"
-                                    hx-get="{cp}/history/details/messages"
+                                   id="refresh-messages-btn"
+                                   hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
                                     hx-vals='js:&#123;"size": jrcPageSize("messages")&#125;'
                                     hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
@@ -251,6 +264,54 @@
                     filter.value = filter.value === 'ALL_ATTEMPTS' ? 'LATEST_ONLY' : 'ALL_ATTEMPTS';
                     applyMessageAttemptFilterState();
                 }
+            };
+
+            window.jrcFilterMessagesByJobId = function(event, jobId) {
+                event.preventDefault();
+
+                const textSearch = document.getElementById('message-text-search');
+                const levelSearch = document.getElementById('message-filter');
+                const attemptFilter = document.getElementById('message-attempt-filter');
+                if (!textSearch || !levelSearch || !attemptFilter) {
+                    return;
+                }
+
+                textSearch.value = jobId;
+                levelSearch.value = 'ALL';
+                attemptFilter.value = 'ALL_ATTEMPTS';
+                applyMessageAttemptFilterState();
+            };
+
+            window.jrcFilterMessagesByLevel = function(event, level) {
+                event.preventDefault();
+
+                const textSearch = document.getElementById('message-text-search');
+                const levelSearch = document.getElementById('message-filter');
+                const attemptFilter = document.getElementById('message-attempt-filter');
+                if (!textSearch || !levelSearch || !attemptFilter) {
+                    return;
+                }
+
+                textSearch.value = '';
+                levelSearch.value = level;
+                attemptFilter.value = 'LATEST_ONLY';
+                applyMessageAttemptFilterState();
+            };
+
+            window.jrcResetMessageFilters = function(event) {
+                event.preventDefault();
+
+                const textSearch = document.getElementById('message-text-search');
+                const levelSearch = document.getElementById('message-filter');
+                const attemptFilter = document.getElementById('message-attempt-filter');
+                if (!textSearch || !levelSearch || !attemptFilter) {
+                    return;
+                }
+
+                textSearch.value = '';
+                levelSearch.value = 'ALL';
+                attemptFilter.value = 'LATEST_ONLY';
+                applyMessageAttemptFilterState();
             };
 
             window.jrcDownloadMessages = function(cp) {

@@ -159,22 +159,62 @@
                     <div class="col">
                         {#if recap.messageCount.infoMessages > 0}
                         <div class="h5 text-info">
-                            <i class="bi bi-info-circle"></i> {recap.messageCount.infoMessages}
+                            <i class="bi bi-info-circle"></i>
+                            <a href="#batch-messages"
+                               class="text-info"
+                               title="Nur Info-Meldungen anzeigen"
+                               aria-label="Nur {recap.messageCount.infoMessages} Info-Meldungen anzeigen"
+                               hx-get="{cp}/history/details/messages"
+                               hx-target="#batch-messages"
+                               hx-swap="innerHTML"
+                               hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                               hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
+                               onclick="jrcFilterMessagesByLevel(event, 'INFO_ONLY')">{recap.messageCount.infoMessages}</a>
                         </div>
                         {/if}
                         {#if recap.messageCount.warningMessages > 0}
                         <div class="h5 text-warning">
-                            <i class="bi bi-exclamation-circle"></i> {recap.messageCount.warningMessages}
+                            <i class="bi bi-exclamation-circle"></i>
+                            <a href="#batch-messages"
+                               class="text-warning"
+                               title="Nur Warning-Meldungen anzeigen"
+                               aria-label="Nur {recap.messageCount.warningMessages} Warning-Meldungen anzeigen"
+                               hx-get="{cp}/history/details/messages"
+                               hx-target="#batch-messages"
+                               hx-swap="innerHTML"
+                               hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                               hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
+                               onclick="jrcFilterMessagesByLevel(event, 'WARNING_ONLY')">{recap.messageCount.warningMessages}</a>
                         </div>
                         {/if}
                         {#if recap.messageCount.errorMessages > 0}
                         <div class="h5 text-danger">
-                            <i class="bi bi-x-circle"></i> {recap.messageCount.errorMessages}
+                            <i class="bi bi-x-circle"></i>
+                            <a href="#batch-messages"
+                               class="text-danger"
+                               title="Nur Error-Meldungen anzeigen"
+                               aria-label="Nur {recap.messageCount.errorMessages} Error-Meldungen anzeigen"
+                               hx-get="{cp}/history/details/messages"
+                               hx-target="#batch-messages"
+                               hx-swap="innerHTML"
+                               hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                               hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
+                               onclick="jrcFilterMessagesByLevel(event, 'ERROR_ONLY')">{recap.messageCount.errorMessages}</a>
                         </div>
                         {/if}
                         {#if recap.messageCount.exceptionMessages > 0}
                         <div class="h5 text-danger">
-                            <i class="bi bi-bug"></i> {recap.messageCount.exceptionMessages}
+                            <i class="bi bi-bug"></i>
+                            <a href="#batch-messages"
+                               class="text-danger"
+                               title="Nur Exception-Meldungen anzeigen"
+                               aria-label="Nur {recap.messageCount.exceptionMessages} Exception-Meldungen anzeigen"
+                               hx-get="{cp}/history/details/messages"
+                               hx-target="#batch-messages"
+                               hx-swap="innerHTML"
+                               hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
+                               hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
+                               onclick="jrcFilterMessagesByLevel(event, 'EXCEPTION_ONLY')">{recap.messageCount.exceptionMessages}</a>
                         </div>
                         {/if}
                     </div>
