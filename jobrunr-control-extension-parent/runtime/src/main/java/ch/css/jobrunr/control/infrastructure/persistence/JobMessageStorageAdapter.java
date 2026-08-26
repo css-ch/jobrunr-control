@@ -33,6 +33,12 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
+    private static final String INVALIDATE_PREVIOUS_ATTEMPT_MESSAGES_SQL = """
+            UPDATE "JOBRUNR_CONTROL_BATCH_MESSAGES"
+            SET "IS_LATEST" = ?
+            WHERE "BATCH_JOB_ID" = ? AND "CHILD_JOB_ID" = ? AND "ATTEMPT_NR" < ? AND "IS_LATEST" = ?
+            """;
+
     private static final String SEARCH_SELECT_PREFIX = """
             SELECT "CREATED_AT", "CHILD_JOB_ID", "LEVEL", "MESSAGE", "STACK_TRACE", "ATTEMPT_NR", "IS_LATEST"
             FROM "JOBRUNR_CONTROL_BATCH_MESSAGES"
@@ -75,6 +81,23 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
         } catch (SQLException e) {
             LOG.errorf(e, "Failed to write job message for jobId %s", jobId);
             throw new IllegalStateException("Failed to write job message", e);
+        }
+    }
+
+    @Override
+    public void invalidatePreviousAttemptMessages(UUID rootJobId, UUID childJobId, int currentAttemptNr) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(INVALIDATE_PREVIOUS_ATTEMPT_MESSAGES_SQL)) {
+            stmt.setBoolean(1, false);
+            stmt.setString(2, rootJobId.toString());
+            stmt.setString(3, childJobId.toString());
+            stmt.setInt(4, currentAttemptNr);
+            stmt.setBoolean(5, true);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            LOG.errorf(e, "Failed to invalidate previous messages for rootJobId %s and childJobId %s",
+                    rootJobId, childJobId);
+            throw new IllegalStateException("Failed to invalidate previous job messages", e);
         }
     }
 
