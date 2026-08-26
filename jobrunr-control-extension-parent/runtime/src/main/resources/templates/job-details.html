@@ -127,19 +127,20 @@
                                 <option value="EXCEPTION_ONLY">Nur Exception</option>
                             </select>
 
-                            <label for="message-attempt-filter" class="visually-hidden">Retry-Meldungen</label>
-                            <select id="message-attempt-filter"
-                                    name="attemptFilter"
-                                    class="form-select form-select-sm"
-                                    style="width: 170px;"
+                            <input type="hidden" id="message-attempt-filter" name="attemptFilter" value="LATEST_ONLY">
+                            <button type="button"
+                                    id="message-attempt-toggle"
+                                    class="btn btn-outline-secondary btn-sm"
+                                    title="Alle Meldungen inklusive Retries anzeigen"
+                                    aria-label="Alle Meldungen inklusive Retries anzeigen"
+                                    aria-pressed="false"
                                     hx-get="{cp}/history/details/messages"
                                     hx-target="#batch-messages"
                                     hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
                                     hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
-                                    hx-trigger="change">
-                                <option value="LATEST_ONLY" selected>Nur neueste Meldungen</option>
-                                <option value="ALL_ATTEMPTS">Alle Meldungen inkl. Retries</option>
-                            </select>
+                                    onclick="jrcToggleMessageAttemptFilter()">
+                                <i class="bi bi-clock-history" data-message-attempt-icon aria-hidden="true"></i>
+                            </button>
 
                             <button type="button"
                                     id="message-sort-toggle"
@@ -214,10 +215,42 @@
                 }
             }
 
+            function applyMessageAttemptFilterState() {
+                const filter = document.getElementById('message-attempt-filter');
+                const button = document.getElementById('message-attempt-toggle');
+                if (!filter || !button) {
+                    return;
+                }
+
+                const showAllAttempts = filter.value === 'ALL_ATTEMPTS';
+                const label = showAllAttempts
+                    ? 'Nur neueste Meldungen anzeigen'
+                    : 'Alle Meldungen inklusive Retries anzeigen';
+                const icon = button.querySelector('[data-message-attempt-icon]');
+
+                button.setAttribute('aria-label', label);
+                button.setAttribute('title', label);
+                button.setAttribute('aria-pressed', String(showAllAttempts));
+                button.classList.toggle('active', showAllAttempts);
+                if (icon) {
+                    icon.className = showAllAttempts
+                        ? 'bi bi-arrow-repeat'
+                        : 'bi bi-clock-history';
+                }
+            }
+
             window.jrcToggleMessageSortOrder = function(button) {
                 const nextSortOrder = getSortOrder() === 'NEWEST_FIRST' ? 'OLDEST_FIRST' : 'NEWEST_FIRST';
                 localStorage.setItem(storageKey, nextSortOrder);
                 applySortOrderState();
+            };
+
+            window.jrcToggleMessageAttemptFilter = function() {
+                const filter = document.getElementById('message-attempt-filter');
+                if (filter) {
+                    filter.value = filter.value === 'ALL_ATTEMPTS' ? 'LATEST_ONLY' : 'ALL_ATTEMPTS';
+                    applyMessageAttemptFilterState();
+                }
             };
 
             window.jrcDownloadMessages = function(cp) {
@@ -235,7 +268,10 @@
                 window.location.href = cp + '/history/details/messages/download?' + params.toString();
             };
 
-            document.addEventListener('DOMContentLoaded', applySortOrderState);
+            document.addEventListener('DOMContentLoaded', function() {
+                applySortOrderState();
+                applyMessageAttemptFilterState();
+            });
             document.body.addEventListener('htmx:afterSwap', applySortOrderState);
         })();
 
