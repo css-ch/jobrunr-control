@@ -70,8 +70,8 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
     public void writeMessage(UUID jobId, JobMessage message) {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(INSERT_SQL)) {
-            stmt.setString(1, jobId.toString());
-            stmt.setString(2, message.jobId() != null ? message.jobId().toString() : null);
+            stmt.setString(1, message.rootJobId().toString());
+            stmt.setString(2, message.childJobId() != null ? message.childJobId().toString() : null);
             stmt.setTimestamp(3, Timestamp.from(message.createdAt() != null ? message.createdAt() : Instant.now()));
             stmt.setString(4, message.messageLevel().name());
             stmt.setString(5, message.message());
@@ -80,7 +80,7 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
             stmt.setBoolean(8, message.isLatest());
             stmt.executeUpdate();
         } catch (SQLException e) {
-            LOG.errorf(e, "Failed to write job message for jobId %s", jobId);
+            LOG.errorf(e, "Failed to write job message for rootJobId %s", message.rootJobId());
             throw new IllegalStateException("Failed to write job message", e);
         }
     }

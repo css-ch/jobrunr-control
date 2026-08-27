@@ -39,14 +39,14 @@
                                     <a href="#batch-messages"
                                        class="text-reset text-decoration-underline"
                                        title="Meldungen dieses Jobs anzeigen"
-                                       aria-label="Meldungen für Job {m.jobId()} anzeigen"
+                                       aria-label="Meldungen für Job {m.childJobId()} anzeigen"
                                        hx-get="{cp}/history/details/messages"
                                        hx-target="#batch-messages"
                                        hx-swap="innerHTML"
                                        hx-vals='js:&#123;"size": jrcPageSize("messages"), "page": 0&#125;'
                                        hx-include="[name='jobId'],[name='jobType'],[name='search'],[name='textSearch'],[name='sortOrder'],[name='attemptFilter']"
-                                       onclick="jrcFilterMessagesByJobId(event, '{m.jobId()}')">
-                                        <code class="mb-0">{m.jobId()}</code>
+                                       onclick="jrcFilterMessagesByJobId(event, '{m.childJobId()}')">
+                                        <code class="mb-0">{m.childJobId()}</code>
                                     </a>
                                 </span>
                             </div>

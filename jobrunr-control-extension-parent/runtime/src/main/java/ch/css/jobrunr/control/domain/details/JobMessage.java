@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record JobMessage(
         UUID rootJobId,
-        UUID jobId,
+        UUID childJobId,
         Instant createdAt,
         JobMessageLevel messageLevel,
         String message,

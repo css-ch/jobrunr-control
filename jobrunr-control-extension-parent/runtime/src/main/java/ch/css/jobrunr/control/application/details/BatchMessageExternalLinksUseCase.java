@@ -43,7 +43,7 @@ public class BatchMessageExternalLinksUseCase {
             return links == null ? List.of() : links;
         } catch (RuntimeException exception) {
             LOG.errorf(exception, "Could not create external links for job message rootJobId=%s jobId=%s",
-                    message.rootJobId(), message.jobId());
+                    message.rootJobId(), message.childJobId());
             return List.of();
         }
     }
