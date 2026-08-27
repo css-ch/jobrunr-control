@@ -12,7 +12,8 @@
         </div>
     {#else}
         <div>
-            {#for m in messages.pageItems()}
+            {#for item in messages.pageItems()}
+            {#let m = item.message()}
             {#let level = m.messageLevel().name()}
             <div class="message-item {#if level == 'INFO'}message-info{#else if level == 'WARNING'}message-warning{#else if level == 'ERROR'}message-error{#else}message-exception{/if}">
                 <div class="row align-items-start g-2">
@@ -49,9 +50,25 @@
                                     </a>
                                 </span>
                             </div>
-                            <span class="badge text-bg-light border {#if m.isLatest()}text-dark{#else}text-secondary{/if} text-nowrap" title="Versuchsnummer">
-                                Versuch {m.attemptNr()}
-                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                {#for link in item.externalLinks()}
+                                    <a href="{link.url()}" class="btn btn-outline-secondary btn-sm message-external-link"
+                                       target="_blank" rel="noopener noreferrer" title="{link.accessibleLabel()}"
+                                       aria-label="{link.accessibleLabel()}">
+                                        {#if link.hasImage()}
+                                            <img src="{link.imageUrl()}" alt="" class="message-external-link-image">
+                                        {#else if link.hasIcon()}
+                                            <i class="{link.iconClass()}" aria-hidden="true"></i>
+                                        {/if}
+                                        {#if link.hasLabel()}
+                                            <span>{link.label()}</span>
+                                        {/if}
+                                    </a>
+                                {/for}
+                                <span class="badge text-bg-light border {#if m.isLatest()}text-dark{#else}text-secondary{/if} text-nowrap" title="Versuchsnummer">
+                                    Versuch {m.attemptNr()}
+                                </span>
+                            </div>
                         </div>
                         <p class="mb-0 mt-1">{m.message()}</p>
                         {#if m.hasStackTrace()}
@@ -270,5 +287,11 @@
         display: block;
         color: #666;
         margin-bottom: 0.25rem;
+    }
+
+    .message-external-link-image {
+        width: 1rem;
+        height: 1rem;
+        object-fit: contain;
     }
 </style>

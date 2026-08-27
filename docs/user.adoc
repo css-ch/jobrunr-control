@@ -1028,6 +1028,7 @@ Click on a job in the execution history to see:
 * Execution timestamps (started, finished)
 * Batch progress (for batch jobs)
 * Link to JobRunr Pro Dashboard for detailed logs
+* Optional links to external tools next to individual batch messages, when configured by the application
 
 == Executing Jobs
 
@@ -1176,6 +1177,10 @@ All create, update, delete, and execute operations for both templates and jobs a
 * For executions: source (REST/UI) and resulting job ID
 
 == Documentation Changelog
+
+=== 2026-08-27
+
+* Added optional application-defined external tool links for individual batch messages.
 
 === 2026-06-09
 

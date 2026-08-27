@@ -5,6 +5,8 @@ import ch.css.jobrunr.control.application.details.GetJobDetailsMessageUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsParametersUseCase;
 import ch.css.jobrunr.control.application.details.GetJobDetailsRecapUseCase;
 import ch.css.jobrunr.control.application.details.GetExpectedJobDeletionTimeUseCase;
+import ch.css.jobrunr.control.application.details.BatchMessageExternalLinksUseCase;
+import ch.css.jobrunr.control.domain.details.BatchMessageExternalLink;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.details.JobMessage;
@@ -40,6 +42,7 @@ public class JobDetailsController {
     private final JobRunrControlUiConfig uiConfig;
     private final JobDefinitionDiscoveryService jobDefinitionDiscoveryService;
     private final GetExpectedJobDeletionTimeUseCase getExpectedJobDeletionTimeUseCase;
+    private final BatchMessageExternalLinksUseCase batchMessageExternalLinksUseCase;
     private static final DateTimeFormatter DELETION_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss").withZone(ZoneId.systemDefault());
 
@@ -50,7 +53,8 @@ public class JobDetailsController {
                                 GetJobDetailsMessagesAsCsvUseCase getJobDetailsMessagesAsCsvUseCase,
                                 JobRunrControlUiConfig uiConfig,
                                 JobDefinitionDiscoveryService jobDefinitionDiscoveryService,
-                                GetExpectedJobDeletionTimeUseCase getExpectedJobDeletionTimeUseCase) {
+                                GetExpectedJobDeletionTimeUseCase getExpectedJobDeletionTimeUseCase,
+                                BatchMessageExternalLinksUseCase batchMessageExternalLinksUseCase) {
         this.getJobDetailsParametersUseCase = getJobDetailsParametersUseCase;
         this.getJobDetailsRecapUseCase = getJobDetailsRecapUseCase;
         this.getJobDetailsMessageUseCase = getJobDetailsMessageUseCase;
@@ -58,6 +62,7 @@ public class JobDetailsController {
         this.uiConfig = uiConfig;
         this.jobDefinitionDiscoveryService = jobDefinitionDiscoveryService;
         this.getExpectedJobDeletionTimeUseCase = getExpectedJobDeletionTimeUseCase;
+        this.batchMessageExternalLinksUseCase = batchMessageExternalLinksUseCase;
     }
 
     @CheckedTemplate(basePath = "", defaultName = CheckedTemplate.HYPHENATED_ELEMENT_NAME)
@@ -278,13 +283,20 @@ public class JobDetailsController {
                 jobMessagesPaged.totalMessages()
         );
         List<TemplateExtensions.PageItem> pageRange = TemplateExtensions.computePageRange(paginationMetadata);
-        return new MessagesPaginationResult(jobMessagesPaged.messages(), paginationMetadata, pageRange);
+        List<MessageWithExternalLinks> messages = jobMessagesPaged.messages().stream()
+                .map(message -> new MessageWithExternalLinks(
+                        message, batchMessageExternalLinksUseCase.execute(message)))
+                .toList();
+        return new MessagesPaginationResult(messages, paginationMetadata, pageRange);
     }
 
     public record MessagesPaginationResult(
-            List<JobMessage> pageItems,
+            List<MessageWithExternalLinks> pageItems,
             PaginationHelper.PaginationMetadata pagination,
             List<TemplateExtensions.PageItem> pageRange
     ) {
+    }
+
+    public record MessageWithExternalLinks(JobMessage message, List<BatchMessageExternalLink> externalLinks) {
     }
 }
