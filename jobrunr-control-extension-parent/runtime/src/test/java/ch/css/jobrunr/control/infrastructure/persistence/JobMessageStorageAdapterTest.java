@@ -79,7 +79,7 @@ class JobMessageStorageAdapterTest {
         // Given
         UUID batchId = UUID.randomUUID();
         UUID childId = UUID.randomUUID();
-        JobMessage message = new JobMessage(Instant.now(), childId, JobMessageLevel.WARNING, "Warning text", "stack", 2, true);
+        JobMessage message = new JobMessage(batchId, childId, Instant.now(), JobMessageLevel.WARNING, "Warning text", "stack", 2, true);
 
         when(connection.prepareStatement(anyString())).thenReturn(insertStatement);
         when(insertStatement.executeUpdate()).thenReturn(1);
@@ -119,6 +119,7 @@ class JobMessageStorageAdapterTest {
     void searchMessages_ExistingMessages_ReturnsPagedResult() throws Exception {
         // Given
         UUID batchId = UUID.randomUUID();
+        UUID childId = UUID.randomUUID();
         Instant now = Instant.now();
 
         when(connection.prepareStatement(anyString())).thenReturn(countStatement, searchStatement);
@@ -128,8 +129,9 @@ class JobMessageStorageAdapterTest {
 
         when(searchStatement.executeQuery()).thenReturn(searchResultSet);
         when(searchResultSet.next()).thenReturn(true, false);
+        when(searchResultSet.getString("BATCH_JOB_ID")).thenReturn(batchId.toString());
         when(searchResultSet.getTimestamp("CREATED_AT")).thenReturn(Timestamp.from(now));
-        when(searchResultSet.getString("CHILD_JOB_ID")).thenReturn(UUID.randomUUID().toString());
+        when(searchResultSet.getString("CHILD_JOB_ID")).thenReturn(childId.toString());
         when(searchResultSet.getString("LEVEL")).thenReturn(JobMessageLevel.ERROR.name());
         when(searchResultSet.getString("MESSAGE")).thenReturn("failed");
         when(searchResultSet.getString("STACK_TRACE")).thenReturn("trace");
@@ -150,6 +152,8 @@ class JobMessageStorageAdapterTest {
         // Then
         assertThat(result.totalMessages()).isEqualTo(1L);
         assertThat(result.messages()).hasSize(1);
+        assertThat(result.messages().getFirst().rootJobId()).isEqualTo(batchId);
+        assertThat(result.messages().getFirst().jobId()).isEqualTo(childId);
         assertThat(result.messages().getFirst().messageLevel()).isEqualTo(JobMessageLevel.ERROR);
         assertThat(result.messages().getFirst().attemptNr()).isEqualTo(3);
         assertThat(result.messages().getFirst().isLatest()).isFalse();
@@ -203,7 +207,7 @@ class JobMessageStorageAdapterTest {
     void writeMessage_SqlException_ThrowsIllegalStateException() throws Exception {
         // Given
         UUID batchId = UUID.randomUUID();
-        JobMessage message = new JobMessage(Instant.now(), UUID.randomUUID(), JobMessageLevel.INFO, "ok", null, 0, true);
+        JobMessage message = new JobMessage(batchId, UUID.randomUUID(), Instant.now(), JobMessageLevel.INFO, "ok", null, 0, true);
         when(connection.prepareStatement(anyString())).thenThrow(new java.sql.SQLException("DB error"));
 
         // When / Then

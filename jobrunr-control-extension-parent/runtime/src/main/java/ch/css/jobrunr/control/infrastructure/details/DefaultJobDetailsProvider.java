@@ -204,6 +204,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
             Optional<FailedState> lastJobState = workflowJob.getLastJobStateOfType(FailedState.class);
             lastJobState.ifPresent(failedState -> {
                 messages.add(new CollectedMessage(
+                        jobId,
                         failedState.getCreatedAt(),
                         workflowJob.getId(),
                         JobMessageLevel.EXCEPTION,
@@ -226,6 +227,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
                             case ERROR -> errorMessages.incrementAndGet();
                         }
                         messages.add(new CollectedMessage(
+                                jobId,
                                 logLine.getLogInstant(),
                                 workflowJob.getId(),
                                 toJobMessageLevel(logLine.getLevel()),
@@ -307,14 +309,15 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     private record SnapshotCacheEntry(BatchDetailsSnapshot snapshot, long createdAtMillis) {
     }
 
-    private record CollectedMessage(Instant createdAt,
-                                    UUID jobId,
+    private record CollectedMessage(UUID rootJobId,
+                                Instant createdAt,
+                                UUID jobId,
                                     JobMessageLevel level,
                                     String message,
                                     String stackTrace) {
 
         JobMessage toJobMessage() {
-            return new JobMessage(createdAt, jobId, level, message, stackTrace, 0, true);
+            return new JobMessage(rootJobId, jobId, createdAt, level, message, stackTrace, 0, true);
         }
     }
 
