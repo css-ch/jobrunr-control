@@ -1999,6 +1999,48 @@ public class InvoiceBatchJob implements JobRequestHandler<InvoiceBatchRequest> {
 }
 ----
 
+==== External Links for Batch Messages
+
+Applications can add links to external tools next to every message on the batch detail page.
+Implement `BatchMessageExternalLinkProvider` as an `@ApplicationScoped` CDI bean. The provider
+receives the complete `JobMessage`, so links can be based on the workflow root, emitting job,
+message level, timestamp, attempt, or message text. Multiple providers can be registered; with
+no provider, no external links are rendered.
+
+[source,java]
+----
+import ch.css.jobrunr.control.domain.details.BatchMessageExternalLink;
+import ch.css.jobrunr.control.domain.details.BatchMessageExternalLinkProvider;
+import ch.css.jobrunr.control.domain.details.JobMessage;
+import jakarta.enterprise.context.ApplicationScoped;
+
+import java.net.URI;
+import java.util.List;
+
+@ApplicationScoped
+public class KibanaBatchMessageLinkProvider implements BatchMessageExternalLinkProvider {
+
+    @Override
+    public List<BatchMessageExternalLink> linksFor(JobMessage message) {
+        return List.of(new BatchMessageExternalLink(
+                "Kibana",
+                URI.create("https://kibana.example/app/discover?jobId=" + message.jobId()),
+                "bi bi-search",
+                null));
+    }
+}
+----
+
+`BatchMessageExternalLink` supports an optional visible label, target URI, optional Bootstrap
+Icons CSS class, optional image URI, and optional `ariaLabel`. For icon- or image-only links,
+provide `ariaLabel`; otherwise the visible label is used as the accessible name. The target and
+image URI must use `http` or `https`; arbitrary HTML is intentionally not supported. Links open
+in a new tab and are rendered next to the attempt badge.
+
+Providers can override `order()` to define their stable rendering order. Lower values are
+rendered first; links returned by one provider retain the order in which that provider returns
+them. The default order is `1000`.
+
 === Choosing the Right Mode
 
 [cols="1,2,2"]
@@ -2107,6 +2149,11 @@ public void run(MyJobRequest request) throws Exception {
 
 == Documentation Changelog
 
+=== 2026-08-27
+
+* Added the `BatchMessageExternalLinkProvider` SPI for application-defined links next to batch
+  messages, including optional icons/images and deterministic provider ordering.
+
 === 2026-06-09
 
 * Added a dedicated **Job Detail Page** chapter
@@ -2125,7 +2172,4 @@ public void run(MyJobRequest request) throws Exception {
 ** Explained why the bearer tenant must be named `bearer` (not `api`) to avoid path-segment collision
 ** Added Security Invariants section for extension developers
 ** Corrected dev-mode instructions: `JobRunrControlRoleAugmentor` handles role granting automatically; no embedded user config needed
-
-
-
 
