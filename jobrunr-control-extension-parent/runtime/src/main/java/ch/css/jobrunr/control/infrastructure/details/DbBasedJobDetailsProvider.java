@@ -11,6 +11,7 @@ import ch.css.jobrunr.control.domain.details.JobRecapProvider;
 import ch.css.jobrunr.control.domain.details.JobRecapStoragePort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 import java.util.Map;
 import java.util.UUID;
@@ -55,5 +56,12 @@ public class DbBasedJobDetailsProvider implements JobMessageProvider, JobRecapPr
     @Override
     public Map<String, Long> determineRecap(UUID jobId) {
         return jobRecapStoragePort.readRecap(jobId);
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void deleteByRootJobId(UUID rootJobId) {
+        jobMessageStoragePort.deleteByRootJobId(rootJobId);
+        jobRecapStoragePort.deleteByRootJobId(rootJobId);
     }
 }

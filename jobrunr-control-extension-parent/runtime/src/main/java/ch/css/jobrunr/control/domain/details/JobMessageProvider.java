@@ -16,4 +16,13 @@ public interface JobMessageProvider {
 
     JobMessageLevelCounters determineJobMessageCounter(UUID jobId,
                                                        JobMessageAttemptFilter attemptFilter);
+
+    /**
+     * Deletes all messages belonging to a logical workflow root.
+     *
+     * @param rootJobId canonical workflow root
+     */
+    default void deleteByRootJobId(UUID rootJobId) {
+        // Optional for providers that do not persist messages.
+    }
 }

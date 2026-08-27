@@ -24,6 +24,11 @@ public class JobRecapStorageAdapter implements JobRecapStoragePort {
             WHERE "BATCH_JOB_ID" = ? AND "CHILD_JOB_ID" = ?
             """;
 
+    private static final String DELETE_RECAP_SQL = """
+            DELETE FROM "JOBRUNR_CONTROL_BATCH_RECAP"
+            WHERE "BATCH_JOB_ID" = ?
+            """;
+
     private static final String INSERT_RECAP_SQL = """
             INSERT INTO "JOBRUNR_CONTROL_BATCH_RECAP" ("BATCH_JOB_ID", "CHILD_JOB_ID", "COUNTER_NAME", "COUNTER_VALUE")
             VALUES (?, ?, ?, ?)
@@ -90,6 +95,18 @@ public class JobRecapStorageAdapter implements JobRecapStoragePort {
         } catch (SQLException e) {
             LOG.errorf(e, "Failed to read recap for batchJobId %s", batchJobId);
             throw new IllegalStateException("Failed to read job recap", e);
+        }
+    }
+
+    @Override
+    public void deleteByRootJobId(UUID rootJobId) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(DELETE_RECAP_SQL)) {
+            stmt.setString(1, rootJobId.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            LOG.errorf(e, "Failed to delete recap for rootJobId %s", rootJobId);
+            throw new IllegalStateException("Failed to delete job recap", e);
         }
     }
 }

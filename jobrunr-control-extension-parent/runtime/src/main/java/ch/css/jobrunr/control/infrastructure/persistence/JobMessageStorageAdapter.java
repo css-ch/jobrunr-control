@@ -40,6 +40,11 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
             WHERE "BATCH_JOB_ID" = ? AND "CHILD_JOB_ID" = ? AND "ATTEMPT_NR" < ? AND "IS_LATEST" = ?
             """;
 
+    private static final String DELETE_MESSAGES_SQL = """
+            DELETE FROM "JOBRUNR_CONTROL_BATCH_MESSAGES"
+            WHERE "BATCH_JOB_ID" = ?
+            """;
+
     private static final String SEARCH_SELECT_PREFIX = """
             SELECT "BATCH_JOB_ID", "CREATED_AT", "CHILD_JOB_ID", "LEVEL", "MESSAGE", "STACK_TRACE", "ATTEMPT_NR", "IS_LATEST"
             FROM "JOBRUNR_CONTROL_BATCH_MESSAGES"
@@ -99,6 +104,18 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
             LOG.errorf(e, "Failed to invalidate previous messages for rootJobId %s and childJobId %s",
                     rootJobId, childJobId);
             throw new IllegalStateException("Failed to invalidate previous job messages", e);
+        }
+    }
+
+    @Override
+    public void deleteByRootJobId(UUID rootJobId) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(DELETE_MESSAGES_SQL)) {
+            stmt.setString(1, rootJobId.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            LOG.errorf(e, "Failed to delete job messages for rootJobId %s", rootJobId);
+            throw new IllegalStateException("Failed to delete job messages", e);
         }
     }
 
