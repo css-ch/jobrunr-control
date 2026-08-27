@@ -8,6 +8,8 @@ public interface JobMessageStoragePort {
 
     void invalidatePreviousAttemptMessages(UUID rootJobId, UUID childJobId, int currentAttemptNr);
 
+    void deleteByRootJobId(UUID rootJobId);
+
     JobMessagesPaged searchMessages(UUID jobId,
                                     JobMessageLevelSearch levelSearch,
                                     String textSearch,

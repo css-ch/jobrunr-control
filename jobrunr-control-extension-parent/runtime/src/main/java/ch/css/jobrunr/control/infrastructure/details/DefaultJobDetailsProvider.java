@@ -52,6 +52,11 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     }
 
     @Override
+    public void deleteByRootJobId(UUID rootJobId) {
+        snapshotCache.remove(rootJobId);
+    }
+
+    @Override
     public Map<String, Long> determineRecap(UUID jobId) {
         Job job = storageProvider.getJobById(jobId);
         if (!job.isBatchJob()) {
