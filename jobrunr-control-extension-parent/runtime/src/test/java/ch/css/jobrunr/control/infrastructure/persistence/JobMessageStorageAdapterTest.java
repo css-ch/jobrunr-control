@@ -153,7 +153,7 @@ class JobMessageStorageAdapterTest {
         assertThat(result.totalMessages()).isEqualTo(1L);
         assertThat(result.messages()).hasSize(1);
         assertThat(result.messages().getFirst().rootJobId()).isEqualTo(batchId);
-        assertThat(result.messages().getFirst().jobId()).isEqualTo(childId);
+        assertThat(result.messages().getFirst().childJobId()).isEqualTo(childId);
         assertThat(result.messages().getFirst().messageLevel()).isEqualTo(JobMessageLevel.ERROR);
         assertThat(result.messages().getFirst().attemptNr()).isEqualTo(3);
         assertThat(result.messages().getFirst().isLatest()).isFalse();

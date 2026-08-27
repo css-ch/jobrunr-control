@@ -63,15 +63,13 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     }
 
     @Override
-    public JobMessageLevelCounters determineJobMessageCounter(UUID jobId,
-                                                              JobMessageAttemptFilter attemptFilter) {
+    public JobMessageLevelCounters determineJobMessageCounter(UUID jobId, JobMessageAttemptFilter attemptFilter) {
         Job job = storageProvider.getJobById(jobId);
         if (!job.isBatchJob()) {
             return new JobMessageLevelCounters(0, 0, 0, 0);
         }
         BatchDetailsSnapshot snapshot = getOrBuildSnapshot(jobId);
-        JobMessageAttemptFilter effectiveAttemptFilter = attemptFilter == null
-                ? JobMessageAttemptFilter.LATEST_ONLY : attemptFilter;
+        JobMessageAttemptFilter effectiveAttemptFilter = Optional.ofNullable(attemptFilter).orElse(JobMessageAttemptFilter.LATEST_ONLY);
         if (effectiveAttemptFilter != JobMessageAttemptFilter.LATEST_ONLY) {
             return snapshot.messageCounter();
         }
@@ -140,8 +138,7 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     }
 
     private boolean matchesAttemptFilter(CollectedMessage message, JobMessageAttemptFilter attemptFilter) {
-        JobMessageAttemptFilter effectiveAttemptFilter = attemptFilter == null
-                ? JobMessageAttemptFilter.LATEST_ONLY : attemptFilter;
+        JobMessageAttemptFilter effectiveAttemptFilter = Optional.ofNullable(attemptFilter).orElse(JobMessageAttemptFilter.LATEST_ONLY);
         return effectiveAttemptFilter != JobMessageAttemptFilter.LATEST_ONLY || message.toJobMessage().isLatest();
     }
 
@@ -310,8 +307,8 @@ public class DefaultJobDetailsProvider implements JobMessageProvider, JobRecapPr
     }
 
     private record CollectedMessage(UUID rootJobId,
-                                Instant createdAt,
-                                UUID jobId,
+                                    Instant createdAt,
+                                    UUID jobId,
                                     JobMessageLevel level,
                                     String message,
                                     String stackTrace) {

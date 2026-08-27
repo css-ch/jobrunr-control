@@ -22,7 +22,7 @@ public class ExampleMessageLinkProvider implements BatchMessageExternalLinkProvi
     @Override
     public List<BatchMessageExternalLink> linksFor(JobMessage message) {
         URI googleSearch = URI.create(
-                "https://www.google.com/search?q=JobRunr+child+job+" + message.jobId());
+                "https://www.google.com/search?q=JobRunr+child+job+" + message.childJobId());
         return List.of(new BatchMessageExternalLink(
                 "Google",
                 googleSearch,

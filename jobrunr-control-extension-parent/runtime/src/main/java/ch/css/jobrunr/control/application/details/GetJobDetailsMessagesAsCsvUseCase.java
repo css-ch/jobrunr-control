@@ -24,7 +24,7 @@ import java.util.UUID;
  * Returns the CSV content as a {@link String}. The caller is responsible for
  * setting the appropriate HTTP response headers (Content-Type, Content-Disposition).
  * <p>
- * CSV column order: Zeitstempel, Level, jobId, Message, StackTrace
+ * CSV column order: Zeitstempel, Level, childJobId, Message, StackTrace
  */
 @ApplicationScoped
 public class GetJobDetailsMessagesAsCsvUseCase {
@@ -89,7 +89,7 @@ public class GetJobDetailsMessagesAsCsvUseCase {
         for (JobMessage msg : messages) {
             sb.append(escapeCsv(msg.createdAtFormatted())).append(',');
             sb.append(escapeCsv(msg.messageLevel().name())).append(',');
-            sb.append(escapeCsv(msg.jobId() != null ? msg.jobId().toString() : "")).append(',');
+            sb.append(escapeCsv(msg.childJobId() != null ? msg.childJobId().toString() : "")).append(',');
             sb.append(escapeCsv(msg.message())).append(',');
             sb.append(escapeCsv(msg.stackTrace() != null ? msg.stackTrace() : ""));
             sb.append("\r\n");
