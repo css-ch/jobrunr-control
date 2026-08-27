@@ -85,7 +85,7 @@ class JobMessageStorageAdapterTest {
         when(insertStatement.executeUpdate()).thenReturn(1);
 
         // When
-        adapter.writeMessage(batchId, message);
+        adapter.writeMessage(message);
 
         // Then
         verify(insertStatement).setString(1, batchId.toString());
@@ -211,7 +211,7 @@ class JobMessageStorageAdapterTest {
         when(connection.prepareStatement(anyString())).thenThrow(new java.sql.SQLException("DB error"));
 
         // When / Then
-        assertThatThrownBy(() -> adapter.writeMessage(batchId, message))
+        assertThatThrownBy(() -> adapter.writeMessage(message))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Failed to write job message");
     }

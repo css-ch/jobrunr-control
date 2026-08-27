@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public interface JobMessageStoragePort {
 
-    void writeMessage(UUID jobId, JobMessage message);
+    void writeMessage(JobMessage message);
 
     void invalidatePreviousAttemptMessages(UUID rootJobId, UUID childJobId, int currentAttemptNr);
 

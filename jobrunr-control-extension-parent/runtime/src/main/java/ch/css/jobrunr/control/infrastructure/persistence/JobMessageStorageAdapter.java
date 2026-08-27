@@ -67,7 +67,7 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
     }
 
     @Override
-    public void writeMessage(UUID jobId, JobMessage message) {
+    public void writeMessage(JobMessage message) {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(INSERT_SQL)) {
             stmt.setString(1, message.rootJobId().toString());

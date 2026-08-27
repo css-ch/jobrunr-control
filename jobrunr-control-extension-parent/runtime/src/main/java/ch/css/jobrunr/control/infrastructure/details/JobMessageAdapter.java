@@ -116,6 +116,6 @@ public class JobMessageAdapter implements JobMessageService {
         UUID jobId = jobContext.getJobId();
         JobMessage jobMessage = new JobMessage(
                 rootJobId, jobId, Instant.now(), level, message, stackTrace, jobContext.currentRetry(), true);
-        jobMessageStorage.writeMessage(rootJobId, jobMessage);
+        jobMessageStorage.writeMessage(jobMessage);
     }
 }
