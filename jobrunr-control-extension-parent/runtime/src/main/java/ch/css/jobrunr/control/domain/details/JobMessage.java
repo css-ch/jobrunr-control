@@ -7,8 +7,9 @@ import java.util.Arrays;
 import java.util.UUID;
 
 public record JobMessage(
-        Instant createdAt,
+        UUID rootJobId,
         UUID jobId,
+        Instant createdAt,
         JobMessageLevel messageLevel,
         String message,
         String stackTrace,

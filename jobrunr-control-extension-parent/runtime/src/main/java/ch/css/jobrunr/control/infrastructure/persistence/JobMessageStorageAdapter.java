@@ -41,7 +41,7 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
             """;
 
     private static final String SEARCH_SELECT_PREFIX = """
-            SELECT "CREATED_AT", "CHILD_JOB_ID", "LEVEL", "MESSAGE", "STACK_TRACE", "ATTEMPT_NR", "IS_LATEST"
+            SELECT "BATCH_JOB_ID", "CREATED_AT", "CHILD_JOB_ID", "LEVEL", "MESSAGE", "STACK_TRACE", "ATTEMPT_NR", "IS_LATEST"
             FROM "JOBRUNR_CONTROL_BATCH_MESSAGES"
             """;
 
@@ -221,12 +221,14 @@ public class JobMessageStorageAdapter implements JobMessageStoragePort {
             try (ResultSet rs = stmt.executeQuery()) {
                 List<JobMessage> messages = new ArrayList<>();
                 while (rs.next()) {
+                    String rootJobId = rs.getString("BATCH_JOB_ID");
                     Timestamp timestamp = rs.getTimestamp("CREATED_AT");
                     Instant createdAt = timestamp == null ? Instant.now() : timestamp.toInstant();
                     String childJobId = rs.getString("CHILD_JOB_ID");
                     messages.add(new JobMessage(
-                            createdAt,
+                            rootJobId != null ? UUID.fromString(rootJobId) : null,
                             childJobId != null ? UUID.fromString(childJobId) : null,
+                            createdAt,
                             JobMessageLevel.valueOf(rs.getString("LEVEL").toUpperCase(Locale.ROOT)),
                             rs.getString("MESSAGE"),
                             rs.getString("STACK_TRACE"),
