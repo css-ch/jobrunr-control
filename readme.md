@@ -445,8 +445,7 @@ docker login container-registry.oracle.com
 
 ### Manual Table Creation
 
-If you manage the database yourself, create the `jobrunr_control_parameter_sets` table using the
-SQL scripts in `docs/sql/`:
+If you manage the database yourself, create the JobRunr Control tables using the SQL scripts in `docs/sql/`:
 
 | Database      | Script                    |
 |---------------|---------------------------|
@@ -455,7 +454,10 @@ SQL scripts in `docs/sql/`:
 | H2            | `docs/sql/h2.sql`         |
 | MySQL/MariaDB | `docs/sql/mysql.sql`      |
 
-This table is only required if any job uses `@JobParameterSet` for external parameter storage.
+The `jobrunr_control_parameter_sets` table is only required if any job uses `@JobParameterSet` for external parameter storage.
+
+When upgrading an existing database from 2.3.2 to 2.3.3, run the corresponding script in
+`docs/sql/migrations/2.3.2-to-2.3.3/` before starting the new application version.
 
 ## Architecture
 
@@ -539,4 +541,3 @@ Internal CSS Project. Requires a valid JobRunr Pro license.
 ## Support
 
 For issues and questions, contact the JobRunr Control Team.
-

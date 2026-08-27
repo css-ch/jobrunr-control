@@ -1,14 +1,18 @@
 # Database Schema for JobRunr Control
 
-This directory contains SQL DDL scripts for creating the required database table for **external parameter storage**.
+This directory contains SQL DDL scripts for creating and upgrading the tables used by **JobRunr Control**.
 
-## Table: `jobrunr_control_parameter_sets`
+## Initial schema
 
-This table is required only if you use the `EXTERNAL` parameter storage strategy (via `@JobParameterSet` annotation).
+The scripts in this directory create the complete current schema, including:
+
+* `jobrunr_control_parameter_sets` (required only when using the `EXTERNAL` parameter storage strategy)
+* `jobrunr_control_batch_recap`
+* `jobrunr_control_batch_messages`
 
 ### Manual Table Creation
 
-**You must create this table manually** before starting your application with external parameter storage enabled.
+**You must create the required tables manually** before starting your application with external parameter storage enabled.
 
 Choose the appropriate SQL script for your database:
 
@@ -16,6 +20,20 @@ Choose the appropriate SQL script for your database:
 - **Oracle**: `oracle.sql`
 - **MySQL/MariaDB**: `mysql.sql`
 - **H2**: `h2.sql` (for testing only)
+
+### Upgrade from 2.3.2
+
+When upgrading an existing database from version 2.3.2 to 2.4.0, run the migration script for your database
+before starting the application with the new version:
+
+- **PostgreSQL**: `migrations/2.3.2-to-2.4.0/postgresql.sql`
+- **Oracle**: `migrations/2.3.2-to-2.4.0/oracle.sql`
+- **MySQL/MariaDB**: `migrations/2.3.2-to-2.4.0/mysql.sql`
+- **H2**: `migrations/2.3.2-to-2.4.0/h2.sql`
+
+The migration adds the `ATTEMPT_NR` and `IS_LATEST` columns to `jobrunr_control_batch_messages` and creates the
+indexes required for retry-aware message queries. The MySQL/MariaDB script is intended to be run once; the other
+scripts are safe to run repeatedly.
 
 ### Example: PostgreSQL
 
@@ -80,4 +98,3 @@ quarkus.liquibase.change-log=db/changeLog.xml
 - The table name is fixed as `jobrunr_control_parameter_sets`. Table prefix support may be added in a future version.
 - Ensure your database user has CREATE TABLE permissions when running the DDL scripts.
 - For production environments, review and adjust the scripts according to your organization's database standards.
-
