@@ -2154,6 +2154,10 @@ public void run(MyJobRequest request) throws Exception {
 * Added the `BatchMessageExternalLinkProvider` SPI for application-defined links next to batch
   messages, including optional icons/images and deterministic provider ordering.
 
+=== 2026-08-28
+
+* Added deterministic ordering for navigation contributors via `JobRunrControlNavigationContributor.order()`.
+
 === 2026-06-09
 
 * Added a dedicated **Job Detail Page** chapter
@@ -2209,12 +2213,19 @@ value hides the badge.
 Implement `JobRunrControlNavigationContributor` to add host-application entries. Every item
 declares the roles required to display it; the shell removes unauthorized entries before
 rendering. This filtering is only a usability feature. Each host route must still enforce
-authorization independently.
+authorization independently. Contributors are sorted by their `order()` value before their
+items are rendered; lower values appear first. The default contributor uses order `0`, while
+host contributors use the default order `1000`.
 
 [source,java]
 ----
 @ApplicationScoped
 public class PrintNavigation implements JobRunrControlNavigationContributor {
+    @Override
+    public int order() {
+        return 100;
+    }
+
     @Override
     public List<JobRunrControlNavigationItem> navigationItems() {
         return List.of(new JobRunrControlNavigationItem(

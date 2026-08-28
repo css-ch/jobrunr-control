@@ -16,7 +16,7 @@
     <script src="/webjars/htmx.org/dist/htmx.min.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{cp}/css/custom.css?v={dashboard.version()}">
+    <link rel="stylesheet" href="/css/custom.css?v={dashboard.version()}">
 
     <style>
         .status-badge {
@@ -60,7 +60,7 @@
                 <i class="bi bi-{dashboard.uiShell().branding().icon}"></i> {dashboard.uiShell().branding().applicationName}
                 {#if dashboard.uiShell().branding().stage().isPresent()}
                     {#let stage=dashboard.uiShell().branding().stage().get()}
-                        <span class="badge {stage.styleClass} ms-2">
+                        <span class="badge stage-badge {stage.styleClass} ms-2">
                             {#if stage.icon}<i class="bi bi-{stage.icon}"></i>{/if} {stage.label}
                         </span>
                     {/let}

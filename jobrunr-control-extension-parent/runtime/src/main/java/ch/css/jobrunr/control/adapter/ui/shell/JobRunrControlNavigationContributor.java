@@ -7,5 +7,13 @@ import java.util.List;
  */
 public interface JobRunrControlNavigationContributor {
 
+    /**
+     * Determines the order of this contributor relative to other contributors.
+     * Lower values are rendered first.
+     */
+    default int order() {
+        return 1000;
+    }
+
     List<JobRunrControlNavigationItem> navigationItems();
 }

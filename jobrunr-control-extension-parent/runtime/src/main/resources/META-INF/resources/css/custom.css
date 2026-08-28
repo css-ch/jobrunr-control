@@ -203,6 +203,17 @@
     color: rgba(255, 255, 255, 1);
 }
 
+/* Stage badge */
+.stage-badge {
+    background-color: #ff6b6b;
+    border: 1px solid #ffb3b3;
+    color: #212529;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 0.45em 0.75em;
+    vertical-align: middle;
+}
+
 /* Responsive Table */
 @media (max-width: 768px) {
     .table-responsive {
