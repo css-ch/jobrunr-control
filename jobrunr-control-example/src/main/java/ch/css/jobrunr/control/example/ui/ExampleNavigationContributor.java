@@ -16,6 +16,11 @@ import java.util.Set;
 public class ExampleNavigationContributor implements JobRunrControlNavigationContributor {
 
     @Override
+    public int order() {
+        return 500;
+    }
+
+    @Override
     public List<JobRunrControlNavigationItem> navigationItems() {
         return List.of(new JobRunrControlNavigationItem(
                 "google-search",

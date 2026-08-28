@@ -5,6 +5,7 @@ import io.quarkus.qute.TemplateData;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -33,6 +34,8 @@ public class JobRunrControlUiShell {
 
     public List<JobRunrControlNavigationItem> navigationItems() {
         return contributors.stream()
+                .sorted(Comparator.comparingInt(JobRunrControlNavigationContributor::order)
+                        .thenComparing(contributor -> contributor.getClass().getName()))
                 .flatMap(contributor -> contributor.navigationItems().stream())
                 .filter(item -> hasRequiredRole(item.requiredRoles()))
                 .toList();

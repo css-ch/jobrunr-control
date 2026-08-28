@@ -1187,6 +1187,10 @@ All create, update, delete, and execute operations for both templates and jobs a
 
 * Added optional application-defined external tool links for individual batch messages.
 
+=== 2026-08-28
+
+* Navigation entries are now rendered in a deterministic order.
+
 === 2026-06-09
 
 * **Aligned the guide with the current implementation**:
