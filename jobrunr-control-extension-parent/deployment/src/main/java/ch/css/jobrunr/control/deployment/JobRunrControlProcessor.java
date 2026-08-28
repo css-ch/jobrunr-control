@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.deployment;
 
 import ch.css.jobrunr.control.adapter.rest.JobControlResource;
 import ch.css.jobrunr.control.adapter.ui.*;
+import ch.css.jobrunr.control.adapter.ui.shell.*;
 import ch.css.jobrunr.control.infrastructure.discovery.JobDefinitionRecorder;
 import ch.css.jobrunr.control.infrastructure.jobrunr.filters.ParameterCleanupJobFilter;
 import ch.css.jobrunr.control.infrastructure.jobrunr.filters.DeleteFilterProducer;
@@ -263,6 +264,9 @@ public class JobRunrControlProcessor {
                         DashboardUrlUtils.class,
                         DashboardTemplateExtensions.class,
                         DashboardPaths.class,
+                        DefaultJobRunrControlUiBrandingProvider.class,
+                        DefaultJobRunrControlNavigationContributor.class,
+                        JobRunrControlUiShell.class,
                         BuildTimeConfigurationAdapter.class,
                         DeleteFilterProducer.class,
                         ParameterCleanupJobFilter.class,

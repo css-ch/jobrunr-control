@@ -2173,3 +2173,55 @@ public void run(MyJobRequest request) throws Exception {
 ** Added Security Invariants section for extension developers
 ** Corrected dev-mode instructions: `JobRunrControlRoleAugmentor` handles role granting automatically; no embedded user config needed
 
+== Embedding the UI in an Application Dashboard
+
+JobRunr Control's Qute pages can be rendered inside a host application's shared UI shell.
+The shell is configured through CDI extension points; the JobRunr pages themselves do not need
+to be duplicated or rewritten.
+
+=== Branding
+
+Provide a CDI bean implementing `JobRunrControlUiBrandingProvider` to replace the standalone
+branding:
+
+[source,java]
+----
+@ApplicationScoped
+public class PrintDashboardBranding implements JobRunrControlUiBrandingProvider {
+    @Override
+    public JobRunrControlUiBranding branding() {
+        return new JobRunrControlUiBranding(
+                "Print Dashboard", "/print", "printer",
+                Optional.of(new JobRunrControlUiStage("INT", "environment-int", "beaker")));
+    }
+}
+----
+
+The default provider uses the `JobRunr Control` label and hides it unless the user has one of
+the JobRunr Control UI roles. A host provider with an empty `requiredRoles` set displays the
+host application's branding to all authenticated users. The default stage can be configured
+with `quarkus.jobrunr-control.ui.stage=DEV|INT|VPR|PRD`; an empty or missing value hides the badge.
+
+=== Navigation
+
+Implement `JobRunrControlNavigationContributor` to add host-application entries. Every item
+declares the roles required to display it; the shell removes unauthorized entries before
+rendering. This filtering is only a usability feature. Each host route must still enforce
+authorization independently.
+
+[source,java]
+----
+@ApplicationScoped
+public class PrintNavigation implements JobRunrControlNavigationContributor {
+    @Override
+    public List<JobRunrControlNavigationItem> navigationItems() {
+        return List.of(new JobRunrControlNavigationItem(
+                "print-orders", "Druckaufträge", "/print/orders", "printer",
+                Set.of("print-operator", "print-admin")));
+    }
+}
+----
+
+The shared Qute layout exposes request-specific shell data through `{dashboard.uiShell()}`. Host pages
+can include the extension's `base.html` and pass `activeNavigationId` to highlight the active
+entry. JobRunr Control routes continue to enforce their existing role checks.
