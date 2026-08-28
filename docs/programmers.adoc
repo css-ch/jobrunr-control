@@ -2189,18 +2189,20 @@ branding:
 @ApplicationScoped
 public class PrintDashboardBranding implements JobRunrControlUiBrandingProvider {
     @Override
-    public JobRunrControlUiBranding branding() {
-        return new JobRunrControlUiBranding(
+    public Optional<JobRunrControlUiBranding> branding() {
+        return Optional.of(new JobRunrControlUiBranding(
                 "Print Dashboard", "/print", "printer",
-                Optional.of(new JobRunrControlUiStage("INT", "environment-int", "beaker")));
+                Optional.of(new JobRunrControlUiStage("INT", "environment-int", "beaker"))));
     }
 }
 ----
 
 The default provider uses the `JobRunr Control` label and hides it unless the user has one of
-the JobRunr Control UI roles. A host provider with an empty `requiredRoles` set displays the
-host application's branding to all authenticated users. The default stage can be configured
-with `quarkus.jobrunr-control.ui.stage=DEV|INT|VPR|PRD`; an empty or missing value hides the badge.
+the JobRunr Control UI roles. A host provider returns `Optional.empty()` when its branding
+should not be shown. Branding itself has no role restriction; visibility of navigation items
+is controlled by each item's `requiredRoles`. The default stage can be configured with
+`quarkus.jobrunr-control.ui.stage=DEV` (or any other non-empty value); an empty or missing
+value hides the badge.
 
 === Navigation
 
