@@ -236,15 +236,9 @@ public class JobRunrExecutionAdapter implements JobExecutionPort {
     private BatchProgress extractBatchProgress(org.jobrunr.jobs.Job job) {
         try {
             if (job.isBatchJob()) {
-                List<Job> processingJobs = jobWorkflowResolver.resolveProcessingJobs(job.getId());
-                long totalJobs = processingJobs.size();
-                long succeededJobs = processingJobs.stream()
-                        .filter(processingJob -> processingJob.getState() == StateName.SUCCEEDED)
-                        .count();
-                long failedJobs = processingJobs.stream()
-                        .filter(processingJob -> processingJob.getState() == StateName.FAILED)
-                        .count();
-                return new BatchProgress(totalJobs, succeededJobs, failedJobs);
+                // Delegate to storage-level aggregate counts, so history
+                // rendering cost is independent of the number of subjobs in a batch.
+                return jobWorkflowResolver.resolveProcessingJobProgress(job.getId());
             }
         } catch (RuntimeException e) {
             if (LOG.isDebugEnabled()) {

@@ -153,14 +153,27 @@ public class JobWorkflowResolver implements JobWorkflowPort {
             throw new IllegalStateException("Job with ID " + rootJobId + " is not a batch job");
         }
 
-        List<Job> processingJobs = resolveProcessingJobs(rootJobId);
-        long succeeded = processingJobs.stream()
-                .filter(job -> job.getState() == StateName.SUCCEEDED)
-                .count();
-        long failed = processingJobs.stream()
-                .filter(job -> job.getState() == StateName.FAILED)
-                .count();
-        return new BatchProgress(processingJobs.size(), succeeded, failed);
+        return aggregateProcessingProgress(rootJobId);
+    }
+
+    /**
+     * Recursively aggregates processing-worker progress for {@code jobId} and its nested batches.
+     */
+    BatchProgress aggregateProcessingProgress(UUID jobId) {
+
+        List<Job> batchChildren = jobLookup.findBatchChildren(jobId);
+
+        BatchProgress progress = new BatchProgress(
+                jobLookup.countOrdinaryChildren(jobId),
+                jobLookup.countOrdinaryChildren(jobId, StateName.SUCCEEDED),
+                jobLookup.countOrdinaryChildren(jobId, StateName.FAILED)
+        );
+
+        for (Job nestedBatch : batchChildren) {
+            progress = progress.plus(aggregateProcessingProgress(nestedBatch.getId()));
+        }
+
+        return progress;
     }
 
     public Optional<UUID> parseRootId(Map<String, Object> metadata) {
@@ -212,6 +225,24 @@ public class JobWorkflowResolver implements JobWorkflowPort {
         List<Job> findChildren(UUID parentJobId);
 
         List<Job> findContinuations(UUID awaitedJobId);
+
+        /**
+         * Returns the direct children of {@code parentJobId} that are themselves batch jobs (i.e. nested batches).
+         * This set is expected to be small (bounded by nesting fan-out, not by subjob count),
+         * so materializing it is cheap even for very large batches.
+         */
+        List<Job> findBatchChildren(UUID parentJobId);
+
+        /**
+         * Counts all direct children of {@code parentJobId}, that are <em>not</em> batch jobs.
+         */
+        long countOrdinaryChildren(UUID parentJobId);
+
+        /**
+         * Counts the direct children of {@code parentJobId},
+         * that are <em>not</em> batch jobs and are in the given {@code state}.
+         */
+        long countOrdinaryChildren(UUID parentJobId, StateName state);
     }
 
     private static final class StorageWorkflowJobLookup implements WorkflowJobLookup {
@@ -242,6 +273,39 @@ public class JobWorkflowResolver implements JobWorkflowPort {
                             .withAwaitingOn(awaitedJobId)
                             .build(),
                     ALL_RELATED_JOBS));
+        }
+
+        @Override
+        public List<Job> findBatchChildren(UUID parentJobId) {
+            return new ArrayList<>(storageProvider.getJobList(
+                    JobSearchRequestBuilder.aJobSearchRequest()
+                            .withParentId(parentJobId)
+                            .withOnlyBatchJobs(true)
+                            .build(),
+                    ALL_RELATED_JOBS));
+        }
+
+        @Override
+        public long countOrdinaryChildren(UUID parentJobId) {
+            return storageProvider.countJobs(
+                    JobSearchRequestBuilder.aJobSearchRequest()
+                            // the awaitingOn condition filters out success/failure continuations
+                            .withAwaitingOn(parentJobId)
+                            .withParentId(parentJobId)
+                            .withOnlyBatchJobs(false)
+                            .build());
+        }
+
+        @Override
+        public long countOrdinaryChildren(UUID parentJobId, StateName state) {
+            return storageProvider.countJobs(
+                    JobSearchRequestBuilder.aJobSearchRequest()
+                            // the awaitingOn condition filters out success/failure continuations
+                            .withAwaitingOn(parentJobId)
+                            .withParentId(parentJobId)
+                            .withOnlyBatchJobs(false)
+                            .withStateName(state)
+                            .build());
         }
     }
 }

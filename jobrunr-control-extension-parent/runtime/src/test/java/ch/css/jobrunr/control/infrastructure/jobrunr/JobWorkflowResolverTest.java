@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.util.function.Predicate.not;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -128,6 +129,22 @@ class JobWorkflowResolverTest {
                 .isEqualTo(new BatchProgress(3, 1, 1));
     }
 
+    @Test
+    void aggregatesProcessingProgressRecursivelyAcrossNestedBatchChildren() {
+        Job root = batchJob(UUID.randomUUID(), new EnqueuedState());
+        Job innerBatch = batchJob(UUID.randomUUID(), new AwaitingBatchJobState(root.getId()));
+        Job workerA = processingJob(innerBatch.getId(), StateName.SUCCEEDED);
+        Job workerB = processingJob(innerBatch.getId(), StateName.FAILED);
+        FakeWorkflowJobLookup lookup = new FakeWorkflowJobLookup(root, innerBatch, workerA, workerB);
+        lookup.children.put(root.getId(), List.of(innerBatch));
+        lookup.children.put(innerBatch.getId(), List.of(workerA, workerB));
+
+        JobWorkflowResolver resolver = new JobWorkflowResolver(lookup);
+
+        assertThat(resolver.resolveProcessingJobProgress(root.getId()))
+                .isEqualTo(new BatchProgress(2, 1, 1));
+    }
+
     private static Job batchJob(UUID id, org.jobrunr.jobs.states.JobState initialState) {
         return new BatchJob(id, JOB_DETAILS, initialState);
     }
@@ -172,6 +189,28 @@ class JobWorkflowResolverTest {
         public List<Job> findContinuations(UUID awaitedJobId) {
             continuationLookups.add(awaitedJobId);
             return continuations.getOrDefault(awaitedJobId, List.of());
+        }
+
+        @Override
+        public List<Job> findBatchChildren(UUID parentJobId) {
+            return findChildren(parentJobId).stream()
+                    .filter(Job::isBatchJob)
+                    .toList();
+        }
+
+        @Override
+        public long countOrdinaryChildren(UUID parentJobId) {
+            return findChildren(parentJobId).stream()
+                    .filter(not(Job::isBatchJob))
+                    .count();
+        }
+
+        @Override
+        public long countOrdinaryChildren(UUID parentJobId, StateName state) {
+            return findChildren(parentJobId).stream()
+                    .filter(not(Job::isBatchJob))
+                    .filter(job -> job.getState() == state)
+                    .count();
         }
     }
 }
