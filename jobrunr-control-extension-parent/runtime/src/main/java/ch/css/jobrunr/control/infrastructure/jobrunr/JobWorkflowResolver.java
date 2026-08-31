@@ -15,10 +15,8 @@ import org.jobrunr.storage.JobSearchRequestBuilder;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.navigation.AmountRequest;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -100,37 +98,23 @@ public class JobWorkflowResolver implements JobWorkflowPort {
     }
 
     /**
-     * Returns the complete supported workflow rooted at {@code rootJobId}, including the root.
-     *
-     * Batch nodes are expanded through parent edges. Awaiting edges are expanded for roots, batch
-     * nodes, and legacy continuation chains. Normal batch workers are treated as leaves: jobs that
+     * Returns the complete supported workflow (Job tree) rooted at {@code rootJobId}, including the root.
+     * <p>
+     * Batch nodes are expanded through parent edges. Normal batch workers are treated as leaves: jobs that
      * create more work only while a normal worker is executing are not covered by the outer JobRunr
      * batch lifecycle and therefore cannot provide the promised root completion semantics anyway.
      */
     public List<Job> resolveWorkflow(UUID rootJobId) {
         Job rootJob = jobLookup.getJobById(rootJobId);
-        Map<UUID, Job> jobsById = new LinkedHashMap<>();
-        Set<UUID> expandedBatchParents = new HashSet<>();
-        Set<UUID> expandedAwaitingJobs = new HashSet<>();
-        ArrayDeque<TraversalTarget> pending = new ArrayDeque<>();
-        pending.add(new TraversalTarget(rootJob, true));
+        List<Job> jobs = new ArrayList<>(List.of(rootJob));
 
-        while (!pending.isEmpty()) {
-            TraversalTarget target = pending.removeFirst();
-            Job job = target.job();
-            jobsById.putIfAbsent(job.getId(), job);
-
-            if (job.isBatchJob() && expandedBatchParents.add(job.getId())) {
-                findChildren(job.getId()).forEach(child ->
-                        pending.addLast(new TraversalTarget(child, child.isBatchJob())));
-            }
-
-            if (target.expandAwaiting() && expandedAwaitingJobs.add(job.getId())) {
-                findContinuations(job.getId()).forEach(continuation ->
-                        pending.addLast(new TraversalTarget(continuation, true)));
+        for (int i = 0; i < jobs.size(); i++) {
+            Job job = jobs.get(i);
+            if (job.isBatchJob()) {
+                jobs.addAll(findChildren(job.getId()));
             }
         }
-        return List.copyOf(jobsById.values());
+        return List.copyOf(jobs);
     }
 
     /**
@@ -212,19 +196,10 @@ public class JobWorkflowResolver implements JobWorkflowPort {
         return jobLookup.findChildren(parentJobId);
     }
 
-    private List<Job> findContinuations(UUID awaitedJobId) {
-        return jobLookup.findContinuations(awaitedJobId);
-    }
-
-    private record TraversalTarget(Job job, boolean expandAwaiting) {
-    }
-
     interface WorkflowJobLookup {
         Job getJobById(UUID jobId);
 
         List<Job> findChildren(UUID parentJobId);
-
-        List<Job> findContinuations(UUID awaitedJobId);
 
         /**
          * Returns the direct children of {@code parentJobId} that are themselves batch jobs (i.e. nested batches).
@@ -262,15 +237,6 @@ public class JobWorkflowResolver implements JobWorkflowPort {
             return new ArrayList<>(storageProvider.getJobList(
                     JobSearchRequestBuilder.aJobSearchRequest()
                             .withParentId(parentJobId)
-                            .build(),
-                    ALL_RELATED_JOBS));
-        }
-
-        @Override
-        public List<Job> findContinuations(UUID awaitedJobId) {
-            return new ArrayList<>(storageProvider.getJobList(
-                    JobSearchRequestBuilder.aJobSearchRequest()
-                            .withAwaitingOn(awaitedJobId)
                             .build(),
                     ALL_RELATED_JOBS));
         }
