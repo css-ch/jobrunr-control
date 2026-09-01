@@ -20,6 +20,14 @@ public record BatchProgress(long total, long succeeded, long failed) {
     }
 
     /**
+     * Combines this progress with another, e.g. to aggregate progress across sibling or nested
+     * batches into one overall total.
+     */
+    public BatchProgress plus(BatchProgress other) {
+        return new BatchProgress(total + other.total, succeeded + other.succeeded, failed + other.failed);
+    }
+
+    /**
      * Returns the number of pending items.
      */
     public long getPending() {

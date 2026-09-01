@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.infrastructure.jobrunr.execution;
 
+import ch.css.jobrunr.control.domain.BatchProgress;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobDefinitionDiscoveryService;
 import ch.css.jobrunr.control.domain.JobExecutionInfo;
@@ -8,8 +9,6 @@ import ch.css.jobrunr.control.domain.ParameterSetLoaderPort;
 import ch.css.jobrunr.control.infrastructure.jobrunr.ConfigurableJobSearchAdapter;
 import ch.css.jobrunr.control.infrastructure.jobrunr.JobWorkflowResolver;
 import org.jobrunr.jobs.BatchJob;
-import org.jobrunr.jobs.Job;
-import org.jobrunr.jobs.states.StateName;
 import org.jobrunr.jobs.states.SucceededState;
 import org.jobrunr.storage.StorageProvider;
 import org.junit.jupiter.api.DisplayName;
@@ -58,18 +57,13 @@ class JobRunrExecutionAdapterTest {
     private JobRunrExecutionAdapter adapter;
 
     @Test
-    @DisplayName("should calculate history batch progress from processing workers across nested batches")
-    void getJobExecutions_NestedBatch_UsesProcessingWorkersForHistoryProgress() {
+    @DisplayName("should surface batch progress resolved by the workflow resolver for history rows")
+    void getJobExecutions_BatchJob_UsesResolvedBatchProgressForHistory() {
         UUID rootJobId = UUID.randomUUID();
         BatchJob rootJob = mock(BatchJob.class);
         JobDefinition jobDefinition = mock(JobDefinition.class);
         SucceededState succeededState = mock(SucceededState.class);
-        List<Job> processingJobs = List.of(
-                processingJob(StateName.SUCCEEDED),
-                processingJob(StateName.SUCCEEDED),
-                processingJob(StateName.FAILED),
-                processingJob(StateName.PROCESSING)
-        );
+        BatchProgress batchProgress = new BatchProgress(4, 2, 1);
 
         when(configurableJobSearchAdapter.getConfigurableJob(anyList(), any())).thenReturn(List.of(
                 new ConfigurableJobSearchAdapter.ConfigurableJobSearchResult(jobDefinition, rootJob)));
@@ -82,7 +76,7 @@ class JobRunrExecutionAdapterTest {
         when(rootJob.isBatchJob()).thenReturn(true);
         when(jobStateMapper.mapJobState(succeededState)).thenReturn(JobStatus.SUCCEEDED);
         when(parameterSetLoaderPort.loadParameters(rootJobId)).thenReturn(Map.of());
-        when(jobWorkflowResolver.resolveProcessingJobs(rootJobId)).thenReturn(processingJobs);
+        when(jobWorkflowResolver.resolveProcessingJobProgress(rootJobId)).thenReturn(batchProgress);
 
         List<JobExecutionInfo> result = adapter.getJobExecutions();
 
@@ -93,12 +87,6 @@ class JobRunrExecutionAdapterTest {
                     assertThat(progress.failed()).isEqualTo(1);
                     assertThat(progress.getPending()).isEqualTo(1);
                 }));
-        verify(jobWorkflowResolver).resolveProcessingJobs(rootJobId);
-    }
-
-    private static Job processingJob(StateName state) {
-        Job job = mock(Job.class);
-        when(job.getState()).thenReturn(state);
-        return job;
+        verify(jobWorkflowResolver).resolveProcessingJobProgress(rootJobId);
     }
 }
