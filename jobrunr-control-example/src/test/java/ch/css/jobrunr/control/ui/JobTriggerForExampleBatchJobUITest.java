@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.ui;
 
+import com.microsoft.playwright.Locator;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.*;
 
@@ -68,5 +69,25 @@ class JobTriggerForExampleBatchJobUITest extends JobTriggerUITestBase {
                         && pageContent.contains("chunkSize")
                         && pageContent.contains("processScenario"),
                 "History should show the batch job parameters: numberOfChunks, chunkSize, processScenario");
+    }
+
+    @Test
+    @Order(5)
+    @DisplayName("Open batch job detail page from history")
+    void testOpenJobDetailsPage() {
+        assertNotNull(scheduledJobId, "Job ID should be set from previous test");
+
+        navigateToHistory();
+        searchForJob("Test Batch Job - External Trigger");
+
+        Locator jobLink = page.locator("a.text-decoration-none strong:has-text('Test Batch Job - External Trigger')")
+                .first();
+        jobLink.waitFor();
+        jobLink.click();
+
+        page.waitForSelector("h1:has-text('Job-Details')");
+        assertTrue(page.url().contains("/q/jobrunr-control/history/details"));
+        assertTrue(page.locator("h1:has-text('Job-Details')").isVisible(),
+                "Job detail page should be visible");
     }
 }
