@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.infrastructure.discovery;
 
+import ch.css.jobrunr.control.annotations.DateTimePrecision;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterType;
@@ -156,8 +157,8 @@ class JobDefinitionDiscoveryAdapterTest {
                 "com.example." + jobType + "Request",       // jobRequestTypeName
                 "com.example." + jobType + "Handler",       // handlerClassName
                 List.of(                                    // parameters
-                        new JobParameter("param1", "param1", null, JobParameterType.STRING, false, null, List.of(), 0, 2000, "default"),
-                        new JobParameter("param2", "param2", null, JobParameterType.INTEGER, true, "42", List.of(), 1, 2000, "default")
+                        new JobParameter("param1", "param1", null, JobParameterType.STRING, false, null, List.of(), 0, 2000, "default", DateTimePrecision.MINUTES),
+                        new JobParameter("param2", "param2", null, JobParameterType.INTEGER, true, "42", List.of(), 1, 2000, "default", DateTimePrecision.MINUTES)
                 ),
                 List.of(),
                 new JobSettings(                            // jobSettings

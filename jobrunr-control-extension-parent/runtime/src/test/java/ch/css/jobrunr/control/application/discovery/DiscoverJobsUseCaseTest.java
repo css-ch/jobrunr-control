@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.application.discovery;
 
+import ch.css.jobrunr.control.annotations.DateTimePrecision;
 import ch.css.jobrunr.control.domain.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -87,7 +88,7 @@ class DiscoverJobsUseCaseTest {
                 jobType + "Request",
                 jobType + "Handler",
                 List.of(
-                        new JobParameter("param1", "param1", null, JobParameterType.STRING, true, null, List.of(), 0, 2000, "default")
+                        new JobParameter("param1", "param1", null, JobParameterType.STRING, true, null, List.of(), 0, 2000, "default", DateTimePrecision.MINUTES)
                 ),
                 List.of(),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),

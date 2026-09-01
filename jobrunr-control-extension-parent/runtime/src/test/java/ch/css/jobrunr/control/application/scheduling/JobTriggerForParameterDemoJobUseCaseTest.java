@@ -1,6 +1,7 @@
 package ch.css.jobrunr.control.application.scheduling;
 
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
+import ch.css.jobrunr.control.annotations.DateTimePrecision;
 import ch.css.jobrunr.control.application.template.TemplateCloneHelper;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.*;
@@ -69,15 +70,15 @@ class JobTriggerForParameterDemoJobUseCaseTest {
                 .withJobType(JOB_TYPE)
                 .withDisplayName("Parameter Demo Job")
                 .withParameters(List.of(
-                        new JobParameter("stringParameter", "stringParameter", null, JobParameterType.STRING, true, "Default String", List.of(), 0, 2000, null),
-                        new JobParameter("multilineParameter", "multilineParameter", null, JobParameterType.MULTILINE, true, "Line 1\nLine 2\nLine 3", List.of(), 1, 2000, null),
-                        new JobParameter("integerParameter", "integerParameter", null, JobParameterType.INTEGER, true, "42", List.of(), 2, 2000, null),
-                        new JobParameter("doubleParameter", "doubleParameter", null, JobParameterType.DOUBLE, true, "3.14159", List.of(), 3, 2000, null),
-                        new JobParameter("booleanParameter", "booleanParameter", null, JobParameterType.BOOLEAN, true, "true", List.of(), 4, 2000, null),
-                        new JobParameter("dateParameter", "dateParameter", null, JobParameterType.DATE, true, "2024-01-01", List.of(), 5, 2000, null),
-                        new JobParameter("dateTimeParameter", "dateTimeParameter", null, JobParameterType.DATETIME, true, "2024-01-01T12:00:00", List.of(), 6, 2000, null),
-                        new JobParameter("enumParameter", "enumParameter", null, JobParameterType.ENUM, true, "OPTION_B", List.of(), 7, 2000, null),
-                        new JobParameter("multiEnumParameter", "multiEnumParameter", null, JobParameterType.MULTI_ENUM, true, "OPTION_A,OPTION_C", List.of(), 8, 2000, null)
+                        new JobParameter("stringParameter", "stringParameter", null, JobParameterType.STRING, true, "Default String", List.of(), 0, 2000, null, DateTimePrecision.MINUTES),
+                        new JobParameter("multilineParameter", "multilineParameter", null, JobParameterType.MULTILINE, true, "Line 1\nLine 2\nLine 3", List.of(), 1, 2000, null, DateTimePrecision.MINUTES),
+                        new JobParameter("integerParameter", "integerParameter", null, JobParameterType.INTEGER, true, "42", List.of(), 2, 2000, null, DateTimePrecision.MINUTES),
+                        new JobParameter("doubleParameter", "doubleParameter", null, JobParameterType.DOUBLE, true, "3.14159", List.of(), 3, 2000, null, DateTimePrecision.MINUTES),
+                        new JobParameter("booleanParameter", "booleanParameter", null, JobParameterType.BOOLEAN, true, "true", List.of(), 4, 2000, null, DateTimePrecision.MINUTES),
+                        new JobParameter("dateParameter", "dateParameter", null, JobParameterType.DATE, true, "2024-01-01", List.of(), 5, 2000, null, DateTimePrecision.MINUTES),
+                        new JobParameter("dateTimeParameter", "dateTimeParameter", null, JobParameterType.DATETIME, true, "2024-01-01T12:00:00", List.of(), 6, 2000, null, DateTimePrecision.MINUTES),
+                        new JobParameter("enumParameter", "enumParameter", null, JobParameterType.ENUM, true, "OPTION_B", List.of(), 7, 2000, null, DateTimePrecision.MINUTES),
+                        new JobParameter("multiEnumParameter", "multiEnumParameter", null, JobParameterType.MULTI_ENUM, true, "OPTION_A,OPTION_C", List.of(), 8, 2000, null, DateTimePrecision.MINUTES)
                 ))
                 .build();
     }

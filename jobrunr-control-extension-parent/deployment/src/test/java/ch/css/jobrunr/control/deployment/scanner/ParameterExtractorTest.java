@@ -3,6 +3,7 @@ package ch.css.jobrunr.control.deployment.scanner;
 import ch.css.jobrunr.control.annotations.JobEnum;
 import ch.css.jobrunr.control.annotations.JobParameterDefinition;
 import ch.css.jobrunr.control.annotations.JobParameterSet;
+import ch.css.jobrunr.control.annotations.DateTimePrecision;
 import ch.css.jobrunr.control.domain.EnumValue;
 import ch.css.jobrunr.control.domain.JobParameterType;
 import org.jboss.jandex.ClassInfo;
@@ -42,6 +43,7 @@ class ParameterExtractorTest {
         indexClass(indexer, CustomNameParametersRecord.class);
         indexClass(indexer, MultilineParameterRecord.class);
         indexClass(indexer, RequiredFlagRecord.class);
+        indexClass(indexer, DateTimeSecondsRecord.class);
         indexClass(indexer, TestEnum.class);
         indexClass(indexer, NoRecordParameterSetClass.class);
         index = indexer.complete();
@@ -121,6 +123,7 @@ class ParameterExtractorTest {
 
         var dateTimeParam = findParam(result, "dateTimeParam");
         assertEquals(JobParameterType.DATETIME, dateTimeParam.type());
+        assertEquals(DateTimePrecision.MINUTES, dateTimeParam.dateTimePrecision());
 
         var longParam = findParam(result, "longParam");
         assertEquals(JobParameterType.INTEGER, longParam.type()); // Long mapped to INTEGER
@@ -218,6 +221,18 @@ class ParameterExtractorTest {
     }
 
     @Test
+    void shouldEnableSecondsForDateTimeWhenConfigured() {
+        ClassInfo recordClass = index.getClassByName(DateTimeSecondsRecord.class.getName());
+
+        ParameterExtractor.AnalyzedParameters result = extractor.analyzeRecordParameters(recordClass);
+
+        assertEquals(1, result.parameters().size());
+        var param = result.parameters().getFirst();
+        assertEquals(JobParameterType.DATETIME, param.type());
+        assertEquals(DateTimePrecision.SECONDS, param.dateTimePrecision());
+    }
+
+    @Test
     void shouldThrowExceptionForEmptyParameterSet() {
         ClassInfo recordClass = index.getClassByName(NoRecordParameterSetClass.class.getName());
 
@@ -288,6 +303,12 @@ class ParameterExtractorTest {
             String requiredWithDefault,
             @JobParameterDefinition
             String requiredByDefault
+    ) {
+    }
+
+    public record DateTimeSecondsRecord(
+            @JobParameterDefinition(dateTimePrecision = DateTimePrecision.SECONDS)
+            LocalDateTime executionTimestamp
     ) {
     }
 

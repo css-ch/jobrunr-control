@@ -90,4 +90,13 @@ public @interface JobParameterDefinition {
      * If not specified, the type is inferred from the record component (inline parameters only).
      */
     String type() default "";
+
+    /**
+     * Precision of the UI input for {@code LocalDateTime} parameters.
+     * <p>
+     * Defaults to {@link DateTimePrecision#MINUTES} to keep the UI simple for common cases.
+     * Set to {@link DateTimePrecision#SECONDS} or {@link DateTimePrecision#MILLISECONDS}
+     * only when finer-grained precision is required.
+     */
+    DateTimePrecision dateTimePrecision() default DateTimePrecision.MINUTES;
 }

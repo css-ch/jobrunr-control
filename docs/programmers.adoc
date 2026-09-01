@@ -477,6 +477,9 @@ public record MyJobRequest(
 
 |`defaultValue`
 |Default value as String (parsed to target type). Does not change the `required` flag.
+
+|`dateTimePrecision`
+|Only for `LocalDateTime`/`DATETIME`: sets the UI picker precision via `DateTimePrecision` (`MINUTES`, `SECONDS`, `MILLISECONDS`). Defaults to `MINUTES`.
 |===
 
 === Supported Parameter Types
@@ -528,7 +531,7 @@ public record MyJobRequest(
 |`LocalDateTime`
 |DateTime picker
 |`"2024-01-15T14:30:00"` (ISO format)
-|Date and time
+|Date and time; precision (minutes/seconds/milliseconds) is controlled via `@JobParameterDefinition(dateTimePrecision = DateTimePrecision.SECONDS)`
 
 |`Enum`
 |Dropdown (single selection)
@@ -2172,4 +2175,7 @@ public void run(MyJobRequest request) throws Exception {
 ** Explained why the bearer tenant must be named `bearer` (not `api`) to avoid path-segment collision
 ** Added Security Invariants section for extension developers
 ** Corrected dev-mode instructions: `JobRunrControlRoleAugmentor` handles role granting automatically; no embedded user config needed
+
+
+
 

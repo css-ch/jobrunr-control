@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.deployment;
 
 import ch.css.jobrunr.control.annotations.ConfigurableJob;
 import ch.css.jobrunr.control.annotations.JobParameterDefinition;
+import ch.css.jobrunr.control.annotations.DateTimePrecision;
 import ch.css.jobrunr.control.domain.JobDefinition;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterType;
@@ -132,6 +133,7 @@ class JobDefinitionIndexScannerTest {
         assertNotNull(dateTimeParam);
         assertEquals(JobParameterType.DATETIME, dateTimeParam.type());
         assertTrue(dateTimeParam.required());
+        assertEquals(DateTimePrecision.MINUTES, dateTimeParam.dateTimePrecision());
 
         // Check enum parameter
         ch.css.jobrunr.control.domain.JobParameter enumParam = findParameter(result, "enumParam");
@@ -197,6 +199,7 @@ class JobDefinitionIndexScannerTest {
         assertEquals(JobParameterType.DATETIME, customDateTime.type());
         assertTrue(customDateTime.required());
         assertNull(customDateTime.defaultValue());
+        assertEquals(DateTimePrecision.SECONDS, customDateTime.dateTimePrecision());
 
         // Check enum parameter with custom name and default
         JobParameter customEnum = findParameter(result, "customEnumName");
@@ -462,7 +465,7 @@ class JobDefinitionIndexScannerTest {
             @JobParameterDefinition(name = "customIntName") Integer intField,
             @JobParameterDefinition(name = "customBoolName", required = false, defaultValue = "false") Boolean boolField,
             @JobParameterDefinition(name = "customDateName", required = false, defaultValue = "2025-12-31") LocalDate dateField,
-            @JobParameterDefinition(name = "customDateTimeName") LocalDateTime dateTimeField,
+            @JobParameterDefinition(name = "customDateTimeName", dateTimePrecision = DateTimePrecision.SECONDS) LocalDateTime dateTimeField,
             @JobParameterDefinition(name = "customEnumName", required = false, defaultValue = "OPTION_B") EnumParameter enumField
     ) implements JobRequest {
         @Override
