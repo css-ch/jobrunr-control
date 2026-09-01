@@ -2,6 +2,7 @@ package ch.css.jobrunr.control.deployment;
 
 import ch.css.jobrunr.control.adapter.rest.JobControlResource;
 import ch.css.jobrunr.control.adapter.ui.*;
+import ch.css.jobrunr.control.adapter.ui.shell.*;
 import ch.css.jobrunr.control.infrastructure.discovery.JobDefinitionRecorder;
 import ch.css.jobrunr.control.infrastructure.jobrunr.filters.ParameterCleanupJobFilter;
 import ch.css.jobrunr.control.infrastructure.jobrunr.filters.DeleteFilterProducer;
@@ -13,6 +14,7 @@ import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
@@ -22,19 +24,40 @@ import io.quarkus.runtime.LaunchMode;
 import io.quarkus.vertx.http.deployment.NonApplicationRootPathBuildItem;
 import io.quarkus.vertx.http.deployment.RouteBuildItem;
 import io.quarkus.vertx.http.runtime.HandlerType;
+import io.quarkus.vertx.http.deployment.spi.GeneratedStaticResourceBuildItem;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 public class JobRunrControlProcessor {
 
     private static final String FEATURE = "jobrunr-control";
     private static final String UI_BASE = "jobrunr-control";
+    private static final String CUSTOM_CSS_RESOURCE = "META-INF/jobrunr-control-resources/custom.css";
 
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    /**
+     * Register extension-owned static resources with the Vert.x HTTP static resource handler.
+     * This build item supports both dev mode and production packaging.
+     */
+    @BuildStep
+    void registerStaticResources(BuildProducer<GeneratedStaticResourceBuildItem> resources) {
+        try (InputStream input = JobRunrControlProcessor.class.getClassLoader()
+                .getResourceAsStream(CUSTOM_CSS_RESOURCE)) {
+            if (input == null) {
+                throw new IllegalStateException("Missing extension resource: " + CUSTOM_CSS_RESOURCE);
+            }
+            resources.produce(new GeneratedStaticResourceBuildItem("/css/custom.css", input.readAllBytes()));
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to read extension resource: " + CUSTOM_CSS_RESOURCE, e);
+        }
     }
 
     /**
@@ -263,6 +286,9 @@ public class JobRunrControlProcessor {
                         DashboardUrlUtils.class,
                         DashboardTemplateExtensions.class,
                         DashboardPaths.class,
+                        DefaultJobRunrControlUiBrandingProvider.class,
+                        DefaultJobRunrControlNavigationContributor.class,
+                        JobRunrControlUiShell.class,
                         BuildTimeConfigurationAdapter.class,
                         DeleteFilterProducer.class,
                         ParameterCleanupJobFilter.class,

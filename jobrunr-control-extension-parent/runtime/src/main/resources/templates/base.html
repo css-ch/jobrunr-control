@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title ?: 'JobRunr Control'}</title>
+    <title>{title ?: dashboard.uiShell().branding().applicationName()}</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -16,7 +16,7 @@
     <script src="/webjars/htmx.org/dist/htmx.min.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{cp}/css/custom.css?v={dashboard.version()}">
+    <link rel="stylesheet" href="/css/custom.css?v={dashboard.version()}">
 
     <style>
         .status-badge {
@@ -55,31 +55,30 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{cp}/scheduled">
-                <i class="bi bi-clock-history"></i> JobRunr Control
+            {#if dashboard.uiShell().branding()}
+            <a class="navbar-brand" href="{dashboard.uiShell().branding().homeHref}">
+                <i class="bi bi-{dashboard.uiShell().branding().icon}"></i> {dashboard.uiShell().branding().applicationName}
+                {#if dashboard.uiShell().branding().stage().isPresent()}
+                    {#let stage=dashboard.uiShell().branding().stage().get()}
+                        <span class="badge stage-badge {stage.styleClass} ms-2">
+                            {#if stage.icon}<i class="bi bi-{stage.icon}"></i>{/if} {stage.label}
+                        </span>
+                    {/let}
+                {/if}
             </a>
+            {/if}
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    {#for item in dashboard.uiShell().navigationItems()}
                     <li class="nav-item">
-                        <a class="nav-link" href="{cp}/templates">
-                            <i class="bi bi-file-earmark-text"></i> Templates
+                        <a class="nav-link {#if activeNavigationId == item.id}active{/if}" href="{item.href}">
+                            <i class="bi bi-{item.icon}"></i> {item.label}
                         </a>
                     </li>
-                    {#if jobrunrControlUiConfig:showScheduledJobs()}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{cp}/scheduled">
-                            <i class="bi bi-calendar-check"></i> Geplante Jobs
-                        </a>
-                    </li>
-                    {/if}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{cp}/history">
-                            <i class="bi bi-clock-history"></i> Historie
-                        </a>
-                    </li>
+                    {/for}
                     {#if security:isOidcEnabled()}
                     <li class="nav-item">
                         <a class="nav-link" href="{cp}/logout">
@@ -113,7 +112,7 @@
                 <small>
                     JobRunr Control v{dashboard.version()} |
                     {#if dashboard.hasOpenApi()}
-                    <a href="{dashboard.openApiUrl()}">API Documentation</a> |
+                    <a href="{dashboard.openApiUrl()}" target="_blank">API Documentation</a> |
                     {/if}
                     <a href="{dashboard.url()}" target="_blank">JobRunr Dashboard</a>
                 </small>
@@ -160,4 +159,3 @@
 
 </body>
 </html>
-

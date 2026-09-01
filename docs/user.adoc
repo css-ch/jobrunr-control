@@ -18,6 +18,11 @@ The JobRunr Control dashboard is available at:
 http://your-server:port/q/jobrunr-control
 ----
 
+When JobRunr Control is embedded in an application dashboard, the host application's name,
+logo, deployment stage and navigation are displayed instead. JobRunr Control menu entries
+are shown only when the current user has the required JobRunr Control role. Direct access to
+a protected URL remains subject to authorization even when its menu entry is hidden.
+
 === Security Setup
 
 All JobRunr Control endpoints and the embedded JobRunr Pro Dashboard are protected by
@@ -1181,6 +1186,10 @@ All create, update, delete, and execute operations for both templates and jobs a
 === 2026-08-27
 
 * Added optional application-defined external tool links for individual batch messages.
+
+=== 2026-08-28
+
+* Navigation entries are now rendered in a deterministic order.
 
 === 2026-06-09
 

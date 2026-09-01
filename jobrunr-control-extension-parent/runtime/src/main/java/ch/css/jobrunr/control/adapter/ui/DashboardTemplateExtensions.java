@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.adapter.ui;
 
+import ch.css.jobrunr.control.adapter.ui.shell.JobRunrControlUiShell;
 import ch.css.jobrunr.control.domain.BuildTimeConfigurationPort;
 import io.quarkus.arc.Arc;
 import io.quarkus.qute.TemplateData;
@@ -22,7 +23,8 @@ public class DashboardTemplateExtensions {
     public static Dashboard dashboard() {
         DashboardUrlUtils dashboardUrlService = Arc.container().instance(DashboardUrlUtils.class).get();
         BuildTimeConfigurationPort buildConfigPort = Arc.container().instance(BuildTimeConfigurationPort.class).get();
-        return new Dashboard(dashboardUrlService, buildConfigPort);
+        JobRunrControlUiShell uiShell = Arc.container().instance(JobRunrControlUiShell.class).get();
+        return new Dashboard(dashboardUrlService, buildConfigPort, uiShell);
     }
 
     /**
@@ -37,6 +39,7 @@ public class DashboardTemplateExtensions {
     }
 
     /**
+     * Request-specific branding and role-filtered navigation for the shared UI shell.
      * Dashboard helper class that provides URL methods in type-safe templates.
      * Usage:
      * - {dashboard.url()} - Dashboard root URL
@@ -48,11 +51,14 @@ public class DashboardTemplateExtensions {
     public static class Dashboard {
         private final DashboardUrlUtils service;
         private final BuildTimeConfigurationPort buildConfigPort;
+        private final JobRunrControlUiShell uiShell;
         private final String version;
 
-        public Dashboard(DashboardUrlUtils service, BuildTimeConfigurationPort buildConfigPort) {
+        public Dashboard(DashboardUrlUtils service, BuildTimeConfigurationPort buildConfigPort,
+                         JobRunrControlUiShell uiShell) {
             this.service = service;
             this.buildConfigPort = buildConfigPort;
+            this.uiShell = uiShell;
             this.version = loadVersion();
         }
 
@@ -91,6 +97,10 @@ public class DashboardTemplateExtensions {
 
         public String openApiUrl() {
             return buildConfigPort.getOpenApiUrl();
+        }
+
+        public JobRunrControlUiShell uiShell() {
+            return uiShell;
         }
     }
 }
