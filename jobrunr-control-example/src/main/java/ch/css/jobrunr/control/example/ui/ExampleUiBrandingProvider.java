@@ -21,6 +21,6 @@ public class ExampleUiBrandingProvider implements JobRunrControlUiBrandingProvid
                 "Print Dashboard",
                 "/api/hello",
                 "printer",
-                Optional.of(new JobRunrControlUiStage("DEV", "stage-dev,red", "beaker"))));
+                Optional.of(new JobRunrControlUiStage("DEV", "", "beaker"))));
     }
 }
