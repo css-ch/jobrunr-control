@@ -7,6 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Builds request-specific shell data, including role-filtered navigation.
@@ -17,19 +18,26 @@ public class JobRunrControlUiShell {
 
     private final Instance<JobRunrControlNavigationContributor> contributors;
     private final JobRunrControlUiBrandingProvider brandingProvider;
+    private final DefaultJobRunrControlUiBrandingProvider defaultBrandingProvider;
     private final SecurityIdentity securityIdentity;
 
     public JobRunrControlUiShell(
             Instance<JobRunrControlNavigationContributor> contributors,
             JobRunrControlUiBrandingProvider brandingProvider,
+            DefaultJobRunrControlUiBrandingProvider defaultBrandingProvider,
             SecurityIdentity securityIdentity) {
         this.contributors = contributors;
         this.brandingProvider = brandingProvider;
+        this.defaultBrandingProvider = defaultBrandingProvider;
         this.securityIdentity = securityIdentity;
     }
 
     public JobRunrControlUiBranding branding() {
-        return brandingProvider.branding().orElse(null);
+        return Optional.ofNullable(brandingProvider)
+                .map(JobRunrControlUiBrandingProvider::branding)
+                .flatMap(value -> value)
+                .orElseGet(() -> defaultBrandingProvider.branding()
+                        .orElseThrow(() -> new IllegalStateException("Default UI branding is not available")));
     }
 
     public List<JobRunrControlNavigationItem> navigationItems() {

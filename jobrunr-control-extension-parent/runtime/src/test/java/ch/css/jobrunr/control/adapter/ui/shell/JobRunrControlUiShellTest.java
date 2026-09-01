@@ -21,15 +21,20 @@ class JobRunrControlUiShellTest {
         JobRunrControlNavigationContributor earlier = contributor(100, "earlier");
         Instance<JobRunrControlNavigationContributor> contributors = mock(Instance.class);
         JobRunrControlUiBrandingProvider brandingProvider = mock(JobRunrControlUiBrandingProvider.class);
+        DefaultJobRunrControlUiBrandingProvider defaultBrandingProvider =
+                mock(DefaultJobRunrControlUiBrandingProvider.class);
         when(contributors.stream()).thenReturn(Stream.of(later, earlier));
         when(brandingProvider.branding()).thenReturn(Optional.empty());
+        when(defaultBrandingProvider.branding()).thenReturn(Optional.of(
+                new JobRunrControlUiBranding("Default", "/", "clock", Optional.empty())));
 
         JobRunrControlUiShell shell = new JobRunrControlUiShell(
-                contributors, brandingProvider, mock(SecurityIdentity.class));
+                contributors, brandingProvider, defaultBrandingProvider, mock(SecurityIdentity.class));
 
         assertThat(shell.navigationItems())
                 .extracting(JobRunrControlNavigationItem::id)
                 .containsExactly("earlier", "later");
+        assertThat(shell.branding().applicationName()).isEqualTo("Default");
     }
 
     private JobRunrControlNavigationContributor contributor(int order, String id) {
