@@ -54,7 +54,7 @@ public class JobRunrControlProcessor {
             if (input == null) {
                 throw new IllegalStateException("Missing extension resource: " + CUSTOM_CSS_RESOURCE);
             }
-            resources.produce(new GeneratedStaticResourceBuildItem("/css/custom.css", input.readAllBytes()));
+            resources.produce(new GeneratedStaticResourceBuildItem("/q/jobrunr-control/css/custom.css", input.readAllBytes()));
         } catch (IOException e) {
             throw new IllegalStateException("Unable to read extension resource: " + CUSTOM_CSS_RESOURCE, e);
         }
