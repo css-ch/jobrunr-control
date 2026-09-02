@@ -35,7 +35,7 @@
                                        maxlength="{param.maxlength()}"
                                        {#if param.required()}required{/if}
                                         {#if existingValues}
-                                            {#if existingValues.get(param.name())}
+                                            {#if existingValues.containsKey(param.name())}
                                                 value="{existingValues.get(param.name())}"
                                             {#else}
                                                 {#if param.defaultValue()}
@@ -59,7 +59,7 @@
                                           maxlength="{param.maxlength()}"
                                           {#if param.required()}required{/if}
                                           {#if param.description()}title="{param.description()}" data-bs-toggle="tooltip" data-bs-placement="top"{/if}
-                                          placeholder="Mehrzeiliger Text eingeben (max. {param.maxlength()} Zeichen)">{#if existingValues}{#if existingValues.get(param.name())}{existingValues.get(param.name())}{#else}{#if param.defaultValue()}{param.defaultValue()}{/if}{/if}{#else}{#if param.defaultValue()}{param.defaultValue()}{/if}{/if}</textarea>
+                                          placeholder="Mehrzeiliger Text eingeben (max. {param.maxlength()} Zeichen)">{#if existingValues}{#if existingValues.containsKey(param.name())}{existingValues.get(param.name())}{#else}{#if param.defaultValue()}{param.defaultValue()}{/if}{/if}{#else}{#if param.defaultValue()}{param.defaultValue()}{/if}{/if}</textarea>
                                 <small class="form-text text-muted" data-counter-for="param-{param.name()}">Verbleibend: - von {param.maxlength()}</small>
 
                             {#else if param.type().name() == 'INTEGER'}
@@ -69,7 +69,7 @@
                                        class="form-control"
                                        {#if param.required()}required{/if}
                                         {#if existingValues}
-                                            {#if existingValues.get(param.name())}
+                                            {#if existingValues.containsKey(param.name())}
                                                 value="{existingValues.get(param.name())}"
                                             {#else}
                                                 {#if param.defaultValue()}
@@ -92,7 +92,7 @@
                                        class="form-control"
                                        {#if param.required()}required{/if}
                                         {#if existingValues}
-                                            {#if existingValues.get(param.name())}
+                                            {#if existingValues.containsKey(param.name())}
                                                 value="{existingValues.get(param.name())}"
                                             {#else}
                                                 {#if param.defaultValue()}
@@ -114,7 +114,7 @@
                                         {#if param.required()}required{/if}
                                         {#if param.description()}title="{param.description()}" data-bs-toggle="tooltip" data-bs-placement="top"{/if}>
                                     {#if existingValues}
-                                        {#if existingValues.get(param.name())}
+                                        {#if existingValues.containsKey(param.name())}
                                             <option value="true"
                                                     {#if existingValues.get(param.name()) == 'true' || existingValues.get(param.name()) == true}selected{/if}>
                                                 Ja
@@ -144,7 +144,7 @@
                                        class="form-control"
                                        {#if param.required()}required{/if}
                                 {#if existingValues}
-                                    {#if existingValues.get(param.name())}
+                                    {#if existingValues.containsKey(param.name())}
                                         value="{existingValues.get(param.name())}"
                                     {#else}
                                         {#if param.defaultValue()}
@@ -170,7 +170,7 @@
                                     {#for enumValue in param.enumValues()}
                                         <option value="{enumValue.value()}"
                                         {#if existingValues}
-                                            {#if existingValues.get(param.name())}
+                                            {#if existingValues.containsKey(param.name())}
                                                     {#if existingValues.get(param.name()).toString() == enumValue.value()}selected{/if}
                                             {#else}
                                                     {#if param.defaultValue() == enumValue.value()}selected{/if}
@@ -194,7 +194,7 @@
                                     {#for enumValue in param.enumValues()}
                                         <option value="{enumValue.value()}"
                                         {#if existingValues}
-                                            {#if existingValues.get(param.name())}
+                                            {#if existingValues.containsKey(param.name())}
                                                     {#if existingValues.get(param.name()).toString().contains(enumValue.value())}selected{/if}
                                             {#else}
                                                     {#if param.defaultValue() && param.defaultValue().contains(enumValue.value())}selected{/if}
@@ -217,7 +217,7 @@
                                        class="form-control"
                                        {#if param.required()}required{/if}
                                 {#if existingValues}
-                                    {#if existingValues.get(param.name())}
+                                    {#if existingValues.containsKey(param.name())}
                                         value="{existingValues.get(param.name())}"
                                     {#else}
                                         {#if param.defaultValue()}
