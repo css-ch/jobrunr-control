@@ -553,7 +553,7 @@ Jobs in progress are not affected.
 
 |**DateTime**
 |Date and time picker
-|`2024-06-15T14:30:00`
+|`2024-06-15T14:30` (minutes by default; `2024-06-15T14:30:00` or `2024-06-15T14:30:00.000` when the job developer enables seconds or millisecond precision)
 
 |**Enum**
 |Dropdown selection (single)

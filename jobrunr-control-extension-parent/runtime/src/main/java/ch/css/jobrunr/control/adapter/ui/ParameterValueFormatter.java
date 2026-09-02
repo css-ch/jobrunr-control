@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter;
  * <p>
  * Formats values according to Swiss conventions:
  * - LocalDate: dd.MM.yyyy
- * - LocalDateTime: dd.MM.yyyy HH:mm
+ * - LocalDateTime: dd.MM.yyyy HH:mm, with seconds and/or milliseconds appended when present
  * - Instant: dd.MM.yyyy HH:mm (converted to Swiss timezone)
  * - Boolean: Ja/Nein
  * - Others: String representation
@@ -27,7 +27,9 @@ import java.time.format.DateTimeFormatter;
 public class ParameterValueFormatter {
 
     private static final DateTimeFormatter SWISS_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private static final DateTimeFormatter SWISS_DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final DateTimeFormatter SWISS_DATETIME_MINUTES_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final DateTimeFormatter SWISS_DATETIME_SECONDS_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+    private static final DateTimeFormatter SWISS_DATETIME_MILLIS_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss.SSS");
     private static final ZoneId SWISS_ZONE = ZoneId.of("Europe/Zurich");
 
     /**
@@ -47,12 +49,13 @@ public class ParameterValueFormatter {
         }
 
         if (value instanceof LocalDateTime localDateTime) {
-            return localDateTime.format(SWISS_DATETIME_FORMATTER);
+            return localDateTime.format(dateTimeFormatterFor(localDateTime));
         }
 
         if (value instanceof String str) {
             try {
-                return LocalDateTime.parse(str).format(SWISS_DATETIME_FORMATTER);
+                LocalDateTime localDateTime = LocalDateTime.parse(str);
+                return localDateTime.format(dateTimeFormatterFor(localDateTime));
             } catch (Exception ignored) {
             }
             try {
@@ -62,7 +65,7 @@ public class ParameterValueFormatter {
         }
 
         if (value instanceof Instant instant) {
-            return instant.atZone(SWISS_ZONE).format(SWISS_DATETIME_FORMATTER);
+            return instant.atZone(SWISS_ZONE).format(SWISS_DATETIME_MINUTES_FORMATTER);
         }
 
         if (value instanceof Boolean bool) {
@@ -70,5 +73,19 @@ public class ParameterValueFormatter {
         }
 
         return value.toString();
+    }
+
+    /**
+     * Picks the display formatter based on the actual precision carried by the value,
+     * so that seconds/milliseconds are only shown when they were actually set.
+     */
+    private static DateTimeFormatter dateTimeFormatterFor(LocalDateTime localDateTime) {
+        if (localDateTime.getNano() != 0) {
+            return SWISS_DATETIME_MILLIS_FORMATTER;
+        }
+        if (localDateTime.getSecond() != 0) {
+            return SWISS_DATETIME_SECONDS_FORMATTER;
+        }
+        return SWISS_DATETIME_MINUTES_FORMATTER;
     }
 }

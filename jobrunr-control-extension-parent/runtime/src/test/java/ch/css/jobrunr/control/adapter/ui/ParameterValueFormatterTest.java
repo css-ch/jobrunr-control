@@ -41,6 +41,24 @@ class ParameterValueFormatterTest {
     }
 
     @Test
+    void shouldFormatLocalDateTimeWithSecondsWhenPresent() {
+        LocalDateTime dateTime = LocalDateTime.of(2024, 3, 15, 14, 30, 45);
+
+        String result = ParameterValueFormatter.formatParameterValue(dateTime);
+
+        assertEquals("15.03.2024 14:30:45", result);
+    }
+
+    @Test
+    void shouldFormatLocalDateTimeWithMillisWhenPresent() {
+        LocalDateTime dateTime = LocalDateTime.of(2024, 3, 15, 14, 30, 45, 123_000_000);
+
+        String result = ParameterValueFormatter.formatParameterValue(dateTime);
+
+        assertEquals("15.03.2024 14:30:45.123", result);
+    }
+
+    @Test
     void shouldFormatBooleanTrueAsJa() {
         String result = ParameterValueFormatter.formatParameterValue(true);
 
@@ -80,6 +98,13 @@ class ParameterValueFormatterTest {
         String result = ParameterValueFormatter.formatParameterValue("2024-03-15");
 
         assertEquals("15.03.2024", result);
+    }
+
+    @Test
+    void shouldFormatLocalDateTimeStringWithMillisWhenPresent() {
+        String result = ParameterValueFormatter.formatParameterValue("2024-03-15T14:30:45.123");
+
+        assertEquals("15.03.2024 14:30:45.123", result);
     }
 
     @Test

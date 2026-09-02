@@ -4,6 +4,7 @@ import ch.css.jobrunr.control.annotations.JobEnum;
 import ch.css.jobrunr.control.annotations.JobParameterDefinition;
 import ch.css.jobrunr.control.annotations.JobParameterSectionLayout;
 import ch.css.jobrunr.control.annotations.JobParameterSet;
+import ch.css.jobrunr.control.annotations.DateTimePrecision;
 import ch.css.jobrunr.control.domain.EnumValue;
 import ch.css.jobrunr.control.domain.JobParameter;
 import ch.css.jobrunr.control.domain.JobParameterSection;
@@ -123,6 +124,7 @@ public class ParameterExtractor {
         boolean required = true;
         JobParameterType parameterType = null;
         int maxlength = 2000;
+        DateTimePrecision precision = DateTimePrecision.MINUTES;
 
         if (jobParamAnnotation != null) {
             // Extract name if specified
@@ -180,6 +182,11 @@ public class ParameterExtractor {
                 parameterType = mapStringToParameterType(typeString);
                 LOG.debugf("Using explicit type '%s' for inline parameter '%s'", typeString, name);
             }
+
+            AnnotationValue precisionValue = jobParamAnnotation.value("dateTimePrecision");
+            if (precisionValue != null) {
+                precision = DateTimePrecision.valueOf(precisionValue.asEnum());
+            }
         }
 
         // If no explicit type, map Java type to JobParameterType
@@ -188,7 +195,7 @@ public class ParameterExtractor {
         }
 
         List<EnumValue> enumValues = getEnumValuesIfApplicable(componentType, parameterType);
-        return new JobParameter(name, displayName, description, parameterType, required, defaultValue, enumValues, order, maxlength, sectionId);
+        return new JobParameter(name, displayName, description, parameterType, required, defaultValue, enumValues, order, maxlength, sectionId, precision);
     }
 
     /**

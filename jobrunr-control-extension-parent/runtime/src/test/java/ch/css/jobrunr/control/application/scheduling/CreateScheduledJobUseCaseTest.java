@@ -1,6 +1,7 @@
 package ch.css.jobrunr.control.application.scheduling;
 
 import ch.css.jobrunr.control.application.audit.AuditLoggerHelper;
+import ch.css.jobrunr.control.annotations.DateTimePrecision;
 import ch.css.jobrunr.control.application.validation.JobParameterValidator;
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
@@ -135,7 +136,7 @@ class CreateScheduledJobUseCaseTest {
                 false,
                 jobType + "Request",
                 jobType + "Handler",
-                List.of(new JobParameter("param1", "param1", null, JobParameterType.STRING, true, null, List.of(), 0, 2000, "default")),
+                List.of(new JobParameter("param1", "param1", null, JobParameterType.STRING, true, null, List.of(), 0, 2000, "default", DateTimePrecision.MINUTES)),
                 List.of(),
                 new JobSettings("", false, 3, List.of(), List.of(), "", "", "", "", "", "", "", null),
                 usesExternalParams,

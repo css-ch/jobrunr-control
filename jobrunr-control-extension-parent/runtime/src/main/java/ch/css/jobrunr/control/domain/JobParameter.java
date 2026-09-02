@@ -1,5 +1,7 @@
 package ch.css.jobrunr.control.domain;
 
+import ch.css.jobrunr.control.annotations.DateTimePrecision;
+
 import java.util.List;
 
 /**
@@ -14,6 +16,7 @@ import java.util.List;
  * @param order        Declaration order (0-based index)
  * @param maxlength    Maximum length for string parameters (default 2000, minimal 1)
  * @param sectionId    ID of the section this parameter belongs to (null if none)
+ * @param dateTimePrecision Precision of the {@code datetime-local} UI input for DATETIME parameters
  */
 public record JobParameter(
         String name,
@@ -25,5 +28,6 @@ public record JobParameter(
         List<EnumValue> enumValues,
         int order,
         int maxlength,
-        String sectionId) {
+        String sectionId,
+        DateTimePrecision dateTimePrecision) {
 }

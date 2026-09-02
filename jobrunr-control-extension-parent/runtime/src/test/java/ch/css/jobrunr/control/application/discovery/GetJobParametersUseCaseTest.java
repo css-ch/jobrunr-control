@@ -1,5 +1,6 @@
 package ch.css.jobrunr.control.application.discovery;
 
+import ch.css.jobrunr.control.annotations.DateTimePrecision;
 import ch.css.jobrunr.control.domain.*;
 import ch.css.jobrunr.control.domain.exceptions.JobNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,8 +35,8 @@ class GetJobParametersUseCaseTest {
     @BeforeEach
     void setUp() {
         testParameters = List.of(
-                new JobParameter("param1", "param1", null, JobParameterType.STRING, true, null, List.of(), 0, 2000, "default"),
-                new JobParameter("param2", "param2", null, JobParameterType.INTEGER, false, "42", List.of(), 1, 2000, "default")
+                new JobParameter("param1", "param1", null, JobParameterType.STRING, true, null, List.of(), 0, 2000, "default", DateTimePrecision.MINUTES),
+                new JobParameter("param2", "param2", null, JobParameterType.INTEGER, false, "42", List.of(), 1, 2000, "default", DateTimePrecision.MINUTES)
         );
 
         testJobDefinition = createJobDefinition("TestJob", testParameters);

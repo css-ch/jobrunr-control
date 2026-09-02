@@ -8,8 +8,9 @@ import org.jboss.logging.Logger;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
 /**
- * Job mit verschiedenen Parameter-Typen.
- * Demonstriert String, MULTILINE, Integer, Double, Boolean, Date, Enum und Multi-Enum Parameter.
+ * Job with various parameter types.
+ * Demonstrates String, MULTILINE, Integer, Double, Boolean, Date, DateTime (at all
+ * precision levels: minutes, seconds, milliseconds), Enum, and Multi-Enum parameters.
  */
 @ApplicationScoped
 public class ParameterDemoJob implements JobRequestHandler<ParameterDemoJobRequest> {
@@ -37,6 +38,8 @@ public class ParameterDemoJob implements JobRequestHandler<ParameterDemoJobReque
         LOG.infof("Boolean parameter: %s", request.booleanParameter());
         LOG.infof("Date parameter: %s", request.dateParameter());
         LOG.infof("DateTime parameter: %s", request.dateTimeParameter());
+        LOG.infof("DateTime (seconds precision) parameter: %s", request.dateTimeSecondsParameter());
+        LOG.infof("DateTime (milliseconds precision) parameter: %s", request.dateTimeMillisParameter());
         LOG.infof("Enum parameter: %s", request.enumParameter());
         LOG.infof("Multi-Enum parameter: %s", request.multiEnumParameter());
 
