@@ -39,7 +39,7 @@ jobs:
           server-password: MAVEN_PASS  # The environment variable name (defined below)
 
       - name: Build with Maven
-        run: mvn -B package --file pom.xml
+        run: ./mvnw -B -U package --file pom.xml
         env:
           MAVEN_USER: ${{ secrets.JOBRUNR_USERNAME }}
           MAVEN_PASS: ${{ secrets.JOBRUNR_PASSWORD }}

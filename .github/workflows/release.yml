@@ -101,12 +101,12 @@ jobs:
 
       - name: Update version in POMs
         run: |
-          mvn -B versions:set -DnewVersion=${{ steps.version.outputs.version }} -DgenerateBackupPoms=false
-          mvn -B versions:commit
+          ./mvnw -B versions:set -DnewVersion=${{ steps.version.outputs.version }} -DgenerateBackupPoms=false
+          ./mvnw -B versions:commit
 
       - name: Build and Deploy to Maven Central
         run: |
-          mvn -B clean deploy -P release \
+          ./mvnw -B clean deploy -P release \
             -DskipTests=false \
             -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}" \
             --file pom.xml
@@ -153,8 +153,8 @@ jobs:
           NEXT_PATCH=$((PATCH + 1))
           NEXT_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}-SNAPSHOT"
           echo "Next development version: $NEXT_VERSION"
-          mvn -B versions:set -DnewVersion=$NEXT_VERSION -DgenerateBackupPoms=false
-          mvn -B versions:commit
+          ./mvnw -B versions:set -DnewVersion=$NEXT_VERSION -DgenerateBackupPoms=false
+          ./mvnw -B versions:commit
 
       - name: Commit next development version
         run: |

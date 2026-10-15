@@ -24,6 +24,20 @@ You will learn how to create configurable jobs, define parameters, implement bat
 * **@ConfigurableJob**: Annotation marking a job for dashboard discovery
 * **@JobParameterDefinition**: Annotation defining parameter metadata
 
+== Building and Publishing This Repository
+
+Use `./mvnw` for repository builds and release publishing so local builds and GitHub
+Actions use the same Maven version.
+The wrapper is pinned to Maven 3.9.16 while the Central Publishing Plugin is at 0.11.0.
+With Maven 3.10.0, that plugin includes `maven-metadata-local.xml` at the artifact
+directory level in its release bundle. Sonatype rejects those directories as content
+without a `.pom`, even though the actual POMs are present in the version directories.
+Validate the bundle contents before upgrading this publishing toolchain.
+
+The example application remains excluded from Central publishing through
+`skipPublishing=true`; both parent POMs and the runtime and deployment artifacts
+must be included.
+
 == Getting Started
 
 === Add Dependencies
@@ -2213,6 +2227,12 @@ public void run(MyJobRequest request) throws Exception {
 * Review Quarkus build output for scanner warnings
 
 == Documentation Changelog
+
+=== 2026-10-15
+
+* Documented the Maven 3.9.16 wrapper requirement for Central Publishing Plugin
+  0.11.0 and the artifact-level metadata issue with Maven 3.10.0.
+* The release workflow now uses the wrapper instead of the runner's unpinned Maven.
 
 === 2026-08-28
 
