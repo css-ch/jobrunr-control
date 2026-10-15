@@ -149,7 +149,7 @@ public class JobInvoker {
 
     private void applyQueue(JobBuilder jobBuilder, JobSettings settings) {
         if (isNotEmpty(settings.queue())) {
-            jobBuilder.withQueue(settings.queue());
+            jobBuilder.withPriorityQueue(settings.queue());
         }
     }
 
